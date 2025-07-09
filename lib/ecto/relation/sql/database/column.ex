@@ -274,10 +274,6 @@ defimpl Ecto.Relation.Schema.Field.Inference, for: Ecto.Relation.SQL.Database.Co
 
       :sqlite ->
         convert_sqlite_type_to_ecto_type(column, table)
-
-      _other ->
-        # Fallback for unsupported adapters
-        :string
     end
   end
 
