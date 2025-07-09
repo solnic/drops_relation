@@ -1,7 +1,7 @@
 defmodule Ecto.Relation.SchemaCacheTest do
   use ExUnit.Case, async: false
 
-  alias Ecto.Relation.SchemaCache
+  alias Ecto.Relation.Cache
   alias Ecto.Relation.Config
 
   # Mock repository for testing
@@ -27,7 +27,7 @@ defmodule Ecto.Relation.SchemaCacheTest do
 
   setup do
     # Clear cache before each test
-    SchemaCache.clear_all()
+    Cache.clear_all()
 
     # Mock config to enable cache
     original_config = Config.schema_cache()
@@ -66,24 +66,24 @@ defmodule Ecto.Relation.SchemaCacheTest do
   describe "get_cached_schema/2" do
     test "returns cached schema on cache hit" do
       # Cache a schema first
-      SchemaCache.cache_schema(TestRepo, "users", :mock_ecto_relation_schema)
+      Cache.cache_schema(TestRepo, "users", :mock_ecto_relation_schema)
 
       # Should return cached schema
-      result = SchemaCache.get_cached_schema(TestRepo, "users")
+      result = Cache.get_cached_schema(TestRepo, "users")
       assert result == :mock_ecto_relation_schema
     end
 
     test "returns nil on cache miss" do
-      result = SchemaCache.get_cached_schema(TestRepo, "posts")
+      result = Cache.get_cached_schema(TestRepo, "posts")
       assert result == nil
     end
 
     test "invalidates cache when migration digest changes" do
       # Cache a schema first
-      SchemaCache.cache_schema(TestRepo, "users", :ecto_relation_schema_v1)
+      Cache.cache_schema(TestRepo, "users", :ecto_relation_schema_v1)
 
       # Should return cached schema
-      result1 = SchemaCache.get_cached_schema(TestRepo, "users")
+      result1 = Cache.get_cached_schema(TestRepo, "users")
       assert result1 == :ecto_relation_schema_v1
 
       # Modify migration file to change digest
@@ -93,35 +93,35 @@ defmodule Ecto.Relation.SchemaCacheTest do
       )
 
       # Should return nil due to digest mismatch
-      result2 = SchemaCache.get_cached_schema(TestRepo, "users")
+      result2 = Cache.get_cached_schema(TestRepo, "users")
       assert result2 == nil
     end
 
     test "handles repository with no migrations" do
       # Cache a schema for empty repo
-      SchemaCache.cache_schema(EmptyRepo, "users", :empty_ecto_relation_schema)
+      Cache.cache_schema(EmptyRepo, "users", :empty_ecto_relation_schema)
 
-      result = SchemaCache.get_cached_schema(EmptyRepo, "users")
+      result = Cache.get_cached_schema(EmptyRepo, "users")
       assert result == :empty_ecto_relation_schema
     end
   end
 
   describe "cache_schema/3" do
     test "caches schema successfully" do
-      SchemaCache.cache_schema(TestRepo, "users", :test_schema)
+      Cache.cache_schema(TestRepo, "users", :test_schema)
 
-      result = SchemaCache.get_cached_schema(TestRepo, "users")
+      result = Cache.get_cached_schema(TestRepo, "users")
       assert result == :test_schema
     end
 
     test "does nothing when cache is disabled" do
       Config.update(:schema_cache, enabled: false)
 
-      SchemaCache.cache_schema(TestRepo, "users", :test_schema)
+      Cache.cache_schema(TestRepo, "users", :test_schema)
 
       # Re-enable cache to check if anything was cached
       Config.update(:schema_cache, enabled: true)
-      result = SchemaCache.get_cached_schema(TestRepo, "users")
+      result = Cache.get_cached_schema(TestRepo, "users")
       assert result == nil
     end
   end
@@ -129,57 +129,57 @@ defmodule Ecto.Relation.SchemaCacheTest do
   describe "clear_repo_cache/1" do
     test "clears cache for specific repository" do
       # Cache schemas for both repos
-      SchemaCache.cache_schema(TestRepo, "users", :ecto_relation_schema)
-      SchemaCache.cache_schema(TestRepo2, "users", :ecto_relation_schema)
+      Cache.cache_schema(TestRepo, "users", :ecto_relation_schema)
+      Cache.cache_schema(TestRepo2, "users", :ecto_relation_schema)
 
       # Verify both are cached
-      assert SchemaCache.get_cached_schema(TestRepo, "users") == :ecto_relation_schema
-      assert SchemaCache.get_cached_schema(TestRepo2, "users") == :ecto_relation_schema
+      assert Cache.get_cached_schema(TestRepo, "users") == :ecto_relation_schema
+      assert Cache.get_cached_schema(TestRepo2, "users") == :ecto_relation_schema
 
       # Clear cache for TestRepo only
-      SchemaCache.clear_repo_cache(TestRepo)
+      Cache.clear_repo_cache(TestRepo)
 
       # TestRepo should be cleared, TestRepo2 should still be cached
-      assert SchemaCache.get_cached_schema(TestRepo, "users") == nil
-      assert SchemaCache.get_cached_schema(TestRepo2, "users") == :ecto_relation_schema
+      assert Cache.get_cached_schema(TestRepo, "users") == nil
+      assert Cache.get_cached_schema(TestRepo2, "users") == :ecto_relation_schema
     end
   end
 
   describe "clear_all/0" do
     test "clears entire cache" do
       # Cache multiple schemas
-      SchemaCache.cache_schema(TestRepo, "users", :ecto_relation_schema)
-      SchemaCache.cache_schema(TestRepo, "posts", :ecto_relation_schema)
-      SchemaCache.cache_schema(TestRepo2, "users", :ecto_relation_schema)
+      Cache.cache_schema(TestRepo, "users", :ecto_relation_schema)
+      Cache.cache_schema(TestRepo, "posts", :ecto_relation_schema)
+      Cache.cache_schema(TestRepo2, "users", :ecto_relation_schema)
 
       # Verify all are cached
-      assert SchemaCache.get_cached_schema(TestRepo, "users") == :ecto_relation_schema
-      assert SchemaCache.get_cached_schema(TestRepo, "posts") == :ecto_relation_schema
-      assert SchemaCache.get_cached_schema(TestRepo2, "users") == :ecto_relation_schema
+      assert Cache.get_cached_schema(TestRepo, "users") == :ecto_relation_schema
+      assert Cache.get_cached_schema(TestRepo, "posts") == :ecto_relation_schema
+      assert Cache.get_cached_schema(TestRepo2, "users") == :ecto_relation_schema
 
       # Clear all
-      SchemaCache.clear_all()
+      Cache.clear_all()
 
       # All should be cleared
-      assert SchemaCache.get_cached_schema(TestRepo, "users") == nil
-      assert SchemaCache.get_cached_schema(TestRepo, "posts") == nil
-      assert SchemaCache.get_cached_schema(TestRepo2, "users") == nil
+      assert Cache.get_cached_schema(TestRepo, "users") == nil
+      assert Cache.get_cached_schema(TestRepo, "posts") == nil
+      assert Cache.get_cached_schema(TestRepo2, "users") == nil
     end
   end
 end
 
-defmodule Ecto.Relation.CacheTest do
+defmodule Ecto.Relation.CacheTest2 do
   use ExUnit.Case, async: false
 
-  alias Ecto.Relation.SchemaCache
+  alias Ecto.Relation.Cache
   alias Ecto.Relation.Config
 
   # Use the same mock repos from the previous test
-  alias Ecto.Relation.SchemaCacheTest.{TestRepo, TestRepo2}
+  alias Ecto.Relation.CacheTest2.{TestRepo, TestRepo2}
 
   setup do
     # Clear cache before each test
-    SchemaCache.clear_all()
+    Cache.clear_all()
 
     # Enable cache for tests
     original_config = Config.schema_cache()
@@ -212,54 +212,54 @@ defmodule Ecto.Relation.CacheTest do
   describe "clear_repo_cache/1" do
     test "clears cache for specific repository" do
       # Add some cached entries
-      SchemaCache.cache_schema(TestRepo, "users", :mock_ecto_relation_schema)
-      SchemaCache.cache_schema(TestRepo2, "users", :mock_ecto_relation_schema)
+      Cache.cache_schema(TestRepo, "users", :mock_ecto_relation_schema)
+      Cache.cache_schema(TestRepo2, "users", :mock_ecto_relation_schema)
 
       # Verify both are cached
-      assert SchemaCache.get_cached_schema(TestRepo, "users") == :mock_ecto_relation_schema
-      assert SchemaCache.get_cached_schema(TestRepo2, "users") == :mock_ecto_relation_schema
+      assert Cache.get_cached_schema(TestRepo, "users") == :mock_ecto_relation_schema
+      assert Cache.get_cached_schema(TestRepo2, "users") == :mock_ecto_relation_schema
 
       # Clear cache for TestRepo
-      SchemaCache.clear_repo_cache(TestRepo)
+      Cache.clear_repo_cache(TestRepo)
 
       # TestRepo should be cleared, TestRepo2 should still be cached
-      assert SchemaCache.get_cached_schema(TestRepo, "users") == nil
-      assert SchemaCache.get_cached_schema(TestRepo2, "users") == :mock_ecto_relation_schema
+      assert Cache.get_cached_schema(TestRepo, "users") == nil
+      assert Cache.get_cached_schema(TestRepo2, "users") == :mock_ecto_relation_schema
     end
   end
 
   describe "clear_all/0" do
     test "clears entire cache" do
-      SchemaCache.cache_schema(TestRepo, "users", :mock_ecto_relation_schema)
-      SchemaCache.cache_schema(TestRepo, "posts", :mock_ecto_relation_schema)
+      Cache.cache_schema(TestRepo, "users", :mock_ecto_relation_schema)
+      Cache.cache_schema(TestRepo, "posts", :mock_ecto_relation_schema)
 
       # Verify both are cached
-      assert SchemaCache.get_cached_schema(TestRepo, "users") == :mock_ecto_relation_schema
-      assert SchemaCache.get_cached_schema(TestRepo, "posts") == :mock_ecto_relation_schema
+      assert Cache.get_cached_schema(TestRepo, "users") == :mock_ecto_relation_schema
+      assert Cache.get_cached_schema(TestRepo, "posts") == :mock_ecto_relation_schema
 
-      SchemaCache.clear_all()
+      Cache.clear_all()
 
       # Both should be cleared
-      assert SchemaCache.get_cached_schema(TestRepo, "users") == nil
-      assert SchemaCache.get_cached_schema(TestRepo, "posts") == nil
+      assert Cache.get_cached_schema(TestRepo, "users") == nil
+      assert Cache.get_cached_schema(TestRepo, "posts") == nil
     end
   end
 
   describe "enabled?/0" do
     test "returns true when cache is enabled" do
       Config.update(:schema_cache, enabled: true)
-      assert SchemaCache.enabled?() == true
+      assert Cache.enabled?() == true
     end
 
     test "returns false when cache is disabled" do
       Config.update(:schema_cache, enabled: false)
-      assert SchemaCache.enabled?() == false
+      assert Cache.enabled?() == false
     end
   end
 
   describe "config/0" do
     test "returns current cache configuration" do
-      config = SchemaCache.config()
+      config = Cache.config()
 
       assert is_list(config)
       assert Keyword.has_key?(config, :enabled)
@@ -268,21 +268,21 @@ defmodule Ecto.Relation.CacheTest do
 
   describe "warm_up/2" do
     test "returns ok when cache is enabled" do
-      assert {:ok, _} = SchemaCache.warm_up(TestRepo, [])
+      assert {:ok, _} = Cache.warm_up(TestRepo, [])
     end
   end
 
   describe "refresh/2" do
     test "clears and optionally warms up cache" do
-      SchemaCache.cache_schema(TestRepo, "users", :mock_ecto_relation_schema)
+      Cache.cache_schema(TestRepo, "users", :mock_ecto_relation_schema)
 
-      assert SchemaCache.get_cached_schema(TestRepo, "users") == :mock_ecto_relation_schema
+      assert Cache.get_cached_schema(TestRepo, "users") == :mock_ecto_relation_schema
 
-      result = SchemaCache.refresh(TestRepo)
+      result = Cache.refresh(TestRepo)
       assert result == :ok
-      assert SchemaCache.get_cached_schema(TestRepo, "users") == nil
+      assert Cache.get_cached_schema(TestRepo, "users") == nil
 
-      assert {:ok, _} = SchemaCache.refresh(TestRepo, [])
+      assert {:ok, _} = Cache.refresh(TestRepo, [])
     end
   end
 
@@ -306,11 +306,11 @@ defmodule Ecto.Relation.CacheTest do
       }
 
       # Cache the schema
-      SchemaCache.cache_schema(TestRepo, "test_table", schema)
+      Cache.cache_schema(TestRepo, "test_table", schema)
 
       # Retrieve and verify - use the same approach as existing tests
       # The cache might return nil due to digest mismatch, but let's test the serialization
-      cache_file = SchemaCache.get_cache_file_path(TestRepo, "test_table")
+      cache_file = Cache.get_cache_file_path(TestRepo, "test_table")
 
       # Read the cache file directly to verify serialization worked
       if File.exists?(cache_file) do
@@ -342,10 +342,10 @@ defmodule Ecto.Relation.CacheTest do
       }
 
       # Cache the schema
-      SchemaCache.cache_schema(TestRepo, "test_table2", schema)
+      Cache.cache_schema(TestRepo, "test_table2", schema)
 
       # Read the cache file directly to verify serialization worked
-      cache_file = SchemaCache.get_cache_file_path(TestRepo, "test_table2")
+      cache_file = Cache.get_cache_file_path(TestRepo, "test_table2")
 
       if File.exists?(cache_file) do
         {:ok, content} = File.read(cache_file)
@@ -377,14 +377,14 @@ defmodule Ecto.Relation.CacheTest do
       }
 
       # Cache the schema
-      SchemaCache.cache_schema(TestRepo, "round_trip_test", schema)
+      Cache.cache_schema(TestRepo, "round_trip_test", schema)
 
       # Clear in-memory cache to force file read
-      SchemaCache.clear_all()
+      Cache.clear_all()
 
       # This should not crash and should return the correct schema
       # (even if it returns nil due to digest mismatch, it shouldn't crash)
-      _result = SchemaCache.get_cached_schema(TestRepo, "round_trip_test")
+      _result = Cache.get_cached_schema(TestRepo, "round_trip_test")
 
       # The important thing is that this call doesn't crash with ArgumentError
       # The result might be nil due to digest validation, but no crash means the fix works
@@ -412,7 +412,7 @@ defmodule Ecto.Relation.CacheTest do
       }
 
       # This should not crash anymore
-      field = SchemaCache.test_deserialize_field(field_data)
+      field = Cache.test_deserialize_field(field_data)
 
       assert field.name == :source_files
       assert field.ecto_type == {:array, :string}
@@ -434,7 +434,7 @@ defmodule Ecto.Relation.CacheTest do
         "type" => "string"
       }
 
-      field = SchemaCache.test_deserialize_field(field_data)
+      field = Cache.test_deserialize_field(field_data)
       assert field.ecto_type == :string
 
       # Array type as map (the crash case)
@@ -447,7 +447,7 @@ defmodule Ecto.Relation.CacheTest do
         "type" => %{"array" => "string"}
       }
 
-      field = SchemaCache.test_deserialize_field(field_data)
+      field = Cache.test_deserialize_field(field_data)
       assert field.ecto_type == {:array, :string}
 
       # Map type as map
@@ -460,7 +460,7 @@ defmodule Ecto.Relation.CacheTest do
         "type" => %{"map" => "string"}
       }
 
-      field = SchemaCache.test_deserialize_field(field_data)
+      field = Cache.test_deserialize_field(field_data)
       assert field.ecto_type == {:map, :string}
 
       # List format (existing functionality)
@@ -473,7 +473,7 @@ defmodule Ecto.Relation.CacheTest do
         "type" => ["array", "string"]
       }
 
-      field = SchemaCache.test_deserialize_field(field_data)
+      field = Cache.test_deserialize_field(field_data)
       assert field.ecto_type == {:array, :string}
 
       # Already proper format
@@ -486,8 +486,10 @@ defmodule Ecto.Relation.CacheTest do
         "type" => {:array, :string}
       }
 
-      field = SchemaCache.test_deserialize_field(field_data)
+      field = Cache.test_deserialize_field(field_data)
       assert field.ecto_type == {:array, :string}
     end
   end
 end
+
+Schema

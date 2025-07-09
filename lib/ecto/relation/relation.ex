@@ -64,10 +64,10 @@ defmodule Ecto.Relation do
     name = opts[:name]
 
     # Register cache file as external resource for recompilation tracking
-    cache_file = Ecto.Relation.SchemaCache.get_cache_file_path(repo, name)
+    cache_file = Ecto.Relation.Cache.get_cache_file_path(repo, name)
     Module.put_attribute(relation, :external_resource, cache_file)
 
-    case Ecto.Relation.SchemaCache.get_cached_schema(repo, name) do
+    case Ecto.Relation.Cache.get_cached_schema(repo, name) do
       %Ecto.Relation.Schema{} = ecto_relation_schema ->
         __define_relation__(env, ecto_relation_schema)
 

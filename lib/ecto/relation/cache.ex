@@ -1,4 +1,4 @@
-defmodule Ecto.Relation.SchemaCache do
+defmodule Ecto.Relation.Cache do
   @moduledoc """
   Persistent cache for inferred Ecto.Relation schemas based on migration file digests.
 
@@ -17,24 +17,24 @@ defmodule Ecto.Relation.SchemaCache do
   ## Usage
 
       # Cache a schema explicitly
-      Ecto.Relation.SchemaCache.cache_schema(MyApp.Repo, "users", schema)
+      Ecto.Relation.Cache.cache_schema(MyApp.Repo, "users", schema)
 
       # Get cached schema (returns nil if not cached)
-      schema = Ecto.Relation.SchemaCache.get_cached_schema(MyApp.Repo, "users")
+      schema = Ecto.Relation.Cache.get_cached_schema(MyApp.Repo, "users")
 
       # Clear cache for a specific repository
-      Ecto.Relation.SchemaCache.clear_repo_cache(MyApp.Repo)
+      Ecto.Relation.Cache.clear_repo_cache(MyApp.Repo)
 
       # Get cached schema or empty schema if not cached
-      schema = Ecto.Relation.SchemaCache.maybe_get_cached_schema(MyApp.Repo, "users")
+      schema = Ecto.Relation.Cache.maybe_get_cached_schema(MyApp.Repo, "users")
 
       # Check if cache is enabled
-      if Ecto.Relation.SchemaCache.enabled?() do
+      if Ecto.Relation.Cache.enabled?() do
         # Cache-specific logic
       end
 
       # Warm up cache for specific tables
-      Ecto.Relation.SchemaCache.warm_up(MyApp.Repo, ["users", "posts", "comments"])
+      Ecto.Relation.Cache.warm_up(MyApp.Repo, ["users", "posts", "comments"])
   """
 
   require Logger
@@ -129,7 +129,7 @@ defmodule Ecto.Relation.SchemaCache do
   ## Examples
 
       schema = Ecto.Relation.Inference.infer_schema(relation, "users", MyApp.Repo)
-      Ecto.Relation.SchemaCache.cache_schema(MyApp.Repo, "users", schema)
+      Ecto.Relation.Cache.cache_schema(MyApp.Repo, "users", schema)
   """
   @spec cache_schema(module(), String.t(), any()) :: :ok
   def cache_schema(repo, table_name, schema) do
@@ -175,7 +175,7 @@ defmodule Ecto.Relation.SchemaCache do
 
   ## Examples
 
-      Ecto.Relation.SchemaCache.clear_repo_cache(MyApp.Repo)
+      Ecto.Relation.Cache.clear_repo_cache(MyApp.Repo)
   """
   @spec clear_repo_cache(module()) :: :ok
   def clear_repo_cache(repo) do
@@ -215,7 +215,7 @@ defmodule Ecto.Relation.SchemaCache do
 
   ## Examples
 
-      if Ecto.Relation.SchemaCache.enabled?() do
+      if Ecto.Relation.Cache.enabled?() do
         IO.puts("Cache is enabled")
       end
   """
@@ -233,7 +233,7 @@ defmodule Ecto.Relation.SchemaCache do
 
   ## Examples
 
-      config = Ecto.Relation.SchemaCache.config()
+      config = Ecto.Relation.Cache.config()
       # => [enabled: true]
   """
   @spec config() :: keyword()
@@ -260,7 +260,7 @@ defmodule Ecto.Relation.SchemaCache do
   ## Examples
 
       # Warm up cache for common tables
-      Ecto.Relation.SchemaCache.warm_up(MyApp.Repo, ["users", "posts", "comments"])
+      Ecto.Relation.Cache.warm_up(MyApp.Repo, ["users", "posts", "comments"])
   """
 
   @spec warm_up(module(), String.t()) :: Schema.t() | {:error, term()}
@@ -305,10 +305,10 @@ defmodule Ecto.Relation.SchemaCache do
   ## Examples
 
       # Just clear the cache
-      Ecto.Relation.SchemaCache.refresh(MyApp.Repo)
+      Ecto.Relation.Cache.refresh(MyApp.Repo)
 
       # Clear and warm up specific tables
-      Ecto.Relation.SchemaCache.refresh(MyApp.Repo, ["users", "posts"])
+      Ecto.Relation.Cache.refresh(MyApp.Repo, ["users", "posts"])
   """
   @spec refresh(module(), [String.t()] | nil) :: :ok | {:error, term()}
   def refresh(repo, table_names \\ nil) when is_atom(repo) do

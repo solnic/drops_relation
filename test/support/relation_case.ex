@@ -147,7 +147,7 @@ defmodule Ecto.RelationCase do
             :postgres -> Ecto.Relation.Repos.Postgres
           end
 
-        {:ok, _} = Ecto.Relation.SchemaCache.warm_up(repo_module, [table_name])
+        {:ok, _} = Ecto.Relation.Cache.warm_up(repo_module, [table_name])
 
         block = Keyword.get(unquote(Macro.escape(opts)), :do, [])
 
@@ -240,7 +240,7 @@ defmodule Ecto.RelationCase do
     table_names = Enum.map(relations, &Atom.to_string/1)
 
     # Always force refresh in tests to ensure fresh schema inference
-    {:ok, _} = Ecto.Relation.SchemaCache.refresh(repo, table_names)
+    {:ok, _} = Ecto.Relation.Cache.refresh(repo, table_names)
 
     {context, cleanup_modules} =
       Enum.reduce(relations, {%{}, []}, fn relation_name, {context, cleanup_modules} ->

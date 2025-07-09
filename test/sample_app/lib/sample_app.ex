@@ -14,7 +14,7 @@ defmodule SampleApp do
 
     pid = Supervisor.start_link(children, opts)
 
-    Ecto.Relation.SchemaCache.warm_up(SampleApp.Repo, ["users"])
+    Ecto.Relation.Cache.warm_up(SampleApp.Repo, ["users"])
 
     pid
   end

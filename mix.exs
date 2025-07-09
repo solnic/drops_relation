@@ -83,7 +83,7 @@ defmodule Ecto.Relation.MixProject do
           Ecto.Relation.SQL.Introspector
         ],
         Cache: [
-          Ecto.Relation.SchemaCache
+          Ecto.Relation.Cache
         ]
       ]
     ]
