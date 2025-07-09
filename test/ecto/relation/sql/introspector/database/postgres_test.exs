@@ -166,6 +166,7 @@ defmodule Ecto.Relation.SQL.Introspector.Database.PostgresTest do
       assert id_column
       assert id_column.type == "integer"
       assert id_column.primary_key == true
+      assert id_column.nullable == false
 
       assert name_column
       assert name_column.type == "character varying"

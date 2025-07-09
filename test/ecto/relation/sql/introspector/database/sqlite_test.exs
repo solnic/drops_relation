@@ -91,7 +91,7 @@ defmodule Ecto.Relation.SQL.Introspector.Database.SQLiteTest do
         Ecto.Relation.Repos.Sqlite,
         """
         CREATE TABLE test_sqlite_columns (
-          id INTEGER PRIMARY KEY,
+          id INTEGER PRIMARY KEY NOT NULL,
           name TEXT NOT NULL,
           email TEXT UNIQUE,
           age INTEGER,
@@ -116,6 +116,7 @@ defmodule Ecto.Relation.SQL.Introspector.Database.SQLiteTest do
       assert id_column
       assert id_column.type == "INTEGER"
       assert id_column.primary_key == true
+      assert id_column.nullable == false
 
       assert name_column
       assert name_column.type == "TEXT"
