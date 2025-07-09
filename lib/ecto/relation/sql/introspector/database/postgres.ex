@@ -55,7 +55,6 @@ defmodule Ecto.Relation.SQL.Introspector.Database.Postgres do
     end
   end
 
-  @impl true
   def db_type_to_ecto_type(postgres_type, field_name) do
     # Handle array types first (since we can't use String.ends_with? in guards)
     if String.ends_with?(postgres_type, "[]") do

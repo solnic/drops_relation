@@ -59,7 +59,6 @@ defmodule Ecto.Relation.SQL.Introspector.Database.SQLite do
     end
   end
 
-  @impl true
   def db_type_to_ecto_type(sqlite_type, field_name) do
     # Normalize the type string for comparison
     normalized_type = String.upcase(sqlite_type)

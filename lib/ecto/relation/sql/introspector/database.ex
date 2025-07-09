@@ -143,27 +143,6 @@ defmodule Ecto.Relation.SQL.Introspector.Database do
               {:ok, [Index.t()]} | {:error, term()}
 
   @doc """
-  Converts database types to Ecto types.
-
-  ## Parameters
-
-  - `db_type` - The database type as a string
-  - `field_name` - The field name (used for foreign key detection)
-
-  ## Returns
-
-  An Ecto type atom.
-
-  ## Examples
-
-      iex> MyAdapter.db_type_to_ecto_type("INTEGER", "user_id")
-      :id
-      iex> MyAdapter.db_type_to_ecto_type("TEXT", "name")
-      :string
-  """
-  @callback db_type_to_ecto_type(String.t(), String.t()) :: atom()
-
-  @doc """
   Converts database-specific index types to atoms.
 
   ## Parameters
