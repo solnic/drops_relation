@@ -244,9 +244,9 @@ defmodule Ecto.Relation.SQL.Database.ForeignKey do
   def column_count(%__MODULE__{columns: columns}), do: length(columns)
 end
 
-defimpl Ecto.Relation.SQL.DatabaseToSchema, for: Ecto.Relation.SQL.Database.ForeignKey do
+defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.ForeignKey do
   @moduledoc """
-  Implementation of DatabaseToSchema protocol for ForeignKey structs.
+  Implementation of Ecto.Relation.Schema.Inference protocol for ForeignKey structs.
 
   Converts database ForeignKey structs to Ecto.Relation.Schema.ForeignKey structs.
   """

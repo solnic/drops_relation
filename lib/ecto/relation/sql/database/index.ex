@@ -236,9 +236,9 @@ defmodule Ecto.Relation.SQL.Database.Index do
   def column_count(%__MODULE__{columns: columns}), do: length(columns)
 end
 
-defimpl Ecto.Relation.SQL.DatabaseToSchema, for: Ecto.Relation.SQL.Database.Index do
+defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.Index do
   @moduledoc """
-  Implementation of DatabaseToSchema protocol for Index structs.
+  Implementation of Ecto.Relation.Schema.Inference protocol for Index structs.
 
   Converts database Index structs to Ecto.Relation.Schema.Index structs.
   """

@@ -137,14 +137,10 @@ defmodule Ecto.Relation.SQL.Database.Column do
       name: Map.get(data, :name) || Map.get(data, "name"),
       type: Map.get(data, :type) || Map.get(data, "type"),
       nullable:
-        to_boolean(
-          not (Map.get(data, :not_null, false) || Map.get(data, "not_null", false))
-        ),
+        to_boolean(not (Map.get(data, :not_null, false) || Map.get(data, "not_null", false))),
       default: Map.get(data, :default) || Map.get(data, "default"),
       primary_key:
-        to_boolean(
-          Map.get(data, :primary_key, false) || Map.get(data, "primary_key", false)
-        ),
+        to_boolean(Map.get(data, :primary_key, false) || Map.get(data, "primary_key", false)),
       check_constraints:
         Map.get(data, :check_constraints, []) || Map.get(data, "check_constraints", [])
     }
@@ -230,9 +226,9 @@ defmodule Ecto.Relation.SQL.Database.Column do
     do: constraints != []
 end
 
-defimpl Ecto.Relation.SQL.DatabaseToSchema, for: Ecto.Relation.SQL.Database.Column do
+defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.Column do
   @moduledoc """
-  Implementation of DatabaseToSchema protocol for Column structs.
+  Implementation of Ecto.Relation.Schema.Inference protocol for Column structs.
 
   Converts database Column structs to Ecto.Relation.Schema.Field structs
   with proper type mapping and metadata.

@@ -28,7 +28,8 @@ defmodule Ecto.Relation.SQL.Inference do
 
   alias Ecto.Relation.Schema
   alias Ecto.Relation.Schema.{Field, PrimaryKey, Indices}
-  alias Ecto.Relation.SQL.{Introspector, DatabaseToSchema}
+  alias Ecto.Relation.Schema.Inference
+  alias Ecto.Relation.SQL.Introspector
 
   require Logger
 
@@ -181,7 +182,7 @@ defmodule Ecto.Relation.SQL.Inference do
     # Convert columns to fields using the protocol with table context
     fields =
       Enum.map(table.columns, fn column ->
-        field = DatabaseToSchema.to_schema_component(column, table)
+        field = Inference.to_schema_component(column, table)
 
         # Add foreign key metadata if this column is part of a foreign key
         if column.name in foreign_key_columns do
@@ -202,10 +203,10 @@ defmodule Ecto.Relation.SQL.Inference do
     primary_key = PrimaryKey.new(pk_fields)
 
     # Convert foreign keys using protocol
-    foreign_keys = Enum.map(table.foreign_keys, &DatabaseToSchema.to_schema_component/1)
+    foreign_keys = Enum.map(table.foreign_keys, &Inference.to_schema_component/1)
 
     # Convert indices using protocol
-    schema_indices = Enum.map(table.indexes, &DatabaseToSchema.to_schema_component/1)
+    schema_indices = Enum.map(table.indexes, &Inference.to_schema_component/1)
     indices = Indices.new(schema_indices)
 
     Schema.new(

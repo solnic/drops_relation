@@ -1,4 +1,4 @@
-defprotocol Ecto.Relation.SQL.DatabaseToSchema do
+defprotocol Ecto.Relation.Schema.Inference do
   @moduledoc """
   Protocol for converting database introspection components to Ecto.Relation.Schema components.
 
@@ -11,12 +11,12 @@ defprotocol Ecto.Relation.SQL.DatabaseToSchema do
       # Convert a column to a field
       alias Ecto.Relation.SQL.Database.Column
       column = %Column{name: "email", type: "varchar(255)", ...}
-      field = Ecto.Relation.SQL.DatabaseToSchema.to_schema_component(column)
+      field = Ecto.Relation.Schema.Inference.to_schema_component(column)
 
       # Convert a primary key with column context
       alias Ecto.Relation.SQL.Database.PrimaryKey
       pk = %PrimaryKey{columns: ["id"]}
-      schema_pk = Ecto.Relation.SQL.DatabaseToSchema.to_schema_component(pk, columns)
+      schema_pk = Ecto.Relation.Schema.Inference.to_schema_component(pk, columns)
   """
 
   @doc """
@@ -39,7 +39,7 @@ defprotocol Ecto.Relation.SQL.DatabaseToSchema do
   ## Examples
 
       iex> column = %Database.Column{name: "email", type: "varchar(255)", ...}
-      iex> field = Ecto.Relation.SQL.DatabaseToSchema.to_schema_component(column)
+      iex> field = Ecto.Relation.Schema.Inference.to_schema_component(column)
       iex> field.name
       :email
   """
@@ -65,7 +65,7 @@ defprotocol Ecto.Relation.SQL.DatabaseToSchema do
 
       iex> column = %Database.Column{name: "email", type: "varchar(255)", ...}
       iex> table = %Database.Table{adapter: :postgres, ...}
-      iex> field = Ecto.Relation.SQL.DatabaseToSchema.to_schema_component(column, table)
+      iex> field = Ecto.Relation.Schema.Inference.to_schema_component(column, table)
       iex> field.name
       :email
   """

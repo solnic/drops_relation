@@ -174,9 +174,9 @@ defmodule Ecto.Relation.SQL.Database.PrimaryKey do
   def column_count(%__MODULE__{columns: columns}), do: length(columns)
 end
 
-defimpl Ecto.Relation.SQL.DatabaseToSchema, for: Ecto.Relation.SQL.Database.PrimaryKey do
+defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.PrimaryKey do
   @moduledoc """
-  Implementation of DatabaseToSchema protocol for PrimaryKey structs.
+  Implementation of Ecto.Relation.Schema.Inference protocol for PrimaryKey structs.
 
   Converts database PrimaryKey structs to Ecto.Relation.Schema.PrimaryKey structs
   using the provided column context.
