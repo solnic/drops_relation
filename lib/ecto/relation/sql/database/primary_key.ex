@@ -174,7 +174,7 @@ defmodule Ecto.Relation.SQL.Database.PrimaryKey do
   def column_count(%__MODULE__{columns: columns}), do: length(columns)
 end
 
-defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.PrimaryKey do
+defimpl Ecto.Relation.Schema.Field.Inference, for: Ecto.Relation.SQL.Database.PrimaryKey do
   @moduledoc """
   Implementation of Ecto.Relation.Schema.Inference protocol for PrimaryKey structs.
 
@@ -184,8 +184,9 @@ defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.PrimaryK
 
   alias Ecto.Relation.Schema
 
-  def to_schema_component(%Ecto.Relation.SQL.Database.PrimaryKey{} = primary_key, table) do
+  def to_schema_field(%Ecto.Relation.SQL.Database.PrimaryKey{} = primary_key, table) do
     pk_fields = Enum.filter(table.columns, fn column -> column.name in primary_key.columns end)
-    Schema.PrimaryKey.new(pk_fields)
+
+    Schema.PrimaryKey.new(Enum.map(pk_fields, &Schema.Field.Inference.to_schema_field(&1, table)))
   end
 end

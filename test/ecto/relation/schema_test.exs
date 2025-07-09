@@ -17,14 +17,13 @@ defmodule Ecto.Relation.SchemaTest do
 
       indices = Indices.new([])
 
-      schema = Schema.new("posts", pk, [fk], fields, indices, [])
+      schema = Schema.new("posts", pk, [fk], fields, indices)
 
       assert schema.source == "posts"
       assert schema.primary_key == pk
       assert schema.foreign_keys == [fk]
       assert schema.fields == fields
       assert schema.indices == indices
-      assert schema.virtual_fields == []
     end
   end
 
@@ -38,7 +37,6 @@ defmodule Ecto.Relation.SchemaTest do
       assert length(schema.fields) > 0
       assert Enum.any?(schema.fields, &(&1.name == :name))
       assert Enum.any?(schema.fields, &(&1.name == :email))
-      assert schema.virtual_fields == []
       # No repo provided
       assert Indices.empty?(schema.indices)
     end

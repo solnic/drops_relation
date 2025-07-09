@@ -21,10 +21,14 @@ defmodule Ecto.Relation.Schema do
         indices: %Ecto.Relation.Schema.Indices{indices: [...]},
         associations: [
           # Ecto association structs (BelongsTo, Has, ManyToMany, etc.)
-        ],
-        virtual_fields: []
+        ]
       }
   """
+
+  defprotocol Inference do
+    @spec to_schema(term()) :: Ecto.Relation.Schema.t()
+    def to_schema(table)
+  end
 
   alias Ecto.Relation.Schema.{PrimaryKey, ForeignKey, Indices, Field}
 
@@ -40,8 +44,7 @@ defmodule Ecto.Relation.Schema do
           primary_key: PrimaryKey.t(),
           foreign_keys: [ForeignKey.t()],
           fields: [Field.t()],
-          indices: Indices.t(),
-          virtual_fields: [atom()]
+          indices: Indices.t()
         }
 
   defstruct [
@@ -49,8 +52,7 @@ defmodule Ecto.Relation.Schema do
     :primary_key,
     :foreign_keys,
     :fields,
-    :indices,
-    :virtual_fields
+    :indices
   ]
 
   @doc """
@@ -63,7 +65,6 @@ defmodule Ecto.Relation.Schema do
   - `foreign_keys` - List of foreign key relationships
   - `fields` - List of field metadata
   - `indices` - Index information
-  - `virtual_fields` - List of virtual field names
 
   ## Examples
 
@@ -78,30 +79,25 @@ defmodule Ecto.Relation.Schema do
           PrimaryKey.t(),
           [ForeignKey.t()],
           [Field.t()],
-          Indices.t(),
-          [atom()]
+          Indices.t() | []
         ) :: t()
-  def new(
-        source,
-        primary_key,
-        foreign_keys,
-        fields,
-        indices,
-        virtual_fields
-      ) do
+  def new(source, primary_key, foreign_keys, fields, indices) when is_list(indices) do
+    new(source, primary_key, foreign_keys, fields, Indices.new(indices))
+  end
+
+  def new(source, primary_key, foreign_keys, fields, indices) do
     %__MODULE__{
       source: source,
       primary_key: primary_key,
       foreign_keys: foreign_keys,
       fields: fields,
-      indices: indices,
-      virtual_fields: virtual_fields
+      indices: indices
     }
   end
 
   @spec empty(String.t()) :: t()
   def empty(name) do
-    new(name, nil, [], [], Indices.new([]), [])
+    new(name, nil, [], [], [])
   end
 
   @doc """
@@ -132,8 +128,7 @@ defmodule Ecto.Relation.Schema do
       primary_key: metadata.primary_key,
       foreign_keys: metadata.foreign_keys,
       fields: metadata.fields,
-      indices: metadata.indices,
-      virtual_fields: metadata.virtual_fields
+      indices: metadata.indices
     }
   end
 

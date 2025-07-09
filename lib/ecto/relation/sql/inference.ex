@@ -66,7 +66,7 @@ defmodule Ecto.Relation.SQL.Inference do
   def infer_from_table(table_name, repo) do
     case Introspector.introspect_table(repo, table_name) do
       {:ok, table} ->
-        table_to_schema(table)
+        Inference.to_schema(table)
 
       {:error, reason} ->
         raise "Failed to introspect table #{table_name}: #{inspect(reason)}"
@@ -100,17 +100,5 @@ defmodule Ecto.Relation.SQL.Inference do
       {:array, inner_type} -> {:array, normalize_ecto_type(inner_type)}
       other -> other
     end
-  end
-
-  alias Ecto.Relation.Schema
-
-  defp table_to_schema(%Ecto.Relation.SQL.Database.Table{} = table) do
-    primary_key = Inference.to_schema_component(table.primary_key, table)
-    fields = Enum.map(table.columns, &Inference.to_schema_component(&1, table))
-    foreign_keys = Enum.map(table.foreign_keys, &Inference.to_schema_component(&1, table))
-    schema_indices = Enum.map(table.indexes, &Inference.to_schema_component(&1, table))
-    indices = Schema.Indices.new(schema_indices)
-
-    Schema.new(table.name, primary_key, foreign_keys, fields, indices, [])
   end
 end

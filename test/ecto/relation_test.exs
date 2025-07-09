@@ -136,9 +136,6 @@ defmodule Ecto.Relations.SchemaSpec do
 
       # Should have empty foreign keys for simple schema
       assert schema.foreign_keys == []
-
-      # Should have empty virtual fields
-      assert schema.virtual_fields == []
     end
 
     @tag relations: [:associations, :association_items, :association_parents]

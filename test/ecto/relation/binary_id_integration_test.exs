@@ -75,8 +75,7 @@ defmodule Ecto.Relation.BinaryIdIntegrationTest do
           })
         ],
         foreign_keys: [],
-        indices: %Ecto.Relation.Schema.Indices{indices: []},
-        virtual_fields: []
+        indices: %Ecto.Relation.Schema.Indices{indices: []}
       }
 
       result = Generator.generate_module_content("MyApp.User", "binary_id_users", schema)
@@ -104,8 +103,7 @@ defmodule Ecto.Relation.BinaryIdIntegrationTest do
           Field.new(:user_id, :binary, :binary_id, :user_id)
         ],
         foreign_keys: [],
-        indices: %Ecto.Relation.Schema.Indices{indices: []},
-        virtual_fields: []
+        indices: %Ecto.Relation.Schema.Indices{indices: []}
       }
 
       # Test serialization and deserialization
@@ -145,8 +143,7 @@ defmodule Ecto.Relation.BinaryIdIntegrationTest do
           Field.new(:parent_ids, {:array, :binary}, {:array, :binary_id}, :parent_ids)
         ],
         foreign_keys: [],
-        indices: %Ecto.Relation.Schema.Indices{indices: []},
-        virtual_fields: []
+        indices: %Ecto.Relation.Schema.Indices{indices: []}
       }
 
       # This should not crash (testing the original issue)

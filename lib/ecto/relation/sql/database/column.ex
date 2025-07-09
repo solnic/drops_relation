@@ -226,7 +226,7 @@ defmodule Ecto.Relation.SQL.Database.Column do
     do: constraints != []
 end
 
-defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.Column do
+defimpl Ecto.Relation.Schema.Field.Inference, for: Ecto.Relation.SQL.Database.Column do
   @moduledoc """
   Implementation of Ecto.Relation.Schema.Inference protocol for Column structs.
 
@@ -234,16 +234,16 @@ defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.Column d
   with proper type mapping and metadata.
   """
 
-  alias Ecto.Relation.Schema.Field
+  alias Ecto.Relation.Schema
 
-  def to_schema_component(%Ecto.Relation.SQL.Database.Column{} = _column) do
+  def to_schema(%Ecto.Relation.SQL.Database.Column{} = _column) do
     # For single-argument version, we can't do proper type conversion without table context
     # This should generally not be used - use the two-argument version with table context
     raise ArgumentError,
-          "Column conversion requires table context. Use to_schema_component(column, table)."
+          "Column conversion requires table context. Use to_schema(column, table)."
   end
 
-  def to_schema_component(
+  def to_schema_field(
         %Ecto.Relation.SQL.Database.Column{} = column,
         %Ecto.Relation.SQL.Database.Table{} = table
       ) do
@@ -261,7 +261,7 @@ defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.Column d
       primary_key: column.primary_key
     }
 
-    Field.new(
+    Schema.Field.new(
       String.to_atom(column.name),
       normalized_type,
       ecto_type,

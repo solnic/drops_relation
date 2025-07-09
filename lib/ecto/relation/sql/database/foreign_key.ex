@@ -244,7 +244,7 @@ defmodule Ecto.Relation.SQL.Database.ForeignKey do
   def column_count(%__MODULE__{columns: columns}), do: length(columns)
 end
 
-defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.ForeignKey do
+defimpl Ecto.Relation.Schema.Field.Inference, for: Ecto.Relation.SQL.Database.ForeignKey do
   @moduledoc """
   Implementation of Ecto.Relation.Schema.Inference protocol for ForeignKey structs.
 
@@ -253,7 +253,7 @@ defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.ForeignK
 
   alias Ecto.Relation.Schema
 
-  def to_schema_component(%Ecto.Relation.SQL.Database.ForeignKey{} = foreign_key, _table) do
+  def to_schema_field(%Ecto.Relation.SQL.Database.ForeignKey{} = foreign_key, _table) do
     field_name =
       case foreign_key.columns do
         [single_column] ->

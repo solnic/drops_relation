@@ -24,6 +24,11 @@ defmodule Ecto.Relation.Schema.Field do
       }
   """
 
+  defprotocol Inference do
+    @spec to_schema_field(term(), term()) :: Ecto.Relation.Schema.Field.t()
+    def to_schema_field(component, table)
+  end
+
   @type meta :: %{
           nullable: boolean() | nil,
           default: term() | nil,
@@ -105,9 +110,7 @@ defmodule Ecto.Relation.Schema.Field do
       }
   """
   @spec from_metadata(map()) :: t()
-  def from_metadata(
-        %{name: name, type: type, ecto_type: ecto_type, source: source} = metadata
-      ) do
+  def from_metadata(%{name: name, type: type, ecto_type: ecto_type, source: source} = metadata) do
     meta = Map.get(metadata, :meta, %{})
     new(name, type, ecto_type, source, meta)
   end

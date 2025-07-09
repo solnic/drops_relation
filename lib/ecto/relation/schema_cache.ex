@@ -485,8 +485,7 @@ defmodule Ecto.Relation.SchemaCache do
         primary_key: deserialize_primary_key(schema_data["primary_key"]),
         foreign_keys: deserialize_foreign_keys(schema_data["foreign_keys"]),
         fields: deserialize_fields(schema_data["fields"]),
-        indices: deserialize_indices(schema_data["indices"]),
-        virtual_fields: deserialize_virtual_fields(schema_data["virtual_fields"])
+        indices: deserialize_indices(schema_data["indices"])
       }
 
       struct(Schema, fields)
@@ -548,8 +547,7 @@ defmodule Ecto.Relation.SchemaCache do
       field: String.to_atom(data["field"]),
       references_table: data["references_table"],
       references_field: String.to_atom(data["references_field"]),
-      association_name:
-        data["association_name"] && String.to_atom(data["association_name"])
+      association_name: data["association_name"] && String.to_atom(data["association_name"])
     }
   end
 
@@ -638,12 +636,6 @@ defmodule Ecto.Relation.SchemaCache do
       field when is_map(field) -> deserialize_field(field)
       field -> field
     end)
-  end
-
-  defp deserialize_virtual_fields(nil), do: []
-
-  defp deserialize_virtual_fields(data) when is_list(data) do
-    Enum.map(data, &String.to_atom/1)
   end
 
   defp cache_enabled? do

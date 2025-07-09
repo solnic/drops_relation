@@ -302,8 +302,7 @@ defmodule Ecto.Relation.CacheTest do
             meta: %{}
           }
         ],
-        indices: [],
-        virtual_fields: []
+        indices: []
       }
 
       # Cache the schema
@@ -339,8 +338,7 @@ defmodule Ecto.Relation.CacheTest do
             meta: %{}
           }
         ],
-        indices: [],
-        virtual_fields: []
+        indices: []
       }
 
       # Cache the schema
@@ -375,8 +373,7 @@ defmodule Ecto.Relation.CacheTest do
             meta: %{}
           }
         ],
-        indices: [],
-        virtual_fields: []
+        indices: []
       }
 
       # Cache the schema

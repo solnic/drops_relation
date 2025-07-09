@@ -236,20 +236,19 @@ defmodule Ecto.Relation.SQL.Database.Index do
   def column_count(%__MODULE__{columns: columns}), do: length(columns)
 end
 
-defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.Index do
+defimpl Ecto.Relation.Schema.Field.Inference, for: Ecto.Relation.SQL.Database.Index do
   @moduledoc """
   Implementation of Ecto.Relation.Schema.Inference protocol for Index structs.
 
   Converts database Index structs to Ecto.Relation.Schema.Index structs.
   """
 
-  alias Ecto.Relation.Schema.Index, as: SchemaIndex
+  alias Ecto.Relation.Schema
 
-  def to_schema_component(%Ecto.Relation.SQL.Database.Index{} = index, _table) do
-    # Convert column names to atoms
+  def to_schema_field(%Ecto.Relation.SQL.Database.Index{} = index, _table) do
     field_names = Enum.map(index.columns, &String.to_atom/1)
 
-    SchemaIndex.from_names(
+    Schema.Index.from_names(
       index.name,
       field_names,
       index.unique,
