@@ -1,3 +1,3 @@
-# Ecto.Relation
+# Drops.Relation
 
 TBD

@@ -1,13 +1,13 @@
-defmodule Ecto.Relation.MixProject do
+defmodule Drops.Relation.MixProject do
   use Mix.Project
 
-  @source_url "https://github.com/solnic/ecto_relation"
+  @source_url "https://github.com/solnic/drops_relation"
   @version "0.0.1"
   @license "LGPL-3.0-or-later"
 
   def project do
     [
-      app: :ecto_relation,
+      app: :drops_relation,
       version: @version,
       elixir: "~> 1.14",
       elixirc_options: [warnings_as_errors: false],
@@ -38,15 +38,15 @@ defmodule Ecto.Relation.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {Ecto.Relation.Application, []},
-      registered: [Ecto.Relation.Supervisor]
+      mod: {Drops.Relation.Application, []},
+      registered: [Drops.Relation.Supervisor]
     ]
   end
 
   defp package() do
     [
-      name: "ecto_relation",
-      files: ~w(lib/ecto/relation .formatter.exs mix.exs README* LICENSE CHANGELOG.md),
+      name: "drops_relation",
+      files: ~w(lib/drops/relation .formatter.exs mix.exs README* LICENSE CHANGELOG.md),
       licenses: [@license],
       links: %{"GitHub" => @source_url}
     ]
@@ -64,26 +64,26 @@ defmodule Ecto.Relation.MixProject do
       ],
       groups_for_modules: [
         Core: [
-          Ecto.Relation,
-          Ecto.Relation.Query,
-          Ecto.Relation.Composite
+          Drops.Relation,
+          Drops.Relation.Query,
+          Drops.Relation.Composite
         ],
         Schema: [
-          Ecto.Relation.Schema,
-          Ecto.Relation.Schema.MetadataExtractor,
-          Ecto.Relation.Schema.Field,
-          Ecto.Relation.Schema.PrimaryKey,
-          Ecto.Relation.Schema.ForeignKey,
-          Ecto.Relation.Schema.Index,
-          Ecto.Relation.Schema.Indices
+          Drops.Relation.Schema,
+          Drops.Relation.Schema.MetadataExtractor,
+          Drops.Relation.Schema.Field,
+          Drops.Relation.Schema.PrimaryKey,
+          Drops.Relation.Schema.ForeignKey,
+          Drops.Relation.Schema.Index,
+          Drops.Relation.Schema.Indices
         ],
         Inference: [
-          Ecto.Relation.Inference,
-          Ecto.Relation.SQL.Inference,
-          Ecto.Relation.SQL.Introspector
+          Drops.Relation.Inference,
+          Drops.Relation.SQL.Inference,
+          Drops.Relation.SQL.Introspector
         ],
         Cache: [
-          Ecto.Relation.Cache
+          Drops.Relation.Cache
         ]
       ]
     ]
@@ -111,14 +111,14 @@ defmodule Ecto.Relation.MixProject do
   # Mix aliases for common tasks
   defp aliases do
     [
-      "ecto.create": ["ecto.relation.dev_setup", "ecto.create"],
-      "ecto.drop": ["ecto.relation.dev_setup", "ecto.drop --force-drop"],
-      "ecto.setup": ["ecto.relation.dev_setup", "ecto.create", "ecto.migrate"],
-      "ecto.reset": ["ecto.relation.dev_setup", "ecto.drop --force-drop", "ecto.setup"],
-      "ecto.migrate": ["ecto.relation.dev_setup", "ecto.migrate"],
-      "ecto.migrations": ["ecto.relation.dev_setup", "ecto.migrations"],
-      "ecto.dump": ["ecto.relation.dev_setup", "ecto.dump"],
-      "ecto.load": ["ecto.relation.dev_setup", "ecto.load"]
+      "ecto.create": ["drops.relation.dev_setup", "ecto.create"],
+      "ecto.drop": ["drops.relation.dev_setup", "ecto.drop --force-drop"],
+      "ecto.setup": ["drops.relation.dev_setup", "ecto.create", "ecto.migrate"],
+      "ecto.reset": ["drops.relation.dev_setup", "ecto.drop --force-drop", "ecto.setup"],
+      "ecto.migrate": ["drops.relation.dev_setup", "ecto.migrate"],
+      "ecto.migrations": ["drops.relation.dev_setup", "ecto.migrations"],
+      "ecto.dump": ["drops.relation.dev_setup", "ecto.dump"],
+      "ecto.load": ["drops.relation.dev_setup", "ecto.load"]
     ]
   end
 end

@@ -1,6 +1,6 @@
-defmodule Mix.Tasks.Ecto.Relation.GenSchemas do
+defmodule Mix.Tasks.Drops.Relation.GenSchemas do
   @moduledoc """
-  Generates Ecto schema files from Ecto.Relation inferred schemas.
+  Generates Ecto schema files from Drops.Relation inferred schemas.
 
   This task introspects database tables and generates explicit Ecto schema files
   with field definitions based on the inferred schema metadata.
@@ -36,12 +36,12 @@ defmodule Mix.Tasks.Ecto.Relation.GenSchemas do
   use Igniter.Mix.Task
 
   alias Igniter.Project.Module
-  alias Ecto.Relation.Schema.Generator
+  alias Drops.Relation.Schema.Generator
 
   @impl Igniter.Mix.Task
   def info(_argv, _composing_task) do
     %Igniter.Mix.Task.Info{
-      group: :ecto_relation,
+      group: :drops_relation,
       example: "mix drops.relations.gen_schemas --app MyApp",
       positional: [],
       schema: [

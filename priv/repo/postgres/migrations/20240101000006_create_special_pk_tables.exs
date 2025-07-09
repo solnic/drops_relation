@@ -1,4 +1,4 @@
-defmodule Ecto.Relation.Repos.Postgres.Migrations.CreateSpecialPkTables do
+defmodule Drops.Relation.Repos.Postgres.Migrations.CreateSpecialPkTables do
   use Ecto.Migration
 
   def change do

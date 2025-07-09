@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.Ecto.Relation.DevSetup do
+defmodule Mix.Tasks.Drops.Relation.DevSetup do
   @moduledoc """
   Sets up the development environment for Drops.
 
@@ -38,6 +38,6 @@ defmodule Mix.Tasks.Ecto.Relation.DevSetup do
 
     Code.ensure_loaded(Drops.Repos)
 
-    Application.ensure_all_started(:ecto_relation)
+    Application.ensure_all_started(:drops_relation)
   end
 end

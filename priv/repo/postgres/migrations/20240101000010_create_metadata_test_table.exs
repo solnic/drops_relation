@@ -1,4 +1,4 @@
-defmodule Ecto.Relation.Repos.Postgres.Migrations.CreateMetadataTestTable do
+defmodule Drops.Relation.Repos.Postgres.Migrations.CreateMetadataTestTable do
   use Ecto.Migration
 
   def change do

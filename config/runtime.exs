@@ -3,7 +3,7 @@ import Config
 env = Mix.env()
 
 if adapter = System.get_env("ADAPTER") do
-  config :ecto_relation, ecto_repos: [Module.concat(["Ecto", "Relation", "Repos", adapter])]
+  config :drops_relation, ecto_repos: [Module.concat(["Ecto", "Relation", "Repos", adapter])]
 end
 
 # Ensure log directory exists
@@ -13,7 +13,7 @@ log_dir = Path.join(File.cwd!(), "log")
 config :logger,
   backends: [
     {LoggerFileBackend, :ecto},
-    {LoggerFileBackend, :ecto_relation}
+    {LoggerFileBackend, :drops_relation}
   ]
 
 # Configure Ecto file logger
@@ -24,15 +24,15 @@ config :logger, :ecto,
   metadata: [:query_time, :decode_time, :queue_time, :connection_time]
 
 # Configure Drops file logger
-config :logger, :ecto_relation,
-  path: Path.join(log_dir, "ecto_relation_#{env}.log"),
+config :logger, :drops_relation,
+  path: Path.join(log_dir, "drops_relation_#{env}.log"),
   level: :debug,
   format: "$time $metadata[$level] $message\n"
 
 # Configure the SQLite repository for examples in dev environment
-config :ecto_relation, Ecto.Relation.Repos.Sqlite,
+config :drops_relation, Drops.Relation.Repos.Sqlite,
   adapter: Ecto.Adapters.SQLite3,
-  database: "priv/ecto_relation_sqlite_#{env}.db",
+  database: "priv/drops_relation_sqlite_#{env}.db",
   pool_size: 1,
   pool: Ecto.Adapters.SQL.Sandbox,
   queue_target: 5000,
@@ -42,12 +42,12 @@ config :ecto_relation, Ecto.Relation.Repos.Sqlite,
   loggers: [{Ecto.LogEntry, :log, [:ecto]}]
 
 # Configure the PostgreSQL repository for examples in dev environment
-config :ecto_relation, Ecto.Relation.Repos.Postgres,
+config :drops_relation, Drops.Relation.Repos.Postgres,
   adapter: Ecto.Adapters.Postgres,
   username: "postgres",
   password: "postgres",
   hostname: "postgres",
-  database: "ecto_relation_#{env}",
+  database: "drops_relation_#{env}",
   pool_size: 10,
   pool: Ecto.Adapters.SQL.Sandbox,
   queue_target: 5000,
@@ -57,4 +57,4 @@ config :ecto_relation, Ecto.Relation.Repos.Postgres,
   loggers: [{Ecto.LogEntry, :log, [:ecto]}]
 
 # Configure schema cache for test environment
-config :ecto_relation, :schema_cache, enabled: true
+config :drops_relation, :schema_cache, enabled: true

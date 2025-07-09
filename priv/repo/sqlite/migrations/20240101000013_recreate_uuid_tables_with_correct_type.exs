@@ -1,4 +1,4 @@
-defmodule Ecto.Relation.Repos.Sqlite.Migrations.RecreateUuidTablesWithCorrectType do
+defmodule Drops.Relation.Repos.Sqlite.Migrations.RecreateUuidTablesWithCorrectType do
   use Ecto.Migration
 
   def up do

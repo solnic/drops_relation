@@ -1,4 +1,4 @@
-defmodule Ecto.Relation.Test.Config do
+defmodule Drops.Relation.Test.Config do
   @moduledoc """
   Test helpers for Drops tests.
 
@@ -29,7 +29,7 @@ defmodule Ecto.Relation.Test.Config do
     original_config =
       for {key, val} <- config do
         current_val = get_current_config_value(key)
-        Ecto.Relation.Config.put_config(key, val)
+        Drops.Relation.Config.put_config(key, val)
         {key, current_val}
       end
 
@@ -37,11 +37,11 @@ defmodule Ecto.Relation.Test.Config do
       Enum.each(original_config, fn
         {key, :__not_set__} ->
           # Erase the key if it wasn't set before
-          :persistent_term.erase({:ecto_relation_config, key})
+          :persistent_term.erase({:drops_relation_config, key})
 
         {key, original_val} ->
           # Restore the original value
-          :persistent_term.put({:ecto_relation_config, key}, original_val)
+          :persistent_term.put({:drops_relation_config, key}, original_val)
       end)
     end)
 
@@ -50,6 +50,6 @@ defmodule Ecto.Relation.Test.Config do
 
   @spec get_current_config_value(atom()) :: term() | :__not_set__
   defp get_current_config_value(key) do
-    :persistent_term.get({:ecto_relation_config, key}, :__not_set__)
+    :persistent_term.get({:drops_relation_config, key}, :__not_set__)
   end
 end

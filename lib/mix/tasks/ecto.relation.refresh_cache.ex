@@ -1,6 +1,6 @@
-defmodule Mix.Tasks.Ecto.Relation.RefreshCache do
+defmodule Mix.Tasks.Drops.Relation.RefreshCache do
   @moduledoc """
-  Refreshes the Ecto.Relation cache for all tables in specified repositories.
+  Refreshes the Drops.Relation cache for all tables in specified repositories.
 
   This task clears the existing cache and optionally warms it up again by
   inferring schemas for all tables in the database. This is useful when
@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Ecto.Relation.RefreshCache do
 
   ## Usage
 
-      mix ecto.relation.refresh_cache [options]
+      mix drops.relation.refresh_cache [options]
 
   ## Options
 
@@ -22,19 +22,19 @@ defmodule Mix.Tasks.Ecto.Relation.RefreshCache do
   ## Examples
 
       # Refresh cache for all configured repositories
-      mix ecto.relation.refresh_cache --all-repos
+      mix drops.relation.refresh_cache --all-repos
 
       # Refresh cache for a specific repository
-      mix ecto.relation.refresh_cache --repo MyApp.Repo
+      mix drops.relation.refresh_cache --repo MyApp.Repo
 
       # Refresh cache for specific tables only
-      mix ecto.relation.refresh_cache --repo MyApp.Repo --tables users,posts,comments
+      mix drops.relation.refresh_cache --repo MyApp.Repo --tables users,posts,comments
 
       # Clear cache without warming up
-      mix ecto.relation.refresh_cache --repo MyApp.Repo --warm-up false
+      mix drops.relation.refresh_cache --repo MyApp.Repo --warm-up false
 
       # Verbose output
-      mix ecto.relation.refresh_cache --repo MyApp.Repo --verbose
+      mix drops.relation.refresh_cache --repo MyApp.Repo --verbose
 
   ## Notes
 
@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Ecto.Relation.RefreshCache do
   use Mix.Task
   import Mix.Ecto
 
-  @shortdoc "Refreshes the Ecto.Relation cache for all tables"
+  @shortdoc "Refreshes the Drops.Relation cache for all tables"
 
   @switches [
     repo: [:string, :keep],
@@ -100,7 +100,7 @@ defmodule Mix.Tasks.Ecto.Relation.RefreshCache do
     verbose = opts[:verbose] || false
 
     if verbose do
-      Mix.shell().info("Refreshing Ecto.Relation cache...")
+      Mix.shell().info("Refreshing Drops.Relation cache...")
       Mix.shell().info("Repositories: #{inspect(repos)}")
       Mix.shell().info("Tables: #{if tables, do: inspect(tables), else: "all"}")
       Mix.shell().info("Warm up: #{warm_up}")
@@ -149,7 +149,7 @@ defmodule Mix.Tasks.Ecto.Relation.RefreshCache do
 
     try do
       # Clear the cache for this repository
-      Ecto.Relation.Cache.clear_repo_cache(repo)
+      Drops.Relation.Cache.clear_repo_cache(repo)
 
       if verbose do
         Mix.shell().info("  Cache cleared for #{inspect(repo)}")
@@ -160,7 +160,7 @@ defmodule Mix.Tasks.Ecto.Relation.RefreshCache do
         warm_up_result =
           if tables do
             # Warm up specific tables
-            Ecto.Relation.Cache.warm_up(repo, tables)
+            Drops.Relation.Cache.warm_up(repo, tables)
           else
             # Get all tables from the database and warm up
             all_tables = get_all_tables(repo)
@@ -172,7 +172,7 @@ defmodule Mix.Tasks.Ecto.Relation.RefreshCache do
 
               {:ok, []}
             else
-              Ecto.Relation.Cache.warm_up(repo, all_tables)
+              Drops.Relation.Cache.warm_up(repo, all_tables)
             end
           end
 

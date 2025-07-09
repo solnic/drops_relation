@@ -1,4 +1,4 @@
-defmodule Ecto.Relation.Repos.Postgres.Migrations.CreateBinaryIdTables do
+defmodule Drops.Relation.Repos.Postgres.Migrations.CreateBinaryIdTables do
   use Ecto.Migration
 
   def change do

@@ -1,4 +1,4 @@
-defmodule Ecto.Relation.Repos.Postgres.Migrations.CreateTimestampsTable do
+defmodule Drops.Relation.Repos.Postgres.Migrations.CreateTimestampsTable do
   use Ecto.Migration
 
   def change do

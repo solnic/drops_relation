@@ -1,6 +1,6 @@
-defmodule Ecto.RelationCase do
+defmodule Drops.RelationCase do
   @moduledoc """
-  Test case template for Ecto.Relation tests.
+  Test case template for Drops.Relation tests.
 
   This module provides a convenient way to test relation modules with automatic
   schema cache management and relation setup.
@@ -8,7 +8,7 @@ defmodule Ecto.RelationCase do
   ## Usage
 
       defmodule MyRelationTest do
-        use Ecto.RelationCase, async: true
+        use Drops.RelationCase, async: true
 
         describe "my relation tests" do
           @tag relations: [:users], adapter: :sqlite
@@ -28,7 +28,7 @@ defmodule Ecto.RelationCase do
   ## Multi-Adapter Testing
 
       defmodule MyMultiAdapterTest do
-        use Ecto.RelationCase, async: true
+        use Drops.RelationCase, async: true
 
         adapters([:sqlite, :postgres]) do
           @tag relations: [:users]
@@ -53,12 +53,12 @@ defmodule Ecto.RelationCase do
 
   using do
     quote do
-      use Ecto.Relation.DoctestCase
+      use Drops.Relation.DoctestCase
 
-      alias Ecto.Relation.Repos.Sqlite
-      alias Ecto.Relation.Repos.Postgres
+      alias Drops.Relation.Repos.Sqlite
+      alias Drops.Relation.Repos.Postgres
 
-      import Ecto.RelationCase
+      import Drops.RelationCase
     end
   end
 
@@ -143,11 +143,11 @@ defmodule Ecto.RelationCase do
 
         repo_module =
           case adapter do
-            :sqlite -> Ecto.Relation.Repos.Sqlite
-            :postgres -> Ecto.Relation.Repos.Postgres
+            :sqlite -> Drops.Relation.Repos.Sqlite
+            :postgres -> Drops.Relation.Repos.Postgres
           end
 
-        {:ok, _} = Ecto.Relation.Cache.warm_up(repo_module, [table_name])
+        {:ok, _} = Drops.Relation.Cache.warm_up(repo_module, [table_name])
 
         block = Keyword.get(unquote(Macro.escape(opts)), :do, [])
 
@@ -155,7 +155,7 @@ defmodule Ecto.RelationCase do
           Module.create(
             relation_module_name,
             quote do
-              use Ecto.Relation,
+              use Drops.Relation,
                 repo: unquote(repo_module),
                 name: unquote(table_name),
                 infer: true
@@ -225,8 +225,8 @@ defmodule Ecto.RelationCase do
   Sets up the sandbox based on the test tags and adapter.
   """
   def setup_sandbox(tags, adapter) do
-    Ecto.Relation.Repos.start_owner!(adapter, shared: not tags[:async])
-    on_exit(fn -> Ecto.Relation.Repos.stop_owner(adapter) end)
+    Drops.Relation.Repos.start_owner!(adapter, shared: not tags[:async])
+    on_exit(fn -> Drops.Relation.Repos.stop_owner(adapter) end)
   end
 
   @doc """
@@ -240,7 +240,7 @@ defmodule Ecto.RelationCase do
     table_names = Enum.map(relations, &Atom.to_string/1)
 
     # Always force refresh in tests to ensure fresh schema inference
-    {:ok, _} = Ecto.Relation.Cache.refresh(repo, table_names)
+    {:ok, _} = Drops.Relation.Cache.refresh(repo, table_names)
 
     {context, cleanup_modules} =
       Enum.reduce(relations, {%{}, []}, fn relation_name, {context, cleanup_modules} ->
@@ -298,7 +298,7 @@ defmodule Ecto.RelationCase do
           Module.create(
             module_name,
             quote do
-              use Ecto.Relation,
+              use Drops.Relation,
                 repo: unquote(repo),
                 name: unquote(relation_name_string),
                 infer: true
@@ -319,6 +319,6 @@ defmodule Ecto.RelationCase do
   @doc """
   Gets the appropriate repo module for the given adapter.
   """
-  def get_repo_for_adapter(:sqlite), do: Ecto.Relation.Repos.Sqlite
-  def get_repo_for_adapter(:postgres), do: Ecto.Relation.Repos.Postgres
+  def get_repo_for_adapter(:sqlite), do: Drops.Relation.Repos.Sqlite
+  def get_repo_for_adapter(:postgres), do: Drops.Relation.Repos.Postgres
 end
