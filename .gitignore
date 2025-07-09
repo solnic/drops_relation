@@ -23,3 +23,7 @@ ecto_relation-*.tar
 /tmp/
 
 priv/*.db
+
+test/sample_app/_build
+test/sample_app/deps
+test/sample_app/priv/*db*
