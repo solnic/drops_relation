@@ -72,33 +72,4 @@ defmodule Ecto.Relation.SQL.Inference do
         raise "Failed to introspect table #{table_name}: #{inspect(reason)}"
     end
   end
-
-  @doc """
-  Normalizes Ecto types to their base types.
-
-  ## Parameters
-
-  - `ecto_type` - The Ecto type to normalize
-
-  ## Returns
-
-  The normalized Ecto type.
-
-  ## Examples
-
-      iex> Ecto.Relation.SQL.Inference.normalize_ecto_type(:id)
-      :integer
-      iex> Ecto.Relation.SQL.Inference.normalize_ecto_type(:string)
-      :string
-  """
-  @spec normalize_ecto_type(atom() | tuple()) :: atom() | tuple()
-  def normalize_ecto_type(ecto_type) do
-    case ecto_type do
-      :id -> :integer
-      :binary_id -> :binary
-      Ecto.UUID -> :binary
-      {:array, inner_type} -> {:array, normalize_ecto_type(inner_type)}
-      other -> other
-    end
-  end
 end

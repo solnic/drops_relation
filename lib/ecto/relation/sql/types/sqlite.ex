@@ -1,7 +1,7 @@
 defmodule Ecto.Relation.SQL.Types.Sqlite do
   alias Ecto.Relation.SQL.Database.{Column, Table}
 
-  def to_ecto_type(%Column{} = column, %Table{} = table) do
+  def to_ecto_type(%Column{} = column, %Table{adapter: :sqlite} = table) do
     normalized_type = String.upcase(column.type)
 
     case normalized_type do

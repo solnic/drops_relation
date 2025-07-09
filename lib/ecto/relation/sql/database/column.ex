@@ -224,156 +224,27 @@ defmodule Ecto.Relation.SQL.Database.Column do
   @spec has_check_constraints?(t()) :: boolean()
   def has_check_constraints?(%__MODULE__{check_constraints: constraints}),
     do: constraints != []
-end
 
-defimpl Ecto.Relation.Schema.Field.Inference, for: Ecto.Relation.SQL.Database.Column do
-  @moduledoc """
-  Implementation of Ecto.Relation.Schema.Inference protocol for Column structs.
+  defimpl Ecto.Relation.Schema.Field.Inference do
+    alias Ecto.Relation.SQL.Database
+    alias Ecto.Relation.SQL.Database.Table
+    alias Ecto.Relation.SQL.Types
+    alias Ecto.Relation.Schema
 
-  Converts database Column structs to Ecto.Relation.Schema.Field structs
-  with proper type mapping and metadata.
-  """
+    def to_schema_field(%Database.Column{} = column, %Database.Table{} = table) do
+      atom_name = String.to_atom(column.name)
+      ecto_type = Types.Conversion.to_ecto_type(table, column)
+      atom_type = Types.Conversion.to_atom(table, ecto_type)
 
-  alias Ecto.Relation.SQL.Inference
-  alias Ecto.Relation.SQL.Types
-  alias Ecto.Relation.Schema
+      meta = %{
+        primary_key: column.primary_key,
+        foreign_key: Table.foreign_key_column?(table, column.name),
+        nullable: column.nullable,
+        default: column.default,
+        check_constraints: column.check_constraints
+      }
 
-  def to_schema_field(
-        %Ecto.Relation.SQL.Database.Column{} = column,
-        %Ecto.Relation.SQL.Database.Table{} = table
-      ) do
-    # Convert database type to Ecto type with full table context
-    ecto_type = convert_db_type_to_ecto_type(column, table)
-    normalized_type = Inference.normalize_ecto_type(ecto_type)
-
-    # Build metadata including primary key information
-    meta = %{
-      nullable: column.nullable,
-      default: column.default,
-      check_constraints: column.check_constraints,
-      primary_key: column.primary_key
-    }
-
-    Schema.Field.new(
-      String.to_atom(column.name),
-      normalized_type,
-      ecto_type,
-      String.to_atom(column.name),
-      meta
-    )
-  end
-
-  # Convert database type to Ecto type with full table context
-  defp convert_db_type_to_ecto_type(
-         %Ecto.Relation.SQL.Database.Column{} = column,
-         %Ecto.Relation.SQL.Database.Table{} = table
-       ) do
-    case table.adapter do
-      :postgres ->
-        convert_postgres_type_to_ecto_type(column, table)
-
-      :sqlite ->
-        Types.Sqlite.to_ecto_type(column, table)
-    end
-  end
-
-  # Convert PostgreSQL types to Ecto types with full table context
-  defp convert_postgres_type_to_ecto_type(
-         %Ecto.Relation.SQL.Database.Column{} = column,
-         %Ecto.Relation.SQL.Database.Table{} = table
-       ) do
-    # Handle array types first
-    if String.ends_with?(column.type, "[]") do
-      base_type = String.trim_trailing(column.type, "[]")
-      base_column = %{column | type: base_type}
-      {:array, convert_postgres_type_to_ecto_type(base_column, table)}
-    else
-      downcased = String.downcase(column.type)
-      convert_postgres_base_type(downcased, column)
-    end
-  end
-
-  # Convert PostgreSQL base types with column context
-  defp convert_postgres_base_type(postgres_type, column) do
-    case postgres_type do
-      # Integer types - use :id for primary keys, :integer for others
-      type when type in ["integer", "int", "int4"] ->
-        if column.primary_key, do: :id, else: :integer
-
-      type when type in ["bigint", "int8"] ->
-        if column.primary_key, do: :id, else: :integer
-
-      type when type in ["smallint", "int2"] ->
-        if column.primary_key, do: :id, else: :integer
-
-      # Serial types are always primary keys
-      type
-      when type in ["serial", "serial4", "bigserial", "serial8", "smallserial", "serial2"] ->
-        :id
-
-      # UUID type - use :binary_id for consistency with Ecto conventions
-      "uuid" ->
-        :binary_id
-
-      # Floating point types
-      type when type in ["real", "float4", "double precision", "float8"] ->
-        :float
-
-      # Decimal types
-      type when type in ["numeric", "decimal", "money"] ->
-        :decimal
-
-      # String types
-      type
-      when type in ["text", "character varying", "varchar", "char", "character", "name"] ->
-        :string
-
-      # Boolean type
-      "boolean" ->
-        :boolean
-
-      # Binary types
-      "bytea" ->
-        :binary
-
-      # Date/time types
-      "date" ->
-        :date
-
-      type
-      when type in ["time", "time without time zone", "time with time zone", "timetz"] ->
-        :time
-
-      type when type in ["timestamp without time zone", "timestamp"] ->
-        :naive_datetime
-
-      type when type in ["timestamp with time zone", "timestamptz"] ->
-        :utc_datetime
-
-      # JSON types
-      type when type in ["json", "jsonb"] ->
-        :map
-
-      # Network and geometric types (mapped to string for now)
-      type
-      when type in [
-             "xml",
-             "inet",
-             "cidr",
-             "macaddr",
-             "point",
-             "line",
-             "lseg",
-             "box",
-             "path",
-             "polygon",
-             "circle"
-           ] ->
-        :string
-
-      # Fallback for unknown types
-      _ ->
-        :string
+      Schema.Field.new(atom_name, atom_type, ecto_type, atom_name, meta)
     end
   end
 end

@@ -297,7 +297,7 @@ defmodule Ecto.Relation.SQL.Database.Table do
     Enum.find(foreign_keys, &ForeignKey.includes_column?(&1, column_name))
   end
 
-  defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.Table do
+  defimpl Ecto.Relation.Schema.Inference do
     import Ecto.Relation.Schema.Field.Inference, only: [to_schema_field: 2]
 
     alias Ecto.Relation.Schema
@@ -311,6 +311,23 @@ defmodule Ecto.Relation.SQL.Database.Table do
       indices = Enum.map(table.indexes, &to_schema_field(&1, table))
 
       Schema.new(table.name, primary_key, foreign_keys, fields, indices)
+    end
+  end
+
+  defimpl Ecto.Relation.SQL.Types.Conversion do
+    alias Ecto.Relation.SQL.Types
+
+    def to_atom(_table, :id), do: :integer
+    def to_atom(_table, :binary_id), do: :binary
+    def to_atom(_table, Ecto.UUID), do: :binary
+    def to_atom(table, {:array, ecto_type}), do: {:array, to_atom(table, ecto_type)}
+    def to_atom(_table, other) when is_atom(other), do: other
+
+    def to_ecto_type(%{adapter: adapter} = table, column) do
+      case adapter do
+        :sqlite -> Types.Sqlite.to_ecto_type(column, table)
+        :postgres -> Types.Postgres.to_ecto_type(column, table)
+      end
     end
   end
 end
