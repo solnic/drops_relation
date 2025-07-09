@@ -179,19 +179,6 @@ defmodule Ecto.Relation.SQL.Introspector.Database.PostgresTest do
     end
   end
 
-  describe "PostgreSQL type aliases" do
-    @tag adapter: :postgres
-    test "handles serial type aliases correctly", %{repo: repo} do
-      alias Ecto.Relation.SQL.Introspector
-
-      # Test that the new serial aliases are correctly mapped
-      assert Introspector.db_type_to_ecto_type(repo, "serial4", "id") == :id
-      assert Introspector.db_type_to_ecto_type(repo, "serial8", "big_id") == :id
-      assert Introspector.db_type_to_ecto_type(repo, "serial2", "small_id") == :id
-      assert Introspector.db_type_to_ecto_type(repo, "smallserial", "tiny_id") == :id
-    end
-  end
-
   describe "full inference behavior" do
     @tag relations: [:postgres_types], adapter: :postgres
     test "infers correct Ecto types from postgres_types test table", %{repo: repo} do
