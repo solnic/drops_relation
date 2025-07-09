@@ -290,7 +290,6 @@ defmodule Ecto.Relation.SQL.Introspector.Database.Postgres do
     end
   end
 
-  @impl true
   def index_type_to_atom(type_string) do
     case String.downcase(type_string) do
       "btree" -> :btree

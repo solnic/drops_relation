@@ -378,15 +378,4 @@ defmodule Ecto.Relation.SQL.Introspector.Database.PostgresTest do
     assert field.type == expected_type,
            "Expected field #{field_name} to have type #{inspect(expected_type)}, got #{inspect(field.type)}"
   end
-
-  describe "index_type_to_atom/1" do
-    test "converts PostgreSQL index types to atoms" do
-      assert Postgres.index_type_to_atom("btree") == :btree
-      assert Postgres.index_type_to_atom("hash") == :hash
-      assert Postgres.index_type_to_atom("gin") == :gin
-      assert Postgres.index_type_to_atom("gist") == :gist
-      assert Postgres.index_type_to_atom("brin") == :brin
-      assert Postgres.index_type_to_atom("unknown") == nil
-    end
-  end
 end

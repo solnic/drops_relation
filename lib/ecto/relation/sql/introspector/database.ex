@@ -141,24 +141,4 @@ defmodule Ecto.Relation.SQL.Introspector.Database do
   """
   @callback introspect_table_indexes(module(), String.t()) ::
               {:ok, [Index.t()]} | {:error, term()}
-
-  @doc """
-  Converts database-specific index types to atoms.
-
-  ## Parameters
-
-  - `index_type` - The database-specific index type as a string
-
-  ## Returns
-
-  An atom representing the index type, or `nil` if unknown.
-
-  ## Examples
-
-      iex> MyAdapter.index_type_to_atom("btree")
-      :btree
-      iex> MyAdapter.index_type_to_atom("unknown_type")
-      nil
-  """
-  @callback index_type_to_atom(String.t()) :: atom() | nil
 end

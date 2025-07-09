@@ -126,14 +126,4 @@ defmodule Ecto.Relation.SQL.Introspector.Database.SQLiteTest do
       assert email_column.type == "TEXT"
     end
   end
-
-  describe "index_type_to_atom/1" do
-    test "converts SQLite index types to atoms" do
-      # SQLite doesn't have explicit index types in PRAGMA output
-      # so this should return nil for most cases
-      assert SQLite.index_type_to_atom("") == nil
-      assert SQLite.index_type_to_atom("btree") == :btree
-      assert SQLite.index_type_to_atom("unknown") == nil
-    end
-  end
 end

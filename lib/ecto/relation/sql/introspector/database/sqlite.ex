@@ -59,18 +59,6 @@ defmodule Ecto.Relation.SQL.Introspector.Database.SQLite do
     end
   end
 
-  # Helper function to detect boolean fields in SQLite
-
-  @impl true
-  def index_type_to_atom(type_string) do
-    case String.downcase(type_string) do
-      "" -> nil
-      "btree" -> :btree
-      # SQLite primarily uses btree indices, but return nil for unknown types
-      _ -> nil
-    end
-  end
-
   # Private helper functions
 
   defp parse_default_value(nil), do: nil
