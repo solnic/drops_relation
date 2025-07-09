@@ -236,13 +236,6 @@ defimpl Ecto.Relation.Schema.Field.Inference, for: Ecto.Relation.SQL.Database.Co
 
   alias Ecto.Relation.Schema
 
-  def to_schema(%Ecto.Relation.SQL.Database.Column{} = _column) do
-    # For single-argument version, we can't do proper type conversion without table context
-    # This should generally not be used - use the two-argument version with table context
-    raise ArgumentError,
-          "Column conversion requires table context. Use to_schema(column, table)."
-  end
-
   def to_schema_field(
         %Ecto.Relation.SQL.Database.Column{} = column,
         %Ecto.Relation.SQL.Database.Table{} = table
