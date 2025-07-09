@@ -59,91 +59,6 @@ defmodule Ecto.Relation.SQL.Introspector.Database.SQLite do
     end
   end
 
-  def db_type_to_ecto_type(sqlite_type, field_name) do
-    # Normalize the type string for comparison
-    normalized_type = String.upcase(sqlite_type)
-
-    case normalized_type do
-      # Core SQLite native types
-      "INTEGER" ->
-        :integer
-
-      "TEXT" ->
-        # In SQLite, binary_id fields are stored as TEXT
-        # We need to detect them based on field name patterns
-        if binary_id_field?(field_name) do
-          :binary_id
-        else
-          :string
-        end
-
-      "REAL" ->
-        :float
-
-      "BLOB" ->
-        :binary
-
-      "NUMERIC" ->
-        :decimal
-
-      "DECIMAL" ->
-        :decimal
-
-      # UUID type - in SQLite, we should use Ecto.UUID type for proper UUID handling
-      "UUID" ->
-        Ecto.UUID
-
-      # SQLite interpreted types (stored as other types but interpreted by applications)
-      "BOOLEAN" ->
-        :boolean
-
-      "BOOL" ->
-        :boolean
-
-      "DATE" ->
-        :date
-
-      "DATETIME" ->
-        :naive_datetime
-
-      "TIMESTAMP" ->
-        :naive_datetime
-
-      "TIME" ->
-        :time
-
-      "JSON" ->
-        :map
-
-      # Additional interpreted types
-      "FLOAT" ->
-        :float
-
-      "DOUBLE" ->
-        :float
-
-      "CLOB" ->
-        :string
-
-      # Common SQLite type variations
-      "INT" ->
-        :integer
-
-      "STRING" ->
-        :string
-
-      # Handle parameterized and unknown types
-      _ ->
-        cond do
-          String.starts_with?(normalized_type, "DECIMAL(") -> :decimal
-          String.starts_with?(normalized_type, "NUMERIC(") -> :decimal
-          String.starts_with?(normalized_type, "VARCHAR(") -> :string
-          String.starts_with?(normalized_type, "CHAR(") -> :string
-          true -> :string
-        end
-    end
-  end
-
   # Helper function to detect boolean fields in SQLite
 
   @impl true
@@ -233,22 +148,6 @@ defmodule Ecto.Relation.SQL.Introspector.Database.SQLite do
     |> Regex.scan(sql, capture: :all_but_first)
     |> List.flatten()
     |> Enum.map(&String.trim/1)
-  end
-
-  # Helper function to detect binary_id fields in SQLite
-  # Since SQLite stores binary_id as TEXT, we need heuristics to detect them
-  # This function is used when the database type is TEXT but we suspect it's a UUID/binary_id
-  # Note: This is now more conservative and only checks for explicit UUID indicators
-  defp binary_id_field?(field_name) do
-    case field_name do
-      # Field named 'uuid' is likely binary_id if it's TEXT
-      "uuid" -> true
-      # Primary key named 'id' might be binary_id if it's TEXT, but only if explicitly UUID
-      # Changed: no longer assume id fields are binary_id based on name alone
-      "id" -> false
-      # Changed: no longer use _id suffix as indicator
-      _ -> false
-    end
   end
 
   # New callback implementations for the updated behavior

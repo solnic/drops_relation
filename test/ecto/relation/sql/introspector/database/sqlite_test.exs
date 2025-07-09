@@ -127,23 +127,6 @@ defmodule Ecto.Relation.SQL.Introspector.Database.SQLiteTest do
     end
   end
 
-  describe "db_type_to_ecto_type/3" do
-    test "converts SQLite types to Ecto types correctly" do
-      assert SQLite.db_type_to_ecto_type("INTEGER", "id") == :integer
-      assert SQLite.db_type_to_ecto_type("INTEGER", "user_id") == :integer
-      assert SQLite.db_type_to_ecto_type("INTEGER", "count") == :integer
-      assert SQLite.db_type_to_ecto_type("TEXT", "name") == :string
-      assert SQLite.db_type_to_ecto_type("REAL", "price") == :float
-      assert SQLite.db_type_to_ecto_type("BLOB", "data") == :binary
-      assert SQLite.db_type_to_ecto_type("DATETIME", "created_at") == :naive_datetime
-      assert SQLite.db_type_to_ecto_type("DATE", "birth_date") == :date
-      assert SQLite.db_type_to_ecto_type("TIME", "start_time") == :time
-      assert SQLite.db_type_to_ecto_type("BOOLEAN", "active") == :boolean
-      assert SQLite.db_type_to_ecto_type("JSON", "metadata") == :map
-      assert SQLite.db_type_to_ecto_type("UNKNOWN", "field") == :string
-    end
-  end
-
   describe "index_type_to_atom/1" do
     test "converts SQLite index types to atoms" do
       # SQLite doesn't have explicit index types in PRAGMA output
