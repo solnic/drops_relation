@@ -30,7 +30,7 @@ defmodule Ecto.Relation.Repos.Postgres.Migrations.CreateUuidTables do
       timestamps()
     end
 
-    # Add indexes for foreign keys
+    # Add indices for foreign keys
     create index(:uuid_users, [:organization_id])
     create index(:uuid_posts, [:user_id])
   end

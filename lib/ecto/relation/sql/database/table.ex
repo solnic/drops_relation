@@ -3,7 +3,7 @@ defmodule Ecto.Relation.SQL.Database.Table do
   Represents a complete database table with all its metadata.
 
   This struct stores comprehensive information about a database table including
-  its name, columns, primary key, foreign keys, and indexes extracted from
+  its name, columns, primary key, foreign keys, and indices extracted from
   database introspection.
 
   ## Examples
@@ -17,7 +17,7 @@ defmodule Ecto.Relation.SQL.Database.Table do
         ],
         primary_key: %Ecto.Relation.SQL.Database.PrimaryKey{columns: ["id"]},
         foreign_keys: [],
-        indexes: [
+        indices: [
           %Ecto.Relation.SQL.Database.Index{name: "idx_users_email", columns: ["email"], unique: true, ...}
         ]
       }
@@ -34,7 +34,7 @@ defmodule Ecto.Relation.SQL.Database.Table do
             referenced_columns: ["id"]
           }
         ],
-        indexes: [...]
+        indices: [...]
       }
   """
 
@@ -48,7 +48,7 @@ defmodule Ecto.Relation.SQL.Database.Table do
           columns: [Column.t()],
           primary_key: PrimaryKey.t(),
           foreign_keys: [ForeignKey.t()],
-          indexes: [Index.t()]
+          indices: [Index.t()]
         }
 
   defstruct [
@@ -57,7 +57,7 @@ defmodule Ecto.Relation.SQL.Database.Table do
     :columns,
     :primary_key,
     :foreign_keys,
-    :indexes
+    :indices
   ]
 
   @doc """
@@ -70,7 +70,7 @@ defmodule Ecto.Relation.SQL.Database.Table do
   - `columns` - List of Column structs
   - `primary_key` - PrimaryKey struct
   - `foreign_keys` - List of ForeignKey structs
-  - `indexes` - List of Index structs
+  - `indices` - List of Index structs
 
   ## Examples
 
@@ -78,29 +78,29 @@ defmodule Ecto.Relation.SQL.Database.Table do
       iex> columns = [Column.new("id", "integer", false, nil, true)]
       iex> pk = PrimaryKey.new(["id"])
       iex> fks = []
-      iex> indexes = []
-      iex> Ecto.Relation.SQL.Database.Table.new("users", :postgres, columns, pk, fks, indexes)
+      iex> indices = []
+      iex> Ecto.Relation.SQL.Database.Table.new("users", :postgres, columns, pk, fks, indices)
       %Ecto.Relation.SQL.Database.Table{
         name: "users",
         adapter: :postgres,
         columns: [%Ecto.Relation.SQL.Database.Column{name: "id", ...}],
         primary_key: %Ecto.Relation.SQL.Database.PrimaryKey{columns: ["id"]},
         foreign_keys: [],
-        indexes: []
+        indices: []
       }
   """
   @spec new(String.t(), adapter(), [Column.t()], PrimaryKey.t(), [ForeignKey.t()], [
           Index.t()
         ]) ::
           t()
-  def new(name, adapter, columns, primary_key, foreign_keys, indexes) do
+  def new(name, adapter, columns, primary_key, foreign_keys, indices) do
     %__MODULE__{
       name: name,
       adapter: adapter,
       columns: columns,
       primary_key: primary_key,
       foreign_keys: foreign_keys,
-      indexes: indexes
+      indices: indices
     }
   end
 
@@ -116,7 +116,7 @@ defmodule Ecto.Relation.SQL.Database.Table do
   - `adapter` - The database adapter (:postgres, :sqlite, etc.)
   - `columns` - List of Column structs
   - `foreign_keys` - List of ForeignKey structs (optional)
-  - `indexes` - List of Index structs (optional)
+  - `indices` - List of Index structs (optional)
 
   ## Examples
 
@@ -129,16 +129,16 @@ defmodule Ecto.Relation.SQL.Database.Table do
         columns: [%Ecto.Relation.SQL.Database.Column{name: "id", ...}],
         primary_key: %Ecto.Relation.SQL.Database.PrimaryKey{columns: ["id"]},
         foreign_keys: [],
-        indexes: []
+        indices: []
       }
   """
   @spec from_introspection(String.t(), adapter(), [Column.t()], [ForeignKey.t()], [
           Index.t()
         ]) :: t()
-  def from_introspection(name, adapter, columns, foreign_keys \\ [], indexes \\ []) do
+  def from_introspection(name, adapter, columns, foreign_keys \\ [], indices \\ []) do
     primary_key = PrimaryKey.from_columns(columns)
 
-    new(name, adapter, columns, primary_key, foreign_keys, indexes)
+    new(name, adapter, columns, primary_key, foreign_keys, indices)
   end
 
   @doc """
@@ -308,7 +308,7 @@ defmodule Ecto.Relation.SQL.Database.Table do
       #       so we can skip inferring those when mapping all columns
       fields = Enum.map(table.columns, &to_schema_field(&1, table))
       foreign_keys = Enum.map(table.foreign_keys, &to_schema_field(&1, table))
-      indices = Enum.map(table.indexes, &to_schema_field(&1, table))
+      indices = Enum.map(table.indices, &to_schema_field(&1, table))
 
       Schema.new(table.name, primary_key, foreign_keys, fields, indices)
     end

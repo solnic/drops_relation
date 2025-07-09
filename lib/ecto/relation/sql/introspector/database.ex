@@ -64,7 +64,7 @@ defmodule Ecto.Relation.SQL.Introspector.Database do
   Introspects a complete table with all metadata.
 
   This is the main introspection function that returns a complete Table struct
-  with columns, primary key, foreign keys, and indexes.
+  with columns, primary key, foreign keys, and indices.
 
   ## Parameters
 
@@ -123,7 +123,7 @@ defmodule Ecto.Relation.SQL.Introspector.Database do
               {:ok, [ForeignKey.t()]} | {:error, term()}
 
   @doc """
-  Introspects database table indexes.
+  Introspects database table indices.
 
   ## Parameters
 

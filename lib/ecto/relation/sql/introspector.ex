@@ -16,7 +16,7 @@ defmodule Ecto.Relation.SQL.Introspector do
   Introspects a complete table with all metadata.
 
   This is the main introspection function that returns a complete Table struct
-  with columns, primary key, foreign keys, and indexes.
+  with columns, primary key, foreign keys, and indices.
 
   ## Parameters
 

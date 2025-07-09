@@ -144,9 +144,9 @@ defmodule Ecto.Relation.SQL.Introspector.Database.SQLite do
   def introspect_table(repo, table_name) do
     with {:ok, columns} <- introspect_table_columns(repo, table_name),
          {:ok, foreign_keys} <- introspect_table_foreign_keys(repo, table_name),
-         {:ok, indexes} <- introspect_table_indexes(repo, table_name) do
+         {:ok, indices} <- introspect_table_indexes(repo, table_name) do
       table =
-        Table.from_introspection(table_name, :sqlite, columns, foreign_keys, indexes)
+        Table.from_introspection(table_name, :sqlite, columns, foreign_keys, indices)
 
       {:ok, table}
     else

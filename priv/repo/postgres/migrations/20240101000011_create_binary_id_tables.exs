@@ -30,7 +30,7 @@ defmodule Ecto.Relation.Repos.Postgres.Migrations.CreateBinaryIdTables do
       timestamps()
     end
 
-    # Add indexes for foreign keys
+    # Add indices for foreign keys
     create index(:binary_id_users, [:organization_id])
     create index(:binary_id_posts, [:user_id])
   end

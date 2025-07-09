@@ -60,7 +60,7 @@ defmodule Ecto.Relation.SQL.Database.Index do
   - `columns` - List of column names in the index
   - `unique` - Whether the index enforces uniqueness
   - `type` - The index type (e.g., :btree, :hash, :gin)
-  - `where_clause` - Optional WHERE clause for partial indexes
+  - `where_clause` - Optional WHERE clause for partial indices
 
   ## Examples
 
@@ -102,7 +102,7 @@ defmodule Ecto.Relation.SQL.Database.Index do
   @doc """
   Creates an Index struct from introspection data.
 
-  This is a convenience function for creating indexes from the raw data
+  This is a convenience function for creating indices from the raw data
   returned by database introspection queries.
 
   ## Parameters
