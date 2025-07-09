@@ -19,6 +19,9 @@ defmodule Ecto.Relation.Schema.Indices do
           indices: [Index.t()]
         }
 
+  alias Ecto.Relation.Schema.Serializable
+  use Serializable
+
   defstruct indices: []
 
   @doc """

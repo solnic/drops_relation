@@ -55,6 +55,24 @@ defmodule Ecto.Relation.Schema do
     :indices
   ]
 
+  alias Ecto.Relation.Schema.Serializable
+
+  use Serializable
+
+  # defimpl JSON.Encoder do
+  #   def encode(schema, opts) do
+  #     JSON.Encoder.encode(
+  #       Map.merge(
+  #         %{
+  #           __struct__: "Schema"
+  #         },
+  #         Map.from_struct(schema)
+  #       ),
+  #       opts
+  #     )
+  #   end
+  # end
+
   @doc """
   Creates a new Schema struct with the provided metadata.
 

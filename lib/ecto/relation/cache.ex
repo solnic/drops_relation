@@ -37,9 +37,10 @@ defmodule Ecto.Relation.Cache do
       Ecto.Relation.Cache.warm_up(MyApp.Repo, ["users", "posts", "comments"])
   """
 
+  alias Ecto.Relation.Schema
+
   require Logger
 
-  alias Ecto.Relation.Config
   alias Ecto.Relation.Schema
 
   @digest_file_name "migrations_digest.txt"
@@ -70,18 +71,29 @@ defmodule Ecto.Relation.Cache do
         # Need to infer schema
       end
   """
+  @spec maybe_get_cached_schema(module(), String.t()) :: any()
+  def maybe_get_cached_schema(repo, table_name) do
+    case get_cached_schema(repo, table_name) do
+      nil ->
+        Schema.empty(table_name)
+
+      schema ->
+        schema
+    end
+  end
+
   @spec get_cached_schema(module(), String.t()) :: any() | nil
   def get_cached_schema(repo, table_name) do
     current_digest = get_migrations_digest(repo)
     cache_file = get_cache_file_path(repo, table_name)
 
     case read_cache_file(cache_file) do
-      {:ok, %{"schema" => schema_data, "digest" => stored_digest}} ->
+      {:ok, %{"schema" => schema, "digest" => stored_digest}} ->
         if current_digest == stored_digest do
           log_cache_event("Schema cache hit for #{repo}.#{table_name}", :debug)
-          deserialize_schema(schema_data)
+
+          Schema.load(schema)
         else
-          # Digest mismatch, cache is stale
           File.rm(cache_file)
 
           log_cache_event(
@@ -131,15 +143,14 @@ defmodule Ecto.Relation.Cache do
       schema = Ecto.Relation.Inference.infer_schema(relation, "users", MyApp.Repo)
       Ecto.Relation.Cache.cache_schema(MyApp.Repo, "users", schema)
   """
-  @spec cache_schema(module(), String.t(), any()) :: :ok
+  @spec cache_schema(module(), String.t(), any()) :: :ok | {:error, term()}
   def cache_schema(repo, table_name, schema) do
-    if cache_enabled?() do
-      # Calculate digest without triggering cache clearing
+    try do
       digest = calculate_current_migrations_digest(repo)
       cache_file = get_cache_file_path(repo, table_name)
 
       cache_data = %{
-        "schema" => serialize_schema(schema),
+        "schema" => schema,
         "digest" => digest
       }
 
@@ -148,19 +159,18 @@ defmodule Ecto.Relation.Cache do
         :debug
       )
 
-      write_cache_file(cache_file, cache_data)
-
-      # Update the stored digest file to match
+      :ok = write_cache_file(cache_file, cache_data)
       digest_file = get_digest_file_path(repo)
-      write_stored_digest(digest_file, digest)
-    else
-      log_cache_event(
-        "Cache disabled, not caching schema for #{repo}.#{table_name}",
-        :debug
-      )
-    end
+      :ok = write_stored_digest(digest_file, digest)
+    rescue
+      error ->
+        log_cache_event(
+          "Failed to cache schema for #{repo}.#{table_name}: #{inspect(error)}",
+          :error
+        )
 
-    :ok
+        {:error, {:cache_operation_failed, error}}
+    end
   end
 
   @doc """
@@ -204,41 +214,6 @@ defmodule Ecto.Relation.Cache do
     end
 
     :ok
-  end
-
-  @doc """
-  Checks if schema caching is enabled.
-
-  ## Returns
-
-  Returns `true` if caching is enabled, `false` otherwise.
-
-  ## Examples
-
-      if Ecto.Relation.Cache.enabled?() do
-        IO.puts("Cache is enabled")
-      end
-  """
-  @spec enabled?() :: boolean()
-  def enabled? do
-    Config.schema_cache()[:enabled]
-  end
-
-  @doc """
-  Returns the current cache configuration.
-
-  ## Returns
-
-  A keyword list with the current cache configuration.
-
-  ## Examples
-
-      config = Ecto.Relation.Cache.config()
-      # => [enabled: true]
-  """
-  @spec config() :: keyword()
-  def config do
-    Config.schema_cache()
   end
 
   @doc """
@@ -318,18 +293,6 @@ defmodule Ecto.Relation.Cache do
       nil -> :ok
       names when is_list(names) -> warm_up(repo, names)
     end
-  end
-
-  # Test helper functions - only available in test environment
-  if Mix.env() == :test do
-    @doc false
-    def test_deserialize_field(data), do: deserialize_field(data)
-
-    @doc false
-    def test_serialize_schema(schema), do: serialize_schema(schema)
-
-    @doc false
-    def test_deserialize_schema(data), do: deserialize_schema(data)
   end
 
   ## Private API
@@ -433,13 +396,18 @@ defmodule Ecto.Relation.Cache do
     Path.join(cache_dir, repo_name)
   end
 
+  defp encode(data) do
+    JSON.encode!(data)
+  end
+
+  defp decode(data) do
+    JSON.decode!(data)
+  end
+
   defp read_cache_file(cache_file) do
     case File.read(cache_file) do
       {:ok, content} ->
-        case Jason.decode(content) do
-          {:ok, data} -> {:ok, data}
-          {:error, reason} -> {:error, {:json_decode, reason}}
-        end
+        {:ok, decode(content)}
 
       {:error, reason} ->
         {:error, {:file_read, reason}}
@@ -447,204 +415,11 @@ defmodule Ecto.Relation.Cache do
   end
 
   defp write_cache_file(cache_file, data) do
-    try do
-      case Jason.encode(data) do
-        {:ok, json} ->
-          File.write!(cache_file, json)
-          log_cache_event("Cached schema to #{cache_file}", :debug)
-
-        {:error, reason} ->
-          log_cache_event("Failed to encode schema to JSON: #{inspect(reason)}", :warning)
-      end
-    rescue
-      error ->
-        log_cache_event("Exception writing cache file: #{inspect(error)}", :warning)
-    end
-  end
-
-  defp serialize_schema(%{__struct__: _} = schema) do
-    # Convert the schema struct to a map that can be JSON-encoded
-    schema
-    |> Map.from_struct()
-    |> Enum.into(%{}, fn {key, value} ->
-      {to_string(key), serialize_value(value)}
-    end)
-  end
-
-  defp serialize_schema(schema) do
-    # Handle non-struct values (like atoms used in tests)
-    serialize_value(schema)
-  end
-
-  defp deserialize_schema(schema_data) when is_map(schema_data) do
-    # Check if this looks like a Schema struct data
-    if Map.has_key?(schema_data, "source") do
-      # Convert the map back to a Schema struct
-      fields = %{
-        source: schema_data["source"],
-        primary_key: deserialize_primary_key(schema_data["primary_key"]),
-        foreign_keys: deserialize_foreign_keys(schema_data["foreign_keys"]),
-        fields: deserialize_fields(schema_data["fields"]),
-        indices: deserialize_indices(schema_data["indices"])
-      }
-
-      struct(Schema, fields)
-    else
-      # Handle other map data
-      schema_data
-    end
-  end
-
-  defp deserialize_schema(schema_data) when is_binary(schema_data) do
-    # Handle atom strings (from test data)
-    String.to_atom(schema_data)
-  end
-
-  defp deserialize_schema(schema_data) do
-    # Handle other data types (like atoms, numbers, etc.)
-    schema_data
-  end
-
-  defp serialize_value(nil), do: nil
-  defp serialize_value(true), do: true
-  defp serialize_value(false), do: false
-  defp serialize_value(value) when is_atom(value), do: to_string(value)
-  defp serialize_value(value) when is_list(value), do: Enum.map(value, &serialize_value/1)
-  defp serialize_value(%{__struct__: _} = struct), do: serialize_struct(struct)
-
-  defp serialize_value(value) when is_map(value) do
-    Enum.into(value, %{}, fn {k, v} -> {serialize_value(k), serialize_value(v)} end)
-  end
-
-  defp serialize_value(value), do: value
-
-  defp serialize_struct(struct) do
-    struct
-    |> Map.from_struct()
-    |> Map.put("__struct__", struct.__struct__ |> Module.split() |> List.last())
-    |> Enum.into(%{}, fn {key, value} ->
-      {to_string(key), serialize_value(value)}
-    end)
-  end
-
-  # Deserialization functions
-
-  defp deserialize_primary_key(nil), do: nil
-
-  defp deserialize_primary_key(data) when is_map(data) do
-    fields = deserialize_fields(data["fields"] || [])
-    %Ecto.Relation.Schema.PrimaryKey{fields: fields}
-  end
-
-  defp deserialize_foreign_keys(nil), do: []
-
-  defp deserialize_foreign_keys(data) when is_list(data) do
-    Enum.map(data, &deserialize_foreign_key/1)
-  end
-
-  defp deserialize_foreign_key(data) when is_map(data) do
-    %Ecto.Relation.Schema.ForeignKey{
-      field: String.to_atom(data["field"]),
-      references_table: data["references_table"],
-      references_field: String.to_atom(data["references_field"]),
-      association_name: data["association_name"] && String.to_atom(data["association_name"])
-    }
-  end
-
-  defp deserialize_fields(nil), do: []
-
-  defp deserialize_fields(data) when is_list(data) do
-    Enum.map(data, &deserialize_field/1)
-  end
-
-  defp deserialize_field(data) when is_map(data) do
-    %Ecto.Relation.Schema.Field{
-      name: String.to_atom(data["name"]),
-      type: deserialize_ecto_type(data["type"]),
-      ecto_type: deserialize_ecto_type(data["ecto_type"]),
-      source: String.to_atom(data["source"]),
-      meta: deserialize_meta(data["meta"])
-    }
-  end
-
-  defp deserialize_ecto_type(type) when is_binary(type), do: String.to_atom(type)
-
-  defp deserialize_ecto_type(type) when is_list(type) do
-    # Handle tuples that were serialized as lists (e.g., {:array, :string} -> ["array", "string"])
-    case type do
-      [first | rest] when is_binary(first) ->
-        # Convert list of strings back to tuple of atoms
-        [String.to_atom(first) | Enum.map(rest, &deserialize_ecto_type/1)]
-        |> List.to_tuple()
-
-      _ ->
-        # Handle other list cases
-        Enum.map(type, &deserialize_ecto_type/1)
-    end
-  end
-
-  defp deserialize_ecto_type(type) when is_map(type) do
-    # Handle complex ecto types that were serialized as maps
-    # e.g., {:array, :string} gets serialized as %{"array" => "string"}
-    case type do
-      %{"array" => element_type} ->
-        {:array, deserialize_ecto_type(element_type)}
-
-      %{"map" => value_type} ->
-        {:map, deserialize_ecto_type(value_type)}
-
-      # Handle other map-based ecto types as needed
-      other_map ->
-        # Convert map keys and values back to atoms/proper types
-        Enum.into(other_map, %{}, fn {k, v} ->
-          {deserialize_ecto_type(k), deserialize_ecto_type(v)}
-        end)
-    end
-  end
-
-  defp deserialize_ecto_type(type), do: type
-
-  defp deserialize_meta(nil), do: %{}
-
-  defp deserialize_meta(data) when is_map(data) do
-    data
-    |> Enum.into(%{}, fn {k, v} -> {String.to_atom(k), v} end)
-  end
-
-  defp deserialize_indices(nil), do: %Ecto.Relation.Schema.Indices{indices: []}
-
-  defp deserialize_indices(data) when is_map(data) do
-    indices = deserialize_index_list(data["indices"] || [])
-    %Ecto.Relation.Schema.Indices{indices: indices}
-  end
-
-  defp deserialize_index_list(data) when is_list(data) do
-    Enum.map(data, &deserialize_index/1)
-  end
-
-  defp deserialize_index(data) when is_map(data) do
-    %Ecto.Relation.Schema.Index{
-      name: data["name"],
-      fields: deserialize_index_fields(data["fields"] || []),
-      unique: data["unique"] || false
-    }
-  end
-
-  defp deserialize_index_fields(fields) when is_list(fields) do
-    Enum.map(fields, fn
-      field when is_binary(field) -> String.to_atom(field)
-      field when is_map(field) -> deserialize_field(field)
-      field -> field
-    end)
-  end
-
-  defp cache_enabled? do
-    try do
-      Config.schema_cache()[:enabled]
-    rescue
-      # Handle case when Drops application isn't started during compilation
-      _ -> false
-    end
+    json = encode(data)
+    cache_file |> Path.dirname() |> File.mkdir_p!()
+    File.write!(cache_file, json)
+    log_cache_event("Cached schema to #{cache_file}", :debug)
+    :ok
   end
 
   defp cache_absolute_directory do

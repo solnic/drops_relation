@@ -45,6 +45,9 @@ defmodule Ecto.Relation.Schema.Field do
           meta: meta()
         }
 
+  alias Ecto.Relation.Schema.Serializable
+  use Serializable
+
   defstruct [:name, :type, :ecto_type, :source, :meta]
 
   @doc """

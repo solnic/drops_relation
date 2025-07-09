@@ -23,6 +23,9 @@ defmodule Ecto.Relation.Schema.ForeignKey do
           association_name: atom() | nil
         }
 
+  alias Ecto.Relation.Schema.Serializable
+  use Serializable
+
   defstruct [:field, :references_table, :references_field, :association_name]
 
   @doc """

@@ -39,6 +39,9 @@ defmodule Ecto.Relation.Schema.Index do
           type: index_type()
         }
 
+  alias Ecto.Relation.Schema.Serializable
+  use Serializable
+
   defstruct [:name, :fields, :unique, :type]
 
   @doc """

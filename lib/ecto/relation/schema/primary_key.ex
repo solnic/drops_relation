@@ -31,6 +31,9 @@ defmodule Ecto.Relation.Schema.PrimaryKey do
           fields: [Field.t()]
         }
 
+  alias Ecto.Relation.Schema.Serializable
+  use Serializable
+
   defstruct [:fields]
 
   @doc """
