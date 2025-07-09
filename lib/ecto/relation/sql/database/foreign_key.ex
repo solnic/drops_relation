@@ -251,19 +251,16 @@ defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.ForeignK
   Converts database ForeignKey structs to Ecto.Relation.Schema.ForeignKey structs.
   """
 
-  alias Ecto.Relation.Schema.ForeignKey, as: SchemaForeignKey
+  alias Ecto.Relation.Schema
 
-  def to_schema_component(%Ecto.Relation.SQL.Database.ForeignKey{} = foreign_key) do
-    # For now, only handle single-column foreign keys
-    # TODO: Add support for composite foreign keys
+  def to_schema_component(%Ecto.Relation.SQL.Database.ForeignKey{} = foreign_key, _table) do
     field_name =
       case foreign_key.columns do
         [single_column] ->
           String.to_atom(single_column)
 
         multiple_columns ->
-          # For composite keys, use the first column for now
-          # This is a limitation that should be addressed
+          # TODO: add support for composite FKs
           String.to_atom(hd(multiple_columns))
       end
 
@@ -276,14 +273,10 @@ defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.ForeignK
           String.to_atom(hd(multiple_columns))
       end
 
-    SchemaForeignKey.new(
+    Schema.ForeignKey.new(
       field_name,
       foreign_key.referenced_table,
       referenced_field
     )
-  end
-
-  def to_schema_component(foreign_key, _context) do
-    to_schema_component(foreign_key)
   end
 end

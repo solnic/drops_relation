@@ -5,46 +5,7 @@ defprotocol Ecto.Relation.Schema.Inference do
   This protocol allows different database components (columns, primary keys, foreign keys, indexes)
   to define how they should be converted to their corresponding schema representations.
   This enables customization and extensibility for different database types and special cases.
-
-  ## Examples
-
-      # Convert a column to a field
-      alias Ecto.Relation.SQL.Database.Column
-      column = %Column{name: "email", type: "varchar(255)", ...}
-      field = Ecto.Relation.Schema.Inference.to_schema_component(column)
-
-      # Convert a primary key with column context
-      alias Ecto.Relation.SQL.Database.PrimaryKey
-      pk = %PrimaryKey{columns: ["id"]}
-      schema_pk = Ecto.Relation.Schema.Inference.to_schema_component(pk, columns)
   """
-
-  @doc """
-  Converts a database component to its corresponding schema representation.
-
-  The specific conversion depends on the type of the component:
-  - Column -> Field
-  - PrimaryKey -> PrimaryKey (requires columns context, use to_schema_component/2)
-  - ForeignKey -> ForeignKey
-  - Index -> Index
-
-  ## Parameters
-
-  - `component` - A database component struct (Column, ForeignKey, or Index)
-
-  ## Returns
-
-  The corresponding schema struct.
-
-  ## Examples
-
-      iex> column = %Database.Column{name: "email", type: "varchar(255)", ...}
-      iex> field = Ecto.Relation.Schema.Inference.to_schema_component(column)
-      iex> field.name
-      :email
-  """
-  @spec to_schema_component(term()) :: term()
-  def to_schema_component(component)
 
   @doc """
   Converts a database component to its corresponding schema representation with context.

@@ -182,52 +182,10 @@ defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.PrimaryK
   using the provided column context.
   """
 
-  alias Ecto.Relation.Schema.PrimaryKey, as: SchemaPrimaryKey
+  alias Ecto.Relation.Schema
 
-  def to_schema_component(%Ecto.Relation.SQL.Database.PrimaryKey{} = _primary_key) do
-    # PrimaryKey conversion requires column context
-    raise ArgumentError,
-          "PrimaryKey conversion requires column context. Use to_schema_component(primary_key, columns)."
-  end
-
-  def to_schema_component(
-        %Ecto.Relation.SQL.Database.PrimaryKey{} = primary_key,
-        columns
-      )
-      when is_list(columns) do
-    # Find the actual column metadata for primary key columns and convert to fields
-    pk_fields =
-      Enum.map(primary_key.columns, fn column_name ->
-        # Find the corresponding column
-        column = Enum.find(columns, &(&1.name == column_name))
-
-        if column do
-          # Convert the column to a field using the protocol
-          # Note: We can't use repo context here, so we'll need to handle this differently
-          # For now, we'll create a basic field - this might need to be refactored
-          alias Ecto.Relation.Schema.Field
-
-          Field.new(
-            String.to_atom(column_name),
-            # Default type - this should be improved
-            :integer,
-            # Default ecto_type - this should be improved
-            :id,
-            String.to_atom(column_name)
-          )
-        else
-          # Fallback if column not found
-          alias Ecto.Relation.Schema.Field
-
-          Field.new(
-            String.to_atom(column_name),
-            :integer,
-            :id,
-            String.to_atom(column_name)
-          )
-        end
-      end)
-
-    SchemaPrimaryKey.new(pk_fields)
+  def to_schema_component(%Ecto.Relation.SQL.Database.PrimaryKey{} = primary_key, table) do
+    pk_fields = Enum.filter(table.columns, fn column -> column.name in primary_key.columns end)
+    Schema.PrimaryKey.new(pk_fields)
   end
 end

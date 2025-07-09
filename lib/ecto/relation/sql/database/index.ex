@@ -245,7 +245,7 @@ defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.Index do
 
   alias Ecto.Relation.Schema.Index, as: SchemaIndex
 
-  def to_schema_component(%Ecto.Relation.SQL.Database.Index{} = index) do
+  def to_schema_component(%Ecto.Relation.SQL.Database.Index{} = index, _table) do
     # Convert column names to atoms
     field_names = Enum.map(index.columns, &String.to_atom/1)
 
@@ -255,9 +255,5 @@ defimpl Ecto.Relation.Schema.Inference, for: Ecto.Relation.SQL.Database.Index do
       index.unique,
       index.type
     )
-  end
-
-  def to_schema_component(index, _context) do
-    to_schema_component(index)
   end
 end
