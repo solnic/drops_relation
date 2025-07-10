@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.Database.Table do
+defmodule Drops.SQL.Database.Table do
   @moduledoc """
   Represents a complete database table with all its metadata.
 
@@ -9,26 +9,26 @@ defmodule Drops.Relation.SQL.Database.Table do
   ## Examples
 
       # Simple table
-      %Drops.Relation.SQL.Database.Table{
+      %Drops.SQL.Database.Table{
         name: "users",
         columns: [
-          %Drops.Relation.SQL.Database.Column{name: "id", type: "integer", primary_key: true, ...},
-          %Drops.Relation.SQL.Database.Column{name: "email", type: "varchar(255)", primary_key: false, ...}
+          %Drops.SQL.Database.Column{name: "id", type: "integer", primary_key: true, ...},
+          %Drops.SQL.Database.Column{name: "email", type: "varchar(255)", primary_key: false, ...}
         ],
-        primary_key: %Drops.Relation.SQL.Database.PrimaryKey{columns: ["id"]},
+        primary_key: %Drops.SQL.Database.PrimaryKey{columns: ["id"]},
         foreign_keys: [],
         indices: [
-          %Drops.Relation.SQL.Database.Index{name: "idx_users_email", columns: ["email"], unique: true, ...}
+          %Drops.SQL.Database.Index{name: "idx_users_email", columns: ["email"], unique: true, ...}
         ]
       }
 
       # Table with foreign keys
-      %Drops.Relation.SQL.Database.Table{
+      %Drops.SQL.Database.Table{
         name: "posts",
         columns: [...],
-        primary_key: %Drops.Relation.SQL.Database.PrimaryKey{columns: ["id"]},
+        primary_key: %Drops.SQL.Database.PrimaryKey{columns: ["id"]},
         foreign_keys: [
-          %Drops.Relation.SQL.Database.ForeignKey{
+          %Drops.SQL.Database.ForeignKey{
             columns: ["user_id"],
             referenced_table: "users",
             referenced_columns: ["id"]
@@ -38,7 +38,7 @@ defmodule Drops.Relation.SQL.Database.Table do
       }
   """
 
-  alias Drops.Relation.SQL.Database.{Column, PrimaryKey, ForeignKey, Index}
+  alias Drops.SQL.Database.{Column, PrimaryKey, ForeignKey, Index}
 
   @type adapter :: :postgres | :sqlite | :mysql | atom()
 
@@ -74,17 +74,17 @@ defmodule Drops.Relation.SQL.Database.Table do
 
   ## Examples
 
-      iex> alias Drops.Relation.SQL.Database.{Column, PrimaryKey, ForeignKey, Index}
+      iex> alias Drops.SQL.Database.{Column, PrimaryKey, ForeignKey, Index}
       iex> columns = [Column.new("id", "integer", false, nil, true)]
       iex> pk = PrimaryKey.new(["id"])
       iex> fks = []
       iex> indices = []
-      iex> Drops.Relation.SQL.Database.Table.new("users", :postgres, columns, pk, fks, indices)
-      %Drops.Relation.SQL.Database.Table{
+      iex> Drops.SQL.Database.Table.new("users", :postgres, columns, pk, fks, indices)
+      %Drops.SQL.Database.Table{
         name: "users",
         adapter: :postgres,
-        columns: [%Drops.Relation.SQL.Database.Column{name: "id", ...}],
-        primary_key: %Drops.Relation.SQL.Database.PrimaryKey{columns: ["id"]},
+        columns: [%Drops.SQL.Database.Column{name: "id", ...}],
+        primary_key: %Drops.SQL.Database.PrimaryKey{columns: ["id"]},
         foreign_keys: [],
         indices: []
       }
@@ -120,14 +120,14 @@ defmodule Drops.Relation.SQL.Database.Table do
 
   ## Examples
 
-      iex> alias Drops.Relation.SQL.Database.Column
+      iex> alias Drops.SQL.Database.Column
       iex> columns = [Column.new("id", "integer", false, nil, true)]
-      iex> Drops.Relation.SQL.Database.Table.from_introspection("users", :postgres, columns)
-      %Drops.Relation.SQL.Database.Table{
+      iex> Drops.SQL.Database.Table.from_introspection("users", :postgres, columns)
+      %Drops.SQL.Database.Table{
         name: "users",
         adapter: :postgres,
-        columns: [%Drops.Relation.SQL.Database.Column{name: "id", ...}],
-        primary_key: %Drops.Relation.SQL.Database.PrimaryKey{columns: ["id"]},
+        columns: [%Drops.SQL.Database.Column{name: "id", ...}],
+        primary_key: %Drops.SQL.Database.PrimaryKey{columns: ["id"]},
         foreign_keys: [],
         indices: []
       }
@@ -146,7 +146,7 @@ defmodule Drops.Relation.SQL.Database.Table do
 
   ## Examples
 
-      iex> alias Drops.Relation.SQL.Database.{Column, Table}
+      iex> alias Drops.SQL.Database.{Column, Table}
       iex> columns = [
       ...>   Column.new("id", "integer", false, nil, true),
       ...>   Column.new("email", "varchar(255)", true, nil, false)
@@ -156,7 +156,7 @@ defmodule Drops.Relation.SQL.Database.Table do
       iex> column.name
       "email"
 
-      iex> alias Drops.Relation.SQL.Database.{Column, Table}
+      iex> alias Drops.SQL.Database.{Column, Table}
       iex> columns = [Column.new("id", "integer", false, nil, true)]
       iex> table = Table.from_introspection("users", columns)
       iex> Table.get_column(table, "nonexistent")
@@ -173,7 +173,7 @@ defmodule Drops.Relation.SQL.Database.Table do
 
   ## Examples
 
-      iex> alias Drops.Relation.SQL.Database.{Column, Table}
+      iex> alias Drops.SQL.Database.{Column, Table}
       iex> columns = [
       ...>   Column.new("id", "integer", false, nil, true),
       ...>   Column.new("email", "varchar(255)", true, nil, false)
@@ -192,7 +192,7 @@ defmodule Drops.Relation.SQL.Database.Table do
 
   ## Examples
 
-      iex> alias Drops.Relation.SQL.Database.{Column, Table}
+      iex> alias Drops.SQL.Database.{Column, Table}
       iex> columns = [
       ...>   Column.new("id", "integer", false, nil, true),
       ...>   Column.new("email", "varchar(255)", true, nil, false)
@@ -211,7 +211,7 @@ defmodule Drops.Relation.SQL.Database.Table do
 
   ## Examples
 
-      iex> alias Drops.Relation.SQL.Database.{Column, ForeignKey, Table}
+      iex> alias Drops.SQL.Database.{Column, ForeignKey, Table}
       iex> columns = [
       ...>   Column.new("id", "integer", false, nil, true),
       ...>   Column.new("user_id", "integer", false, nil, false)
@@ -233,13 +233,13 @@ defmodule Drops.Relation.SQL.Database.Table do
 
   ## Examples
 
-      iex> alias Drops.Relation.SQL.Database.{Column, Table}
+      iex> alias Drops.SQL.Database.{Column, Table}
       iex> columns = [Column.new("id", "integer", false, nil, true)]
       iex> table = Table.from_introspection("users", columns)
       iex> Table.primary_key_column?(table, "id")
       true
 
-      iex> alias Drops.Relation.SQL.Database.{Column, Table}
+      iex> alias Drops.SQL.Database.{Column, Table}
       iex> columns = [Column.new("id", "integer", false, nil, true)]
       iex> table = Table.from_introspection("users", columns)
       iex> Table.primary_key_column?(table, "email")
@@ -255,14 +255,14 @@ defmodule Drops.Relation.SQL.Database.Table do
 
   ## Examples
 
-      iex> alias Drops.Relation.SQL.Database.{Column, ForeignKey, Table}
+      iex> alias Drops.SQL.Database.{Column, ForeignKey, Table}
       iex> columns = [Column.new("user_id", "integer", false, nil, false)]
       iex> fks = [ForeignKey.simple("user_id", "users")]
       iex> table = Table.from_introspection("posts", columns, fks)
       iex> Table.foreign_key_column?(table, "user_id")
       true
 
-      iex> alias Drops.Relation.SQL.Database.{Column, Table}
+      iex> alias Drops.SQL.Database.{Column, Table}
       iex> columns = [Column.new("title", "varchar(255)", true, nil, false)]
       iex> table = Table.from_introspection("posts", columns)
       iex> Table.foreign_key_column?(table, "title")
@@ -278,7 +278,7 @@ defmodule Drops.Relation.SQL.Database.Table do
 
   ## Examples
 
-      iex> alias Drops.Relation.SQL.Database.{Column, ForeignKey, Table}
+      iex> alias Drops.SQL.Database.{Column, ForeignKey, Table}
       iex> columns = [Column.new("user_id", "integer", false, nil, false)]
       iex> fks = [ForeignKey.simple("user_id", "users")]
       iex> table = Table.from_introspection("posts", columns, fks)
@@ -286,7 +286,7 @@ defmodule Drops.Relation.SQL.Database.Table do
       iex> fk.referenced_table
       "users"
 
-      iex> alias Drops.Relation.SQL.Database.{Column, Table}
+      iex> alias Drops.SQL.Database.{Column, Table}
       iex> columns = [Column.new("title", "varchar(255)", true, nil, false)]
       iex> table = Table.from_introspection("posts", columns)
       iex> Table.get_foreign_key_for_column(table, "title")
@@ -302,7 +302,7 @@ defmodule Drops.Relation.SQL.Database.Table do
 
     alias Drops.Relation.Schema
 
-    def to_schema(%Drops.Relation.SQL.Database.Table{} = table) do
+    def to_schema(%Drops.SQL.Database.Table{} = table) do
       primary_key = to_schema_field(table.primary_key, table)
       # TODO: optimize this because we already have field(s) from primary_key
       #       so we can skip inferring those when mapping all columns
@@ -314,8 +314,8 @@ defmodule Drops.Relation.SQL.Database.Table do
     end
   end
 
-  defimpl Drops.Relation.SQL.Types.Conversion do
-    alias Drops.Relation.SQL.Types
+  defimpl Drops.SQL.Types.Conversion do
+    alias Drops.SQL.Types
 
     def to_atom(_table, :id), do: :integer
     def to_atom(_table, :binary_id), do: :binary

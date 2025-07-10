@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.Database.Column do
+defmodule Drops.SQL.Database.Column do
   @moduledoc """
   Represents a database column with complete metadata.
 
@@ -8,7 +8,7 @@ defmodule Drops.Relation.SQL.Database.Column do
   ## Examples
 
       # Simple column
-      %Drops.Relation.SQL.Database.Column{
+      %Drops.SQL.Database.Column{
         name: "email",
         type: "varchar(255)",
         nullable: true,
@@ -17,7 +17,7 @@ defmodule Drops.Relation.SQL.Database.Column do
       }
 
       # Primary key column
-      %Drops.Relation.SQL.Database.Column{
+      %Drops.SQL.Database.Column{
         name: "id",
         type: "integer",
         nullable: false,
@@ -26,7 +26,7 @@ defmodule Drops.Relation.SQL.Database.Column do
       }
 
       # Column with constraints
-      %Drops.Relation.SQL.Database.Column{
+      %Drops.SQL.Database.Column{
         name: "status",
         type: "varchar(20)",
         nullable: false,
@@ -68,8 +68,8 @@ defmodule Drops.Relation.SQL.Database.Column do
 
   ## Examples
 
-      iex> Drops.Relation.SQL.Database.Column.new("email", "varchar(255)", true, nil, false)
-      %Drops.Relation.SQL.Database.Column{
+      iex> Drops.SQL.Database.Column.new("email", "varchar(255)", true, nil, false)
+      %Drops.SQL.Database.Column{
         name: "email",
         type: "varchar(255)",
         nullable: true,
@@ -79,8 +79,8 @@ defmodule Drops.Relation.SQL.Database.Column do
       }
 
       iex> constraints = ["status IN ('active', 'inactive')"]
-      iex> Drops.Relation.SQL.Database.Column.new("status", "varchar(20)", false, "active", false, constraints)
-      %Drops.Relation.SQL.Database.Column{
+      iex> Drops.SQL.Database.Column.new("status", "varchar(20)", false, "active", false, constraints)
+      %Drops.SQL.Database.Column{
         name: "status",
         type: "varchar(20)",
         nullable: false,
@@ -121,8 +121,8 @@ defmodule Drops.Relation.SQL.Database.Column do
       ...>   primary_key: false,
       ...>   check_constraints: []
       ...> }
-      iex> Drops.Relation.SQL.Database.Column.from_introspection(data)
-      %Drops.Relation.SQL.Database.Column{
+      iex> Drops.SQL.Database.Column.from_introspection(data)
+      %Drops.SQL.Database.Column{
         name: "email",
         type: "varchar(255)",
         nullable: true,
@@ -164,12 +164,12 @@ defmodule Drops.Relation.SQL.Database.Column do
 
   ## Examples
 
-      iex> column = Drops.Relation.SQL.Database.Column.new("id", "integer", false, nil, true)
-      iex> Drops.Relation.SQL.Database.Column.primary_key?(column)
+      iex> column = Drops.SQL.Database.Column.new("id", "integer", false, nil, true)
+      iex> Drops.SQL.Database.Column.primary_key?(column)
       true
 
-      iex> column = Drops.Relation.SQL.Database.Column.new("email", "varchar(255)", true, nil, false)
-      iex> Drops.Relation.SQL.Database.Column.primary_key?(column)
+      iex> column = Drops.SQL.Database.Column.new("email", "varchar(255)", true, nil, false)
+      iex> Drops.SQL.Database.Column.primary_key?(column)
       false
   """
   @spec primary_key?(t()) :: boolean()
@@ -180,12 +180,12 @@ defmodule Drops.Relation.SQL.Database.Column do
 
   ## Examples
 
-      iex> column = Drops.Relation.SQL.Database.Column.new("email", "varchar(255)", true, nil, false)
-      iex> Drops.Relation.SQL.Database.Column.nullable?(column)
+      iex> column = Drops.SQL.Database.Column.new("email", "varchar(255)", true, nil, false)
+      iex> Drops.SQL.Database.Column.nullable?(column)
       true
 
-      iex> column = Drops.Relation.SQL.Database.Column.new("id", "integer", false, nil, true)
-      iex> Drops.Relation.SQL.Database.Column.nullable?(column)
+      iex> column = Drops.SQL.Database.Column.new("id", "integer", false, nil, true)
+      iex> Drops.SQL.Database.Column.nullable?(column)
       false
   """
   @spec nullable?(t()) :: boolean()
@@ -196,12 +196,12 @@ defmodule Drops.Relation.SQL.Database.Column do
 
   ## Examples
 
-      iex> column = Drops.Relation.SQL.Database.Column.new("status", "varchar(20)", false, "active", false)
-      iex> Drops.Relation.SQL.Database.Column.has_default?(column)
+      iex> column = Drops.SQL.Database.Column.new("status", "varchar(20)", false, "active", false)
+      iex> Drops.SQL.Database.Column.has_default?(column)
       true
 
-      iex> column = Drops.Relation.SQL.Database.Column.new("email", "varchar(255)", true, nil, false)
-      iex> Drops.Relation.SQL.Database.Column.has_default?(column)
+      iex> column = Drops.SQL.Database.Column.new("email", "varchar(255)", true, nil, false)
+      iex> Drops.SQL.Database.Column.has_default?(column)
       false
   """
   @spec has_default?(t()) :: boolean()
@@ -213,12 +213,12 @@ defmodule Drops.Relation.SQL.Database.Column do
   ## Examples
 
       iex> constraints = ["status IN ('active', 'inactive')"]
-      iex> column = Drops.Relation.SQL.Database.Column.new("status", "varchar(20)", false, "active", false, constraints)
-      iex> Drops.Relation.SQL.Database.Column.has_check_constraints?(column)
+      iex> column = Drops.SQL.Database.Column.new("status", "varchar(20)", false, "active", false, constraints)
+      iex> Drops.SQL.Database.Column.has_check_constraints?(column)
       true
 
-      iex> column = Drops.Relation.SQL.Database.Column.new("email", "varchar(255)", true, nil, false)
-      iex> Drops.Relation.SQL.Database.Column.has_check_constraints?(column)
+      iex> column = Drops.SQL.Database.Column.new("email", "varchar(255)", true, nil, false)
+      iex> Drops.SQL.Database.Column.has_check_constraints?(column)
       false
   """
   @spec has_check_constraints?(t()) :: boolean()
@@ -226,9 +226,9 @@ defmodule Drops.Relation.SQL.Database.Column do
     do: constraints != []
 
   defimpl Drops.Relation.Schema.Field.Inference do
-    alias Drops.Relation.SQL.Database
-    alias Drops.Relation.SQL.Database.Table
-    alias Drops.Relation.SQL.Types
+    alias Drops.SQL.Database
+    alias Drops.SQL.Database.Table
+    alias Drops.SQL.Types
     alias Drops.Relation.Schema
 
     def to_schema_field(%Database.Column{} = column, %Database.Table{} = table) do

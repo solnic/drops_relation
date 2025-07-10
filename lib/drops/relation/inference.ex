@@ -1,5 +1,5 @@
 defmodule Drops.Relation.Inference do
-  alias Drops.Relation.SQL
+  alias Drops.SQL
   alias Drops.Relation.Schema.Field
   alias Drops.Relation.Inference.FieldCandidate
   alias Drops.Relation.Inference.FieldCandidates
@@ -140,7 +140,10 @@ defmodule Drops.Relation.Inference do
 
     # Generate @primary_key attribute if needed
     primary_key_attr =
-      generate_primary_key_attribute_from_candidates(candidates, drops_relation_schema.primary_key)
+      generate_primary_key_attribute_from_candidates(
+        candidates,
+        drops_relation_schema.primary_key
+      )
 
     # Generate @foreign_key_type attribute if needed
     foreign_key_type_attr =

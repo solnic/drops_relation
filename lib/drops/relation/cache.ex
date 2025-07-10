@@ -254,7 +254,7 @@ defmodule Drops.Relation.Cache do
           if schema = get_cached_schema(repo, table_name) do
             schema
           else
-            schema = Drops.Relation.SQL.Inference.infer_from_table(table_name, repo)
+            schema = Drops.SQL.Inference.infer_from_table(table_name, repo)
             cache_schema(repo, table_name, schema)
             schema
           end

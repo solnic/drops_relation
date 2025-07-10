@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.Sqlite do
+defmodule Drops.SQL.Sqlite do
   @moduledoc """
   Sqlite implementation of the Database behavior for schema introspection.
 
@@ -13,11 +13,11 @@ defmodule Drops.Relation.SQL.Sqlite do
   - Support for unique and composite indices
   """
 
-  @behaviour Drops.Relation.SQL.Database
+  @behaviour Drops.SQL.Database
 
   alias Drops.Relation.Schema.{Index, Indices}
-  alias Drops.Relation.SQL.Database.{Table, Column, ForeignKey}
-  alias Drops.Relation.SQL.Database.Index, as: DatabaseIndex
+  alias Drops.SQL.Database.{Table, Column, ForeignKey}
+  alias Drops.SQL.Database.Index, as: DatabaseIndex
 
   # Legacy method for backward compatibility - no longer part of behavior
   def get_table_indices(repo, table_name) do

@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.PostgresTest do
+defmodule Drops.SQL.PostgresTest do
   @moduledoc """
   Tests for PostgreSQL database introspection functionality.
 
@@ -19,7 +19,7 @@ defmodule Drops.Relation.SQL.PostgresTest do
   """
   use Drops.RelationCase, async: false
 
-  alias Drops.Relation.SQL.Postgres
+  alias Drops.SQL.Postgres
   alias Drops.Relation.Schema.Indices
 
   describe "get_table_indices/2" do
@@ -183,7 +183,7 @@ defmodule Drops.Relation.SQL.PostgresTest do
   describe "full inference behavior" do
     @tag relations: [:postgres_types], adapter: :postgres
     test "infers correct Ecto types from postgres_types test table", %{repo: repo} do
-      alias Drops.Relation.SQL.Inference
+      alias Drops.SQL.Inference
 
       # Test full schema inference from the postgres_types table
       schema = Inference.infer_from_table("postgres_types", repo)
@@ -296,7 +296,7 @@ defmodule Drops.Relation.SQL.PostgresTest do
 
     @tag relations: [:type_mapping_tests], adapter: :postgres
     test "infers correct types from type_mapping_tests table", %{repo: repo} do
-      alias Drops.Relation.SQL.Inference
+      alias Drops.SQL.Inference
 
       # Test inference from the type_mapping_tests table
       schema = Inference.infer_from_table("type_mapping_tests", repo)
@@ -355,7 +355,7 @@ defmodule Drops.Relation.SQL.PostgresTest do
 
     @tag relations: [:postgres_array_types], adapter: :postgres
     test "infers array types from postgres_array_types table", %{repo: repo} do
-      alias Drops.Relation.SQL.Inference
+      alias Drops.SQL.Inference
 
       schema = Inference.infer_from_table("postgres_array_types", repo)
 

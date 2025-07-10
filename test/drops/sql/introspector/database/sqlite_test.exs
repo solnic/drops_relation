@@ -1,7 +1,7 @@
-defmodule Drops.Relation.SQL.SqliteTest do
+defmodule Drops.SQL.SqliteTest do
   use Drops.RelationCase, async: false
 
-  alias Drops.Relation.SQL.Sqlite
+  alias Drops.SQL.Sqlite
   alias Drops.Relation.Schema.Indices
 
   describe "get_table_indices/2" do

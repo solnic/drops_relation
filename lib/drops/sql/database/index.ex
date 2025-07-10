@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.Database.Index do
+defmodule Drops.SQL.Database.Index do
   @moduledoc """
   Represents a database index with complete metadata.
 
@@ -8,7 +8,7 @@ defmodule Drops.Relation.SQL.Database.Index do
   ## Examples
 
       # Simple index
-      %Drops.Relation.SQL.Database.Index{
+      %Drops.SQL.Database.Index{
         name: "idx_users_email",
         columns: ["email"],
         unique: true,
@@ -16,7 +16,7 @@ defmodule Drops.Relation.SQL.Database.Index do
       }
 
       # Composite index
-      %Drops.Relation.SQL.Database.Index{
+      %Drops.SQL.Database.Index{
         name: "idx_users_name_age",
         columns: ["name", "age"],
         unique: false,
@@ -24,7 +24,7 @@ defmodule Drops.Relation.SQL.Database.Index do
       }
 
       # Partial index
-      %Drops.Relation.SQL.Database.Index{
+      %Drops.SQL.Database.Index{
         name: "idx_users_active_email",
         columns: ["email"],
         unique: true,
@@ -64,8 +64,8 @@ defmodule Drops.Relation.SQL.Database.Index do
 
   ## Examples
 
-      iex> Drops.Relation.SQL.Database.Index.new("idx_users_email", ["email"], true, :btree)
-      %Drops.Relation.SQL.Database.Index{
+      iex> Drops.SQL.Database.Index.new("idx_users_email", ["email"], true, :btree)
+      %Drops.SQL.Database.Index{
         name: "idx_users_email",
         columns: ["email"],
         unique: true,
@@ -73,14 +73,14 @@ defmodule Drops.Relation.SQL.Database.Index do
         where_clause: nil
       }
 
-      iex> Drops.Relation.SQL.Database.Index.new(
+      iex> Drops.SQL.Database.Index.new(
       ...>   "idx_users_active_email",
       ...>   ["email"],
       ...>   true,
       ...>   :btree,
       ...>   "active = true"
       ...> )
-      %Drops.Relation.SQL.Database.Index{
+      %Drops.SQL.Database.Index{
         name: "idx_users_active_email",
         columns: ["email"],
         unique: true,
@@ -118,8 +118,8 @@ defmodule Drops.Relation.SQL.Database.Index do
       ...>   type: :btree,
       ...>   where_clause: nil
       ...> }
-      iex> Drops.Relation.SQL.Database.Index.from_introspection(data)
-      %Drops.Relation.SQL.Database.Index{
+      iex> Drops.SQL.Database.Index.from_introspection(data)
+      %Drops.SQL.Database.Index{
         name: "idx_users_email",
         columns: ["email"],
         unique: true,
@@ -143,12 +143,12 @@ defmodule Drops.Relation.SQL.Database.Index do
 
   ## Examples
 
-      iex> index = Drops.Relation.SQL.Database.Index.new("idx_users_email", ["email"], true, :btree)
-      iex> Drops.Relation.SQL.Database.Index.composite?(index)
+      iex> index = Drops.SQL.Database.Index.new("idx_users_email", ["email"], true, :btree)
+      iex> Drops.SQL.Database.Index.composite?(index)
       false
 
-      iex> index = Drops.Relation.SQL.Database.Index.new("idx_users_name_age", ["name", "age"], false, :btree)
-      iex> Drops.Relation.SQL.Database.Index.composite?(index)
+      iex> index = Drops.SQL.Database.Index.new("idx_users_name_age", ["name", "age"], false, :btree)
+      iex> Drops.SQL.Database.Index.composite?(index)
       true
   """
   @spec composite?(t()) :: boolean()
@@ -161,12 +161,12 @@ defmodule Drops.Relation.SQL.Database.Index do
 
   ## Examples
 
-      iex> index = Drops.Relation.SQL.Database.Index.new("idx_users_email", ["email"], true, :btree)
-      iex> Drops.Relation.SQL.Database.Index.unique?(index)
+      iex> index = Drops.SQL.Database.Index.new("idx_users_email", ["email"], true, :btree)
+      iex> Drops.SQL.Database.Index.unique?(index)
       true
 
-      iex> index = Drops.Relation.SQL.Database.Index.new("idx_users_name", ["name"], false, :btree)
-      iex> Drops.Relation.SQL.Database.Index.unique?(index)
+      iex> index = Drops.SQL.Database.Index.new("idx_users_name", ["name"], false, :btree)
+      iex> Drops.SQL.Database.Index.unique?(index)
       false
   """
   @spec unique?(t()) :: boolean()
@@ -177,12 +177,12 @@ defmodule Drops.Relation.SQL.Database.Index do
 
   ## Examples
 
-      iex> index = Drops.Relation.SQL.Database.Index.new("idx_users_active_email", ["email"], true, :btree, "active = true")
-      iex> Drops.Relation.SQL.Database.Index.partial?(index)
+      iex> index = Drops.SQL.Database.Index.new("idx_users_active_email", ["email"], true, :btree, "active = true")
+      iex> Drops.SQL.Database.Index.partial?(index)
       true
 
-      iex> index = Drops.Relation.SQL.Database.Index.new("idx_users_email", ["email"], true, :btree)
-      iex> Drops.Relation.SQL.Database.Index.partial?(index)
+      iex> index = Drops.SQL.Database.Index.new("idx_users_email", ["email"], true, :btree)
+      iex> Drops.SQL.Database.Index.partial?(index)
       false
   """
   @spec partial?(t()) :: boolean()
@@ -193,8 +193,8 @@ defmodule Drops.Relation.SQL.Database.Index do
 
   ## Examples
 
-      iex> index = Drops.Relation.SQL.Database.Index.new("idx_users_name_age", ["name", "age"], false, :btree)
-      iex> Drops.Relation.SQL.Database.Index.column_names(index)
+      iex> index = Drops.SQL.Database.Index.new("idx_users_name_age", ["name", "age"], false, :btree)
+      iex> Drops.SQL.Database.Index.column_names(index)
       ["name", "age"]
   """
   @spec column_names(t()) :: [String.t()]
@@ -205,12 +205,12 @@ defmodule Drops.Relation.SQL.Database.Index do
 
   ## Examples
 
-      iex> index = Drops.Relation.SQL.Database.Index.new("idx_users_name_age", ["name", "age"], false, :btree)
-      iex> Drops.Relation.SQL.Database.Index.includes_column?(index, "name")
+      iex> index = Drops.SQL.Database.Index.new("idx_users_name_age", ["name", "age"], false, :btree)
+      iex> Drops.SQL.Database.Index.includes_column?(index, "name")
       true
 
-      iex> index = Drops.Relation.SQL.Database.Index.new("idx_users_name_age", ["name", "age"], false, :btree)
-      iex> Drops.Relation.SQL.Database.Index.includes_column?(index, "email")
+      iex> index = Drops.SQL.Database.Index.new("idx_users_name_age", ["name", "age"], false, :btree)
+      iex> Drops.SQL.Database.Index.includes_column?(index, "email")
       false
   """
   @spec includes_column?(t(), String.t()) :: boolean()
@@ -224,19 +224,19 @@ defmodule Drops.Relation.SQL.Database.Index do
 
   ## Examples
 
-      iex> index = Drops.Relation.SQL.Database.Index.new("idx_users_name_age", ["name", "age"], false, :btree)
-      iex> Drops.Relation.SQL.Database.Index.column_count(index)
+      iex> index = Drops.SQL.Database.Index.new("idx_users_name_age", ["name", "age"], false, :btree)
+      iex> Drops.SQL.Database.Index.column_count(index)
       2
 
-      iex> index = Drops.Relation.SQL.Database.Index.new("idx_users_email", ["email"], true, :btree)
-      iex> Drops.Relation.SQL.Database.Index.column_count(index)
+      iex> index = Drops.SQL.Database.Index.new("idx_users_email", ["email"], true, :btree)
+      iex> Drops.SQL.Database.Index.column_count(index)
       1
   """
   @spec column_count(t()) :: non_neg_integer()
   def column_count(%__MODULE__{columns: columns}), do: length(columns)
 end
 
-defimpl Drops.Relation.Schema.Field.Inference, for: Drops.Relation.SQL.Database.Index do
+defimpl Drops.Relation.Schema.Field.Inference, for: Drops.SQL.Database.Index do
   @moduledoc """
   Implementation of Drops.Relation.Schema.Inference protocol for Index structs.
 
@@ -245,7 +245,7 @@ defimpl Drops.Relation.Schema.Field.Inference, for: Drops.Relation.SQL.Database.
 
   alias Drops.Relation.Schema
 
-  def to_schema_field(%Drops.Relation.SQL.Database.Index{} = index, _table) do
+  def to_schema_field(%Drops.SQL.Database.Index{} = index, _table) do
     field_names = Enum.map(index.columns, &String.to_atom/1)
 
     Schema.Index.from_names(

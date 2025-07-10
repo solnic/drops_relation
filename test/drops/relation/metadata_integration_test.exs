@@ -1,7 +1,7 @@
 defmodule Drops.Relation.MetadataIntegrationTest do
   use Drops.RelationCase, async: false
 
-  alias Drops.Relation.SQL.Inference, as: SQLInference
+  alias Drops.SQL.Inference, as: SQLInference
   alias Drops.Relation.Inference
 
   describe "metadata integration with field inference" do
@@ -27,7 +27,8 @@ defmodule Drops.Relation.MetadataIntegrationTest do
 
     test "custom fields merge with inferred metadata" do
       # Get the inferred schema
-      drops_relation_schema = SQLInference.infer_from_table("metadata_test", Drops.Relation.Repos.Sqlite)
+      drops_relation_schema =
+        SQLInference.infer_from_table("metadata_test", Drops.Relation.Repos.Sqlite)
 
       # Define custom fields that override some inferred fields
       custom_fields = [

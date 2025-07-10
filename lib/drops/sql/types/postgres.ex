@@ -1,5 +1,5 @@
-defmodule Drops.Relation.SQL.Types.Postgres do
-  alias Drops.Relation.SQL.Database.{Column, Table}
+defmodule Drops.SQL.Types.Postgres do
+  alias Drops.SQL.Database.{Column, Table}
 
   def to_ecto_type(%Column{} = column, %Table{adapter: :postgres} = table) do
     if String.ends_with?(column.type, "[]") do

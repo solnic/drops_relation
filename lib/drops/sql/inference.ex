@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.Inference do
+defmodule Drops.SQL.Inference do
   @moduledoc """
   Unified schema inference implementation for database table introspection.
 
@@ -17,10 +17,10 @@ defmodule Drops.Relation.SQL.Inference do
   ## Usage
 
       # Create schema from database table
-      schema = Drops.Relation.SQL.Inference.infer_from_table("users", MyApp.Repo)
+      schema = Drops.SQL.Inference.infer_from_table("users", MyApp.Repo)
 
       # Create schema with custom options
-      schema = Drops.Relation.SQL.Inference.infer_from_table("users", MyApp.Repo,
+      schema = Drops.SQL.Inference.infer_from_table("users", MyApp.Repo,
         include_indices: true,
         include_timestamps: false
       )
@@ -28,7 +28,7 @@ defmodule Drops.Relation.SQL.Inference do
 
   alias Drops.Relation.Schema
   alias Drops.Relation.Schema.Inference
-  alias Drops.Relation.SQL.Introspection
+  alias Drops.SQL.Introspection
 
   require Logger
 
@@ -56,7 +56,7 @@ defmodule Drops.Relation.SQL.Inference do
 
   ## Examples
 
-      iex> schema = Drops.Relation.SQL.Inference.infer_from_table("users", MyApp.Repo)
+      iex> schema = Drops.SQL.Inference.infer_from_table("users", MyApp.Repo)
       iex> schema.source
       "users"
       iex> length(schema.fields)

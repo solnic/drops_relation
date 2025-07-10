@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.Database do
+defmodule Drops.SQL.Database do
   @moduledoc """
   Behavior for database-specific introspection operations.
 
@@ -18,13 +18,13 @@ defmodule Drops.Relation.SQL.Database do
 
   ## Implementations
 
-  - `Drops.Relation.SQL.Sqlite` - Sqlite adapter
-  - `Drops.Relation.SQL.Postgres` - PostgreSQL adapter
+  - `Drops.SQL.Sqlite` - Sqlite adapter
+  - `Drops.SQL.Postgres` - PostgreSQL adapter
 
   ## Example
 
       defmodule MyCustomAdapter do
-        @behaviour Drops.Relation.SQL.Database
+        @behaviour Drops.SQL.Database
 
         @impl true
         def introspect_table(repo, table_name) do
@@ -58,7 +58,7 @@ defmodule Drops.Relation.SQL.Database do
       end
   """
 
-  alias Drops.Relation.SQL.Database.{Table, Column, ForeignKey, Index}
+  alias Drops.SQL.Database.{Table, Column, ForeignKey, Index}
 
   @doc """
   Introspects a complete table with all metadata.
@@ -78,7 +78,7 @@ defmodule Drops.Relation.SQL.Database do
   ## Examples
 
       iex> MyAdapter.introspect_table(MyRepo, "users")
-      {:ok, %Drops.Relation.SQL.Database.Table{name: "users", columns: [...], ...}}
+      {:ok, %Drops.SQL.Database.Table{name: "users", columns: [...], ...}}
   """
   @callback introspect_table(module(), String.t()) :: {:ok, Table.t()} | {:error, term()}
 
@@ -97,7 +97,7 @@ defmodule Drops.Relation.SQL.Database do
   ## Examples
 
       iex> MyAdapter.introspect_table_columns(MyRepo, "users")
-      {:ok, [%Drops.Relation.SQL.Database.Column{name: "id", type: "integer", ...}]}
+      {:ok, [%Drops.SQL.Database.Column{name: "id", type: "integer", ...}]}
   """
   @callback introspect_table_columns(module(), String.t()) ::
               {:ok, [Column.t()]} | {:error, term()}
@@ -117,7 +117,7 @@ defmodule Drops.Relation.SQL.Database do
   ## Examples
 
       iex> MyAdapter.introspect_table_foreign_keys(MyRepo, "posts")
-      {:ok, [%Drops.Relation.SQL.Database.ForeignKey{columns: ["user_id"], referenced_table: "users", ...}]}
+      {:ok, [%Drops.SQL.Database.ForeignKey{columns: ["user_id"], referenced_table: "users", ...}]}
   """
   @callback introspect_table_foreign_keys(module(), String.t()) ::
               {:ok, [ForeignKey.t()]} | {:error, term()}
@@ -137,7 +137,7 @@ defmodule Drops.Relation.SQL.Database do
   ## Examples
 
       iex> MyAdapter.introspect_table_indexes(MyRepo, "users")
-      {:ok, [%Drops.Relation.SQL.Database.Index{name: "idx_users_email", columns: ["email"], ...}]}
+      {:ok, [%Drops.SQL.Database.Index{name: "idx_users_email", columns: ["email"], ...}]}
   """
   @callback introspect_table_indexes(module(), String.t()) ::
               {:ok, [Index.t()]} | {:error, term()}

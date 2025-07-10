@@ -1,4 +1,4 @@
-defprotocol Drops.Relation.SQL.Types.Conversion do
+defprotocol Drops.SQL.Types.Conversion do
   @spec to_atom(term(), term()) :: atom()
   def to_atom(table, ecto_type)
 

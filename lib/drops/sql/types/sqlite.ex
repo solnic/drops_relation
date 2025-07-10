@@ -1,5 +1,5 @@
-defmodule Drops.Relation.SQL.Types.Sqlite do
-  alias Drops.Relation.SQL.Database.{Column, Table}
+defmodule Drops.SQL.Types.Sqlite do
+  alias Drops.SQL.Database.{Column, Table}
 
   def to_ecto_type(%Column{} = column, %Table{adapter: :sqlite} = table) do
     normalized_type = String.upcase(column.type)
@@ -89,8 +89,8 @@ defmodule Drops.Relation.SQL.Types.Sqlite do
 
   # Helper function to check if a column is a foreign key
   defp is_foreign_key?(
-         %Drops.Relation.SQL.Database.Column{} = column,
-         %Drops.Relation.SQL.Database.Table{} = table
+         %Drops.SQL.Database.Column{} = column,
+         %Drops.SQL.Database.Table{} = table
        ) do
     foreign_key_columns =
       table.foreign_keys

@@ -26,7 +26,7 @@ defmodule Drops.Relation.Schema.MetadataExtractor do
     Field
   }
 
-  alias Drops.Relation.SQL.Introspection
+  alias Drops.SQL.Introspection
 
   @type field_metadata :: %{
           name: atom(),

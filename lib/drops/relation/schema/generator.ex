@@ -9,7 +9,7 @@ defmodule Drops.Relation.Schema.Generator do
 
   alias Drops.Relation.Schema
   alias Drops.Relation.Schema.{Field, PrimaryKey}
-  alias Drops.Relation.SQL
+  alias Drops.SQL
 
   require Logger
 

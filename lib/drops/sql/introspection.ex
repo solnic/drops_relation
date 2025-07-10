@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.Introspection do
+defmodule Drops.SQL.Introspection do
   @moduledoc """
   Database introspection utilities for extracting schema metadata.
 
@@ -9,8 +9,8 @@ defmodule Drops.Relation.SQL.Introspection do
   """
 
   alias Drops.Relation.Schema.Indices
-  alias Drops.Relation.SQL
-  alias Drops.Relation.SQL.Database.Table
+  alias Drops.SQL
+  alias Drops.SQL.Database.Table
 
   @doc """
   Introspects a complete table with all metadata.
@@ -29,8 +29,8 @@ defmodule Drops.Relation.SQL.Introspection do
 
   ## Examples
 
-      iex> Drops.Relation.SQL.Introspection.introspect_table(MyRepo, "users")
-      {:ok, %Drops.Relation.SQL.Database.Table{name: "users", columns: [...], ...}}
+      iex> Drops.SQL.Introspection.introspect_table(MyRepo, "users")
+      {:ok, %Drops.SQL.Database.Table{name: "users", columns: [...], ...}}
   """
   @spec introspect_table(module(), String.t()) :: {:ok, Table.t()} | {:error, term()}
   def introspect_table(repo, table_name) when is_binary(table_name) do
@@ -58,7 +58,7 @@ defmodule Drops.Relation.SQL.Introspection do
 
   ## Examples
 
-      iex> Drops.Relation.SQL.Introspection.get_table_indices(MyRepo, "users")
+      iex> Drops.SQL.Introspection.get_table_indices(MyRepo, "users")
       {:ok, %Drops.Relation.Schema.Indices{indices: [...]}}
   """
   @spec get_table_indices(module(), String.t()) :: {:ok, Indices.t()} | {:error, term()}

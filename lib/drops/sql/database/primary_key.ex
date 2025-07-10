@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.Database.PrimaryKey do
+defmodule Drops.SQL.Database.PrimaryKey do
   @moduledoc """
   Represents a primary key constraint in a database table.
 
@@ -9,17 +9,17 @@ defmodule Drops.Relation.SQL.Database.PrimaryKey do
   ## Examples
 
       # Single primary key
-      %Drops.Relation.SQL.Database.PrimaryKey{
+      %Drops.SQL.Database.PrimaryKey{
         columns: ["id"]
       }
 
       # Composite primary key
-      %Drops.Relation.SQL.Database.PrimaryKey{
+      %Drops.SQL.Database.PrimaryKey{
         columns: ["user_id", "role_id"]
       }
 
       # No primary key
-      %Drops.Relation.SQL.Database.PrimaryKey{
+      %Drops.SQL.Database.PrimaryKey{
         columns: []
       }
   """
@@ -39,14 +39,14 @@ defmodule Drops.Relation.SQL.Database.PrimaryKey do
 
   ## Examples
 
-      iex> Drops.Relation.SQL.Database.PrimaryKey.new(["id"])
-      %Drops.Relation.SQL.Database.PrimaryKey{columns: ["id"]}
+      iex> Drops.SQL.Database.PrimaryKey.new(["id"])
+      %Drops.SQL.Database.PrimaryKey{columns: ["id"]}
 
-      iex> Drops.Relation.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
-      %Drops.Relation.SQL.Database.PrimaryKey{columns: ["user_id", "role_id"]}
+      iex> Drops.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
+      %Drops.SQL.Database.PrimaryKey{columns: ["user_id", "role_id"]}
 
-      iex> Drops.Relation.SQL.Database.PrimaryKey.new([])
-      %Drops.Relation.SQL.Database.PrimaryKey{columns: []}
+      iex> Drops.SQL.Database.PrimaryKey.new([])
+      %Drops.SQL.Database.PrimaryKey{columns: []}
   """
   @spec new([String.t()]) :: t()
   def new(columns) when is_list(columns) do
@@ -64,19 +64,19 @@ defmodule Drops.Relation.SQL.Database.PrimaryKey do
 
   ## Examples
 
-      iex> alias Drops.Relation.SQL.Database.Column
+      iex> alias Drops.SQL.Database.Column
       iex> columns = [
       ...>   Column.new("id", "integer", false, nil, true),
       ...>   Column.new("name", "varchar(255)", true, nil, false)
       ...> ]
-      iex> Drops.Relation.SQL.Database.PrimaryKey.from_columns(columns)
-      %Drops.Relation.SQL.Database.PrimaryKey{columns: ["id"]}
+      iex> Drops.SQL.Database.PrimaryKey.from_columns(columns)
+      %Drops.SQL.Database.PrimaryKey{columns: ["id"]}
   """
-  @spec from_columns([Drops.Relation.SQL.Database.Column.t()]) :: t()
+  @spec from_columns([Drops.SQL.Database.Column.t()]) :: t()
   def from_columns(columns) when is_list(columns) do
     primary_key_columns =
       columns
-      |> Enum.filter(&Drops.Relation.SQL.Database.Column.primary_key?/1)
+      |> Enum.filter(&Drops.SQL.Database.Column.primary_key?/1)
       |> Enum.map(& &1.name)
 
     new(primary_key_columns)
@@ -87,16 +87,16 @@ defmodule Drops.Relation.SQL.Database.PrimaryKey do
 
   ## Examples
 
-      iex> pk = Drops.Relation.SQL.Database.PrimaryKey.new(["id"])
-      iex> Drops.Relation.SQL.Database.PrimaryKey.composite?(pk)
+      iex> pk = Drops.SQL.Database.PrimaryKey.new(["id"])
+      iex> Drops.SQL.Database.PrimaryKey.composite?(pk)
       false
 
-      iex> pk = Drops.Relation.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
-      iex> Drops.Relation.SQL.Database.PrimaryKey.composite?(pk)
+      iex> pk = Drops.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
+      iex> Drops.SQL.Database.PrimaryKey.composite?(pk)
       true
 
-      iex> pk = Drops.Relation.SQL.Database.PrimaryKey.new([])
-      iex> Drops.Relation.SQL.Database.PrimaryKey.composite?(pk)
+      iex> pk = Drops.SQL.Database.PrimaryKey.new([])
+      iex> Drops.SQL.Database.PrimaryKey.composite?(pk)
       false
   """
   @spec composite?(t()) :: boolean()
@@ -109,12 +109,12 @@ defmodule Drops.Relation.SQL.Database.PrimaryKey do
 
   ## Examples
 
-      iex> pk = Drops.Relation.SQL.Database.PrimaryKey.new(["id"])
-      iex> Drops.Relation.SQL.Database.PrimaryKey.present?(pk)
+      iex> pk = Drops.SQL.Database.PrimaryKey.new(["id"])
+      iex> Drops.SQL.Database.PrimaryKey.present?(pk)
       true
 
-      iex> pk = Drops.Relation.SQL.Database.PrimaryKey.new([])
-      iex> Drops.Relation.SQL.Database.PrimaryKey.present?(pk)
+      iex> pk = Drops.SQL.Database.PrimaryKey.new([])
+      iex> Drops.SQL.Database.PrimaryKey.present?(pk)
       false
   """
   @spec present?(t()) :: boolean()
@@ -127,12 +127,12 @@ defmodule Drops.Relation.SQL.Database.PrimaryKey do
 
   ## Examples
 
-      iex> pk = Drops.Relation.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
-      iex> Drops.Relation.SQL.Database.PrimaryKey.column_names(pk)
+      iex> pk = Drops.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
+      iex> Drops.SQL.Database.PrimaryKey.column_names(pk)
       ["user_id", "role_id"]
 
-      iex> pk = Drops.Relation.SQL.Database.PrimaryKey.new([])
-      iex> Drops.Relation.SQL.Database.PrimaryKey.column_names(pk)
+      iex> pk = Drops.SQL.Database.PrimaryKey.new([])
+      iex> Drops.SQL.Database.PrimaryKey.column_names(pk)
       []
   """
   @spec column_names(t()) :: [String.t()]
@@ -143,12 +143,12 @@ defmodule Drops.Relation.SQL.Database.PrimaryKey do
 
   ## Examples
 
-      iex> pk = Drops.Relation.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
-      iex> Drops.Relation.SQL.Database.PrimaryKey.includes_column?(pk, "user_id")
+      iex> pk = Drops.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
+      iex> Drops.SQL.Database.PrimaryKey.includes_column?(pk, "user_id")
       true
 
-      iex> pk = Drops.Relation.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
-      iex> Drops.Relation.SQL.Database.PrimaryKey.includes_column?(pk, "name")
+      iex> pk = Drops.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
+      iex> Drops.SQL.Database.PrimaryKey.includes_column?(pk, "name")
       false
   """
   @spec includes_column?(t(), String.t()) :: boolean()
@@ -162,19 +162,19 @@ defmodule Drops.Relation.SQL.Database.PrimaryKey do
 
   ## Examples
 
-      iex> pk = Drops.Relation.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
-      iex> Drops.Relation.SQL.Database.PrimaryKey.column_count(pk)
+      iex> pk = Drops.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
+      iex> Drops.SQL.Database.PrimaryKey.column_count(pk)
       2
 
-      iex> pk = Drops.Relation.SQL.Database.PrimaryKey.new([])
-      iex> Drops.Relation.SQL.Database.PrimaryKey.column_count(pk)
+      iex> pk = Drops.SQL.Database.PrimaryKey.new([])
+      iex> Drops.SQL.Database.PrimaryKey.column_count(pk)
       0
   """
   @spec column_count(t()) :: non_neg_integer()
   def column_count(%__MODULE__{columns: columns}), do: length(columns)
 end
 
-defimpl Drops.Relation.Schema.Field.Inference, for: Drops.Relation.SQL.Database.PrimaryKey do
+defimpl Drops.Relation.Schema.Field.Inference, for: Drops.SQL.Database.PrimaryKey do
   @moduledoc """
   Implementation of Drops.Relation.Schema.Inference protocol for PrimaryKey structs.
 
@@ -184,7 +184,7 @@ defimpl Drops.Relation.Schema.Field.Inference, for: Drops.Relation.SQL.Database.
 
   alias Drops.Relation.Schema
 
-  def to_schema_field(%Drops.Relation.SQL.Database.PrimaryKey{} = primary_key, table) do
+  def to_schema_field(%Drops.SQL.Database.PrimaryKey{} = primary_key, table) do
     pk_fields = Enum.filter(table.columns, fn column -> column.name in primary_key.columns end)
 
     Schema.PrimaryKey.new(Enum.map(pk_fields, &Schema.Field.Inference.to_schema_field(&1, table)))
