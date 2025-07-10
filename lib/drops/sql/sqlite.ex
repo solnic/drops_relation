@@ -13,14 +13,52 @@ defmodule Drops.SQL.Sqlite do
   - Support for unique and composite indices
   """
 
-  @behaviour Drops.SQL.Database
+  use Drops.SQL.Database, adapter: :sqlite
 
-  alias Drops.Relation.Schema.{Index, Indices}
-  alias Drops.SQL.Database.{Table, Column, ForeignKey}
-  alias Drops.SQL.Database.Index, as: DatabaseIndex
+  @impl true
+  def introspect_table(table_name, repo) do
+    with {:ok, columns} <- introspect_table_columns(repo, table_name),
+         {:ok, foreign_keys} <- introspect_table_foreign_keys(repo, table_name),
+         {:ok, indices} <- introspect_table_indices(repo, table_name) do
+      {:ok, {:table, [{:identifier, table_name}, columns, foreign_keys, indices]}}
+    else
+      {:error, reason} -> {:error, reason}
+    end
+  end
 
-  # Legacy method for backward compatibility - no longer part of behavior
-  def get_table_indices(repo, table_name) do
+  @impl true
+  def introspect_table_columns(repo, table_name) do
+    query = "PRAGMA table_info(#{table_name})"
+
+    case repo.query(query) do
+      {:ok, %{rows: rows, columns: _columns}} ->
+        # PRAGMA table_info returns: [cid, name, type, notnull, dflt_value, pk]
+        # pk is 0 for non-primary key columns, and 1, 2, 3, etc. for primary key columns
+        # indicating their position in a composite primary key
+        columns =
+          Enum.map(rows, fn [_cid, name, type, notnull, dflt_value, pk] ->
+            # Get check constraints for this column
+            check_constraints = get_column_check_constraints(repo, table_name, name)
+
+            meta = %{
+              primary_key: pk > 0,
+              nullable: notnull != 1,
+              default: parse_default_value(dflt_value),
+              check_constraints: check_constraints
+            }
+
+            {:column, [{:identifier, name}, {:type, type}, {:meta, meta}]}
+          end)
+
+        {:ok, columns}
+
+      {:error, error} ->
+        raise "Failed to introspect table #{table_name}: #{inspect(error)}"
+    end
+  end
+
+  @impl true
+  def introspect_table_indices(repo, table_name) do
     # Sqlite PRAGMA to get index list
     index_list_query = "PRAGMA index_list(#{table_name})"
 
@@ -40,26 +78,125 @@ defmodule Drops.SQL.Sqlite do
                   # Sort by seqno
                   |> Enum.sort_by(&hd/1)
                   |> Enum.map(fn [_seqno, _cid, field_name] ->
-                    String.to_atom(field_name)
+                    {:identifier, field_name}
                   end)
 
-                Index.from_names(name, field_names, unique == 1, :btree)
+                meta = %{
+                  unique: unique == 1,
+                  type: :btree,
+                  where_clause: nil
+                }
+
+                {:index, [{:identifier, name}, field_names, {:meta, meta}]}
 
               {:error, _} ->
                 # If we can't get field info, create index with empty fields
-                Index.from_names(name, [], unique == 1, :btree)
+                meta = %{
+                  unique: unique == 1,
+                  type: :btree,
+                  where_clause: nil
+                }
+
+                {:index, [{:identifier, name}, [], {:meta, meta}]}
             end
           end
           |> Enum.reject(&is_nil/1)
 
-        {:ok, Indices.new(indices)}
+        {:ok, indices}
 
       {:error, error} ->
         {:error, error}
     end
   end
 
-  # Private helper functions
+  defp get_column_check_constraints(repo, table_name, column_name) do
+    # Sqlite stores check constraints in the CREATE TABLE statement
+    # We can extract them from sqlite_master
+    query = """
+    SELECT sql FROM sqlite_master
+    WHERE type = 'table' AND name = ?
+    """
+
+    case repo.query(query, [table_name]) do
+      {:ok, %{rows: [[sql]]}} when is_binary(sql) ->
+        check_constraints = extract_check_constraints_from_sql(sql)
+
+        Enum.filter(check_constraints, fn constraint ->
+          String.contains?(constraint, column_name)
+        end)
+
+      _ ->
+        # If we can't get the SQL, return empty check constraints
+        []
+    end
+  end
+
+  @impl true
+  def introspect_table_foreign_keys(repo, table_name) do
+    # Sqlite foreign key introspection using PRAGMA foreign_key_list
+    query = "PRAGMA foreign_key_list(#{table_name})"
+
+    case repo.query(query) do
+      {:ok, %{rows: rows}} ->
+        # PRAGMA foreign_key_list returns: [id, seq, table, from, to, on_update, on_delete, match]
+        foreign_keys =
+          rows
+          # Group by foreign key id
+          |> Enum.group_by(&Enum.at(&1, 0))
+          |> Enum.map(fn {_fk_id, fk_rows} ->
+            # Extract information from the first row (all rows in group have same metadata)
+            [
+              _id,
+              _seq,
+              referenced_table,
+              _from_column,
+              _to_column,
+              on_update,
+              on_delete,
+              _match
+            ] = hd(fk_rows)
+
+            # Collect all columns for this foreign key (for composite keys)
+            columns = Enum.map(fk_rows, &Enum.at(&1, 3)) |> Enum.map(&{:identifier, &1})
+
+            referenced_columns =
+              Enum.map(fk_rows, &Enum.at(&1, 4)) |> Enum.map(&{:identifier, &1})
+
+            meta = %{
+              on_delete: parse_foreign_key_action(on_delete),
+              on_update: parse_foreign_key_action(on_update)
+            }
+
+            {:foreign_key,
+             [
+               # Sqlite doesn't provide constraint names in PRAGMA
+               nil,
+               columns,
+               {:identifier, referenced_table},
+               referenced_columns,
+               {:meta, meta}
+             ]}
+          end)
+
+        {:ok, foreign_keys}
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
+  defp parse_foreign_key_action(action) when is_binary(action) do
+    case String.upcase(action) do
+      "RESTRICT" -> :restrict
+      "CASCADE" -> :cascade
+      "SET NULL" -> :set_null
+      "SET DEFAULT" -> :set_default
+      "NO ACTION" -> :restrict
+      _ -> nil
+    end
+  end
+
+  defp parse_foreign_key_action(_), do: nil
 
   defp parse_default_value(nil), do: nil
   defp parse_default_value(""), do: nil
@@ -102,33 +239,6 @@ defmodule Drops.SQL.Sqlite do
 
   defp parse_default_value(value), do: value
 
-  defp enhance_with_check_constraints(repo, table_name, columns) do
-    # Sqlite stores check constraints in the CREATE TABLE statement
-    # We can extract them from sqlite_master
-    query = """
-    SELECT sql FROM sqlite_master
-    WHERE type = 'table' AND name = ?
-    """
-
-    case repo.query(query, [table_name]) do
-      {:ok, %{rows: [[sql]]}} when is_binary(sql) ->
-        check_constraints = extract_check_constraints_from_sql(sql)
-
-        Enum.map(columns, fn column ->
-          column_constraints =
-            Enum.filter(check_constraints, fn constraint ->
-              String.contains?(constraint, column.name)
-            end)
-
-          Map.put(column, :check_constraints, column_constraints)
-        end)
-
-      _ ->
-        # If we can't get the SQL, just add empty check constraints
-        Enum.map(columns, &Map.put(&1, :check_constraints, []))
-    end
-  end
-
   defp extract_check_constraints_from_sql(sql) do
     # Simple regex to extract CHECK constraints
     # This is a basic implementation - could be enhanced for more complex cases
@@ -137,155 +247,4 @@ defmodule Drops.SQL.Sqlite do
     |> List.flatten()
     |> Enum.map(&String.trim/1)
   end
-
-  # New callback implementations for the updated behavior
-
-  @impl true
-  def introspect_table(repo, table_name) do
-    with {:ok, columns} <- introspect_table_columns(repo, table_name),
-         {:ok, foreign_keys} <- introspect_table_foreign_keys(repo, table_name),
-         {:ok, indices} <- introspect_table_indexes(repo, table_name) do
-      table =
-        Table.from_introspection(table_name, :sqlite, columns, foreign_keys, indices)
-
-      {:ok, table}
-    else
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  @impl true
-  def introspect_table_columns(repo, table_name) do
-    # Use the existing introspect_table_columns logic but return Column structs
-    try do
-      column_data = introspect_table_columns_legacy(repo, table_name)
-      columns = Enum.map(column_data, &Column.from_introspection/1)
-      {:ok, columns}
-    rescue
-      error -> {:error, error}
-    end
-  end
-
-  @impl true
-  def introspect_table_foreign_keys(repo, table_name) do
-    # Sqlite foreign key introspection using PRAGMA foreign_key_list
-    query = "PRAGMA foreign_key_list(#{table_name})"
-
-    case repo.query(query) do
-      {:ok, %{rows: rows}} ->
-        # PRAGMA foreign_key_list returns: [id, seq, table, from, to, on_update, on_delete, match]
-        foreign_keys =
-          rows
-          # Group by foreign key id
-          |> Enum.group_by(&Enum.at(&1, 0))
-          |> Enum.map(fn {_fk_id, fk_rows} ->
-            # Extract information from the first row (all rows in group have same metadata)
-            [
-              _id,
-              _seq,
-              referenced_table,
-              _from_column,
-              _to_column,
-              on_update,
-              on_delete,
-              _match
-            ] = hd(fk_rows)
-
-            # Collect all columns for this foreign key (for composite keys)
-            columns = Enum.map(fk_rows, &Enum.at(&1, 3))
-            referenced_columns = Enum.map(fk_rows, &Enum.at(&1, 4))
-
-            ForeignKey.new(
-              # Sqlite doesn't provide constraint names in PRAGMA
-              nil,
-              columns,
-              referenced_table,
-              referenced_columns,
-              parse_foreign_key_action(on_delete),
-              parse_foreign_key_action(on_update)
-            )
-          end)
-
-        {:ok, foreign_keys}
-
-      {:error, error} ->
-        {:error, error}
-    end
-  end
-
-  @impl true
-  def introspect_table_indexes(repo, table_name) do
-    # Use the existing get_table_indices logic but return DatabaseIndex structs
-    case get_table_indices(repo, table_name) do
-      {:ok, %Indices{indices: schema_indices}} ->
-        database_indexes =
-          Enum.map(schema_indices, fn schema_index ->
-            # Extract field names from Field structs or atoms
-            field_names =
-              Enum.map(schema_index.fields, fn field ->
-                case field do
-                  %{name: name} -> to_string(name)
-                  atom when is_atom(atom) -> to_string(atom)
-                  string when is_binary(string) -> string
-                end
-              end)
-
-            DatabaseIndex.new(
-              schema_index.name,
-              field_names,
-              schema_index.unique,
-              schema_index.type
-            )
-          end)
-
-        {:ok, database_indexes}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  # Rename the existing method to avoid conflicts
-  defp introspect_table_columns_legacy(repo, table_name) do
-    # Use Sqlite PRAGMA table_info to get column information
-    query = "PRAGMA table_info(#{table_name})"
-
-    case repo.query(query) do
-      {:ok, %{rows: rows, columns: _columns}} ->
-        # PRAGMA table_info returns: [cid, name, type, notnull, dflt_value, pk]
-        # pk is 0 for non-primary key columns, and 1, 2, 3, etc. for primary key columns
-        # indicating their position in a composite primary key
-        columns =
-          Enum.map(rows, fn [_cid, name, type, notnull, dflt_value, pk] ->
-            %{
-              name: name,
-              type: type,
-              not_null: notnull == 1,
-              # Any pk > 0 indicates it's part of the primary key
-              primary_key: pk > 0,
-              default: parse_default_value(dflt_value),
-              nullable: notnull != 1
-            }
-          end)
-
-        # Enhance with check constraints
-        enhance_with_check_constraints(repo, table_name, columns)
-
-      {:error, error} ->
-        raise "Failed to introspect table #{table_name}: #{inspect(error)}"
-    end
-  end
-
-  defp parse_foreign_key_action(action) when is_binary(action) do
-    case String.upcase(action) do
-      "RESTRICT" -> :restrict
-      "CASCADE" -> :cascade
-      "SET NULL" -> :set_null
-      "SET DEFAULT" -> :set_default
-      "NO ACTION" -> :restrict
-      _ -> nil
-    end
-  end
-
-  defp parse_foreign_key_action(_), do: nil
 end

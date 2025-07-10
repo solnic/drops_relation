@@ -8,7 +8,7 @@ defmodule Drops.SQL.Types.Sqlite do
       # Integer type - use :id for primary keys and foreign keys, :integer for others
       "INTEGER" ->
         cond do
-          column.primary_key -> :id
+          column.meta.primary_key -> :id
           is_foreign_key?(column, table) -> :id
           true -> :integer
         end
@@ -20,7 +20,7 @@ defmodule Drops.SQL.Types.Sqlite do
         # For composite primary keys, TEXT fields should remain :string
         # For foreign keys, check if they reference a binary_id table
         cond do
-          column.primary_key and is_single_column_primary_key?(table) ->
+          column.meta.primary_key and is_single_column_primary_key?(table) ->
             :binary_id
 
           is_binary_id_foreign_key?(column, table) ->

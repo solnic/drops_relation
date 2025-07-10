@@ -38,23 +38,19 @@ defmodule Drops.SQL.Database.ForeignKey do
           | :nilify_all
           | nil
 
-  @type t :: %__MODULE__{
-          name: String.t() | nil,
-          columns: [String.t()],
-          referenced_table: String.t(),
-          referenced_columns: [String.t()],
+  @type meta :: %{
           on_delete: action(),
           on_update: action()
         }
 
-  defstruct [
-    :name,
-    :columns,
-    :referenced_table,
-    :referenced_columns,
-    :on_delete,
-    :on_update
-  ]
+  @type t :: %__MODULE__{
+          name: String.t() | nil,
+          columns: [String.t()],
+          referenced_table: String.t(),
+          referenced_columns: [String.t()]
+        }
+
+  defstruct [:name, :columns, :referenced_table, :referenced_columns, :meta]
 
   @doc """
   Creates a new ForeignKey struct.
@@ -87,63 +83,22 @@ defmodule Drops.SQL.Database.ForeignKey do
         on_update: :restrict
       }
   """
-  @spec new(String.t() | nil, [String.t()], String.t(), [String.t()], action(), action()) ::
+  @spec new(String.t(), [String.t()], String.t(), [String.t()], meta()) ::
           t()
   def new(
         name,
         columns,
         referenced_table,
         referenced_columns,
-        on_delete \\ nil,
-        on_update \\ nil
+        meta
       ) do
     %__MODULE__{
       name: name,
       columns: columns,
       referenced_table: referenced_table,
       referenced_columns: referenced_columns,
-      on_delete: on_delete,
-      on_update: on_update
+      meta: meta
     }
-  end
-
-  @doc """
-  Creates a simple single-column foreign key.
-
-  This is a convenience function for the most common case of a single-column
-  foreign key referencing a primary key.
-
-  ## Parameters
-
-  - `column` - The column name in the current table
-  - `referenced_table` - The name of the referenced table
-  - `referenced_column` - The column name in the referenced table (defaults to "id")
-
-  ## Examples
-
-      iex> Drops.SQL.Database.ForeignKey.simple("user_id", "users")
-      %Drops.SQL.Database.ForeignKey{
-        name: nil,
-        columns: ["user_id"],
-        referenced_table: "users",
-        referenced_columns: ["id"],
-        on_delete: nil,
-        on_update: nil
-      }
-
-      iex> Drops.SQL.Database.ForeignKey.simple("organization_id", "organizations", "uuid")
-      %Drops.SQL.Database.ForeignKey{
-        name: nil,
-        columns: ["organization_id"],
-        referenced_table: "organizations",
-        referenced_columns: ["uuid"],
-        on_delete: nil,
-        on_update: nil
-      }
-  """
-  @spec simple(String.t(), String.t(), String.t()) :: t()
-  def simple(column, referenced_table, referenced_column \\ "id") do
-    new(nil, [column], referenced_table, [referenced_column])
   end
 
   @doc """
@@ -217,8 +172,7 @@ defmodule Drops.SQL.Database.ForeignKey do
       false
   """
   @spec includes_column?(t(), String.t()) :: boolean()
-  def includes_column?(%__MODULE__{columns: columns}, column_name)
-      when is_binary(column_name) do
+  def includes_column?(%__MODULE__{columns: columns}, column_name) when is_atom(column_name) do
     column_name in columns
   end
 
@@ -257,26 +211,21 @@ defimpl Drops.Relation.Schema.Field.Inference, for: Drops.SQL.Database.ForeignKe
     field_name =
       case foreign_key.columns do
         [single_column] ->
-          String.to_atom(single_column)
+          single_column
 
         multiple_columns ->
-          # TODO: add support for composite FKs
-          String.to_atom(hd(multiple_columns))
+          hd(multiple_columns)
       end
 
     referenced_field =
       case foreign_key.referenced_columns do
         [single_column] ->
-          String.to_atom(single_column)
+          single_column
 
         multiple_columns ->
-          String.to_atom(hd(multiple_columns))
+          hd(multiple_columns)
       end
 
-    Schema.ForeignKey.new(
-      field_name,
-      foreign_key.referenced_table,
-      referenced_field
-    )
+    Schema.ForeignKey.new(field_name, foreign_key.referenced_table, referenced_field)
   end
 end

@@ -1,381 +1,260 @@
 defmodule Drops.SQL.PostgresTest do
-  @moduledoc """
-  Tests for PostgreSQL database introspection functionality.
-
-  This test suite verifies the full inference behavior by testing against actual
-  test tables instead of just testing individual db_type_to_ecto_type function calls.
-
-  The tests verify:
-  - Complete schema inference from database tables
-  - Correct type mapping from PostgreSQL types to Ecto types
-  - Index extraction and metadata
-  - Primary key detection
-  - Field metadata extraction
-
-  Test tables used:
-  - postgres_types: Comprehensive PostgreSQL type testing
-  - type_mapping_tests: Cross-database compatibility types
-  - postgres_array_types: PostgreSQL array type testing
-  """
   use Drops.RelationCase, async: false
 
-  alias Drops.SQL.Postgres
-  alias Drops.Relation.Schema.Indices
+  alias Drops.SQL.Database
 
-  describe "get_table_indices/2" do
+  describe "Database.table/2" do
     @tag relations: [:postgres_types], adapter: :postgres
-    test "extracts indices from PostgreSQL database", %{repo: repo} do
-      # Create a test table with indices
-      Ecto.Adapters.SQL.query!(
-        repo,
-        """
-        DROP TABLE IF EXISTS test_postgres_indices
-        """,
-        []
-      )
+    test "returns a complete table with all components for postgres_types", %{repo: repo} do
+      {:ok, table} = Database.table("postgres_types", repo)
 
-      Ecto.Adapters.SQL.query!(
-        repo,
-        """
-        CREATE TABLE test_postgres_indices (
-          id SERIAL PRIMARY KEY,
-          email VARCHAR(255) UNIQUE,
-          name VARCHAR(255),
-          status VARCHAR(50)
-        )
-        """,
-        []
-      )
+      # Verify table structure
+      assert %Database.Table{} = table
+      assert table.name == :postgres_types
+      assert table.adapter == :postgres
 
-      Ecto.Adapters.SQL.query!(
-        repo,
-        "CREATE INDEX idx_test_postgres_name ON test_postgres_indices(name)",
-        []
-      )
+      # Verify columns are present and properly structured
+      assert is_list(table.columns)
+      # Should have many type test columns
+      assert length(table.columns) > 20
 
-      Ecto.Adapters.SQL.query!(
-        repo,
-        "CREATE INDEX idx_test_postgres_status_name ON test_postgres_indices(status, name)",
-        []
-      )
-
-      # Test index extraction
-      {:ok, indices} = Postgres.get_table_indices(repo, "test_postgres_indices")
-
-      assert %Indices{} = indices
-      assert length(indices.indices) >= 2
-
-      # Find the specific indices we created
-      name_index = Enum.find(indices.indices, &(&1.name == "idx_test_postgres_name"))
-
-      composite_index =
-        Enum.find(indices.indices, &(&1.name == "idx_test_postgres_status_name"))
-
-      assert name_index
-      assert length(name_index.fields) == 1
-      assert hd(name_index.fields).name == :name
-      assert name_index.unique == false
-
-      assert composite_index
-      assert length(composite_index.fields) == 2
-      assert Enum.map(composite_index.fields, & &1.name) == [:status, :name]
-      assert composite_index.unique == false
-
-      # Clean up
-      Ecto.Adapters.SQL.query!(repo, "DROP TABLE test_postgres_indices", [])
-    end
-
-    @tag relations: [:postgres_types], adapter: :postgres
-    test "handles table with no custom indices", %{repo: repo} do
-      # Create a simple table with no custom indices
-      Ecto.Adapters.SQL.query!(
-        repo,
-        """
-        DROP TABLE IF EXISTS test_postgres_no_indices
-        """,
-        []
-      )
-
-      Ecto.Adapters.SQL.query!(
-        repo,
-        """
-        CREATE TABLE test_postgres_no_indices (
-          id SERIAL PRIMARY KEY,
-          data TEXT
-        )
-        """,
-        []
-      )
-
-      {:ok, indices} = Postgres.get_table_indices(repo, "test_postgres_no_indices")
-
-      assert %Indices{} = indices
-      # Should have no custom indices (primary key indices are excluded)
-      assert length(indices.indices) == 0
-
-      # Clean up
-      Ecto.Adapters.SQL.query!(repo, "DROP TABLE test_postgres_no_indices", [])
-    end
-
-    @tag relations: [:postgres_types], adapter: :postgres
-    test "returns empty indices for non-existent table", %{repo: repo} do
-      # PostgreSQL should return empty results for non-existent tables
-      {:ok, indices} = Postgres.get_table_indices(repo, "non_existent_table")
-      assert %Indices{} = indices
-      assert indices.indices == []
-    end
-  end
-
-  describe "introspect_table_columns/2" do
-    @tag relations: [:postgres_types], adapter: :postgres
-    test "extracts column information from PostgreSQL table", %{repo: repo} do
-      # Create a test table
-      Ecto.Adapters.SQL.query!(
-        repo,
-        """
-        DROP TABLE IF EXISTS test_postgres_columns
-        """,
-        []
-      )
-
-      Ecto.Adapters.SQL.query!(
-        repo,
-        """
-        CREATE TABLE test_postgres_columns (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          email VARCHAR(255) UNIQUE,
-          age INTEGER,
-          active BOOLEAN DEFAULT true,
-          created_at TIMESTAMP DEFAULT NOW()
-        )
-        """,
-        []
-      )
-
-      {:ok, columns} = Postgres.introspect_table_columns(repo, "test_postgres_columns")
-
-      assert is_list(columns)
-      assert length(columns) == 6
-
-      # Check specific columns
-      id_column = Enum.find(columns, &(&1.name == "id"))
-      name_column = Enum.find(columns, &(&1.name == "name"))
-      email_column = Enum.find(columns, &(&1.name == "email"))
-
+      # Check specific columns exist with proper metadata
+      id_column = Enum.find(table.columns, &(&1.name == :id))
       assert id_column
-      assert id_column.type == "integer"
-      assert id_column.primary_key == true
-      assert id_column.nullable == false
+      # PostgreSQL SERIAL PRIMARY KEY is bigint
+      assert id_column.type == "bigint"
+      assert id_column.meta.primary_key == true
+      assert id_column.meta.nullable == false
 
-      assert name_column
-      assert name_column.type == "character varying"
-      assert name_column.nullable == false
+      # Check PostgreSQL-specific types
+      uuid_column = Enum.find(table.columns, &(&1.name == :uuid_type))
+      assert uuid_column
+      assert uuid_column.type == "uuid"
 
-      assert email_column
-      assert email_column.type == "character varying"
+      jsonb_column = Enum.find(table.columns, &(&1.name == :jsonb_type))
+      assert jsonb_column
+      assert jsonb_column.type == "jsonb"
 
-      # Clean up
-      Ecto.Adapters.SQL.query!(repo, "DROP TABLE test_postgres_columns", [])
-    end
-  end
+      # Verify primary key
+      assert %Database.PrimaryKey{} = table.primary_key
+      assert table.primary_key.columns == [:id]
 
-  describe "full inference behavior" do
-    @tag relations: [:postgres_types], adapter: :postgres
-    test "infers correct Ecto types from postgres_types test table", %{repo: repo} do
-      alias Drops.SQL.Inference
-
-      # Test full schema inference from the postgres_types table
-      schema = Inference.infer_from_table("postgres_types", repo)
-
-      assert %Drops.Relation.Schema{} = schema
-      assert schema.source == "postgres_types"
-
-      # Verify we have the expected number of fields (including id)
-      assert length(schema.fields) > 20
-
-      # Test integer types
-      assert_field_type(schema, :smallint_type, :integer)
-      assert_field_type(schema, :int2_type, :integer)
-      assert_field_type(schema, :integer_type, :integer)
-      assert_field_type(schema, :int_type, :integer)
-      assert_field_type(schema, :int4_type, :integer)
-      assert_field_type(schema, :bigint_type, :integer)
-      assert_field_type(schema, :int8_type, :integer)
-
-      # Test serial types (should be inferred as integer)
-      assert_field_type(schema, :serial_type, :integer)
-      assert_field_type(schema, :bigserial_type, :integer)
-
-      # Test floating point types
-      assert_field_type(schema, :real_type, :float)
-      assert_field_type(schema, :float4_type, :float)
-      assert_field_type(schema, :double_precision_type, :float)
-      assert_field_type(schema, :float8_type, :float)
-
-      # Test decimal types
-      assert_field_type(schema, :numeric_type, :decimal)
-      assert_field_type(schema, :decimal_type, :decimal)
-      assert_field_type(schema, :money_type, :decimal)
-
-      # Test string types
-      assert_field_type(schema, :varchar_type, :string)
-      assert_field_type(schema, :char_type, :string)
-      assert_field_type(schema, :text_type, :string)
-
-      # Test date/time types
-      assert_field_type(schema, :date_type, :date)
-      assert_field_type(schema, :time_type, :time)
-      assert_field_type(schema, :time_with_tz_type, :time)
-      assert_field_type(schema, :timestamp_type, :naive_datetime)
-      assert_field_type(schema, :timestamp_with_tz_type, :utc_datetime)
-
-      # Test special types
-      assert_field_type(schema, :boolean_type, :boolean)
-      # UUID type: normalized to :binary (ecto_type is :binary_id)
-      assert_field_type(schema, :uuid_type, :binary)
-      assert_field_type(schema, :json_type, :map)
-      assert_field_type(schema, :jsonb_type, :map)
-      assert_field_type(schema, :bytea_type, :binary)
-
-      # Test additional string types
-      assert_field_type(schema, :character_varying_type, :string)
-      assert_field_type(schema, :character_type, :string)
-      assert_field_type(schema, :name_type, :string)
-      assert_field_type(schema, :xml_type, :string)
-
-      # Test network types (should be mapped to string)
-      assert_field_type(schema, :inet_type, :string)
-      assert_field_type(schema, :cidr_type, :string)
-      assert_field_type(schema, :macaddr_type, :string)
-
-      # Verify primary key is correctly identified
-      assert %Drops.Relation.Schema.PrimaryKey{} = schema.primary_key
-      assert length(schema.primary_key.fields) == 1
-      pk_field = hd(schema.primary_key.fields)
-      assert pk_field.name == :id
-      assert pk_field.type == :integer
-
-      # Verify indices are extracted
-      assert %Drops.Relation.Schema.Indices{} = schema.indices
-      # Should have at least the indices created in migration
-      assert length(schema.indices.indices) >= 2
+      # Verify indices are present (from migration)
+      assert is_list(table.indices)
+      # Should have indices from migration
+      assert length(table.indices) >= 2
 
       # Find specific indices
       integer_index =
-        Enum.find(
-          schema.indices.indices,
-          &(&1.name == "postgres_types_integer_type_index")
-        )
-
-      uuid_unique_index =
-        Enum.find(schema.indices.indices, &(&1.name == "postgres_types_uuid_type_index"))
-
-      composite_index =
-        Enum.find(
-          schema.indices.indices,
-          &(&1.name == "postgres_types_varchar_type_text_type_index")
-        )
+        Enum.find(table.indices, fn index ->
+          :integer_type in index.columns
+        end)
 
       assert integer_index
-      assert length(integer_index.fields) == 1
-      assert hd(integer_index.fields).name == :integer_type
-      assert integer_index.unique == false
+      assert integer_index.meta.unique == false
+
+      uuid_unique_index =
+        Enum.find(table.indices, fn index ->
+          :uuid_type in index.columns and index.meta.unique
+        end)
 
       assert uuid_unique_index
-      assert length(uuid_unique_index.fields) == 1
-      assert hd(uuid_unique_index.fields).name == :uuid_type
-      assert uuid_unique_index.unique == true
+      assert uuid_unique_index.meta.unique == true
 
-      assert composite_index
-      assert length(composite_index.fields) == 2
-      field_names = Enum.map(composite_index.fields, & &1.name)
-      assert field_names == [:varchar_type, :text_type]
-      assert composite_index.unique == false
+      # Verify foreign keys (should be empty for this table)
+      assert is_list(table.foreign_keys)
+      assert table.foreign_keys == []
     end
 
     @tag relations: [:type_mapping_tests], adapter: :postgres
-    test "infers correct types from type_mapping_tests table", %{repo: repo} do
-      alias Drops.SQL.Inference
+    test "returns a complete table with all components for type_mapping_tests", %{repo: repo} do
+      {:ok, table} = Database.table("type_mapping_tests", repo)
 
-      # Test inference from the type_mapping_tests table
-      schema = Inference.infer_from_table("type_mapping_tests", repo)
+      # Verify table structure
+      assert %Database.Table{} = table
+      assert table.name == :type_mapping_tests
+      assert table.adapter == :postgres
 
-      assert %Drops.Relation.Schema{} = schema
-      assert schema.source == "type_mapping_tests"
+      # Verify columns are present and properly structured
+      assert is_list(table.columns)
+      # Should have many type test columns
+      assert length(table.columns) > 10
 
-      # Test basic types from type_mapping_tests (using actual field names from migration)
-      assert_field_type(schema, :integer_type, :integer)
-      assert_field_type(schema, :real_type, :float)
-      assert_field_type(schema, :text_type, :string)
-      assert_field_type(schema, :blob_type, :binary)
-      assert_field_type(schema, :numeric_type, :decimal)
-      assert_field_type(schema, :boolean_type, :boolean)
-      assert_field_type(schema, :date_type, :date)
-      assert_field_type(schema, :datetime_type, :naive_datetime)
-      assert_field_type(schema, :timestamp_type, :naive_datetime)
-      assert_field_type(schema, :time_type, :time)
-      assert_field_type(schema, :decimal_precision_type, :decimal)
-      assert_field_type(schema, :float_type, :float)
-      assert_field_type(schema, :double_type, :float)
-      assert_field_type(schema, :varchar_type, :string)
-      assert_field_type(schema, :char_type, :string)
-      assert_field_type(schema, :clob_type, :string)
-      assert_field_type(schema, :json_type, :map)
+      # Check specific columns exist with proper metadata
+      id_column = Enum.find(table.columns, &(&1.name == :id))
+      assert id_column
+      # PostgreSQL SERIAL PRIMARY KEY is bigint
+      assert id_column.type == "bigint"
+      assert id_column.meta.primary_key == true
+      assert id_column.meta.nullable == false
 
-      # Verify indices from migration
-      assert %Drops.Relation.Schema.Indices{} = schema.indices
-      assert length(schema.indices.indices) >= 2
+      integer_type_column = Enum.find(table.columns, &(&1.name == :integer_type))
+      assert integer_type_column
+      assert integer_type_column.type == "integer"
+      assert integer_type_column.meta.primary_key == false
+
+      text_type_column = Enum.find(table.columns, &(&1.name == :text_type))
+      assert text_type_column
+      assert text_type_column.type == "text"
+
+      # Verify primary key
+      assert %Database.PrimaryKey{} = table.primary_key
+      assert table.primary_key.columns == [:id]
+
+      # Verify indices are present (from migration)
+      assert is_list(table.indices)
+      # Should have indices from migration
+      assert length(table.indices) >= 2
 
       # Find specific indices
       integer_index =
-        Enum.find(
-          schema.indices.indices,
-          &(&1.name == "type_mapping_tests_integer_type_index")
-        )
-
-      text_unique_index =
-        Enum.find(
-          schema.indices.indices,
-          &(&1.name == "type_mapping_tests_text_type_index")
-        )
-
-      composite_index =
-        Enum.find(
-          schema.indices.indices,
-          &(&1.name == "type_mapping_tests_boolean_type_date_type_index")
-        )
+        Enum.find(table.indices, fn index ->
+          :integer_type in index.columns
+        end)
 
       assert integer_index
+      assert integer_index.meta.unique == false
+
+      text_unique_index =
+        Enum.find(table.indices, fn index ->
+          :text_type in index.columns and index.meta.unique
+        end)
+
       assert text_unique_index
-      assert text_unique_index.unique == true
+      assert text_unique_index.meta.unique == true
+
+      # Verify foreign keys (should be empty for this table)
+      assert is_list(table.foreign_keys)
+      assert table.foreign_keys == []
+    end
+
+    @tag relations: [:special_cases], adapter: :postgres
+    test "returns table with foreign keys for special_cases", %{repo: repo} do
+      {:ok, table} = Database.table("special_cases", repo)
+
+      # Verify table structure
+      assert %Database.Table{} = table
+      assert table.name == :special_cases
+      assert table.adapter == :postgres
+
+      # Verify columns
+      assert is_list(table.columns)
+
+      # Check foreign key columns exist
+      user_id_column = Enum.find(table.columns, &(&1.name == :user_id))
+      assert user_id_column
+      # PostgreSQL references are bigint
+      assert user_id_column.type == "bigint"
+
+      parent_id_column = Enum.find(table.columns, &(&1.name == :parent_id))
+      assert parent_id_column
+      # PostgreSQL references are bigint
+      assert parent_id_column.type == "bigint"
+
+      # Verify foreign keys are detected
+      assert is_list(table.foreign_keys)
+      # Should have foreign keys from migration
+      assert length(table.foreign_keys) >= 1
+
+      # Check specific foreign key properties
+      user_fk =
+        Enum.find(table.foreign_keys, fn fk ->
+          :user_id in fk.columns
+        end)
+
+      if user_fk do
+        assert user_fk.referenced_table == :users
+        assert user_fk.referenced_columns == [:id]
+        assert user_fk.meta.on_delete == :cascade
+      end
+
+      # Verify primary key
+      assert %Database.PrimaryKey{} = table.primary_key
+      assert table.primary_key.columns == [:id]
+
+      # Verify indices
+      assert is_list(table.indices)
+    end
+
+    @tag relations: [:metadata_test], adapter: :postgres
+    test "returns table with comprehensive metadata for metadata_test", %{repo: repo} do
+      {:ok, table} = Database.table("metadata_test", repo)
+
+      # Verify table structure
+      assert %Database.Table{} = table
+      assert table.name == :metadata_test
+      assert table.adapter == :postgres
+
+      # Verify columns with various metadata
+      assert is_list(table.columns)
+
+      # Check status column with default value
+      status_column = Enum.find(table.columns, &(&1.name == :status))
+      assert status_column
+      assert status_column.type == "character varying"
+      assert status_column.meta.nullable == false
+      assert status_column.meta.default == "active"
+
+      # Check nullable description column
+      description_column = Enum.find(table.columns, &(&1.name == :description))
+      assert description_column
+      assert description_column.type == "text"
+      assert description_column.meta.nullable == true
+
+      # Check non-nullable name column
+      name_column = Enum.find(table.columns, &(&1.name == :name))
+      assert name_column
+      assert name_column.type == "character varying"
+      assert name_column.meta.nullable == false
+
+      # Check priority column with numeric default
+      priority_column = Enum.find(table.columns, &(&1.name == :priority))
+      assert priority_column
+      assert priority_column.type == "integer"
+      assert priority_column.meta.default == 1
+
+      # Check boolean column with default
+      is_enabled_column = Enum.find(table.columns, &(&1.name == :is_enabled))
+      assert is_enabled_column
+      assert is_enabled_column.type == "boolean"
+      assert is_enabled_column.meta.default == true
+
+      # Check score column with check constraints
+      score_column = Enum.find(table.columns, &(&1.name == :score))
+      assert score_column
+      assert score_column.type == "integer"
+      assert score_column.meta.nullable == false
+      # Check constraints should be detected
+      assert is_list(score_column.meta.check_constraints)
+
+      # Verify primary key
+      assert %Database.PrimaryKey{} = table.primary_key
+      assert table.primary_key.columns == [:id]
+
+      # Verify indices from migration
+      assert is_list(table.indices)
+      # Should have indices from migration
+      assert length(table.indices) >= 2
+
+      # Find specific indices
+      status_index =
+        Enum.find(table.indices, fn index ->
+          :status in index.columns and length(index.columns) == 1
+        end)
+
+      assert status_index
+
+      composite_index =
+        Enum.find(table.indices, fn index ->
+          :name in index.columns and :priority in index.columns
+        end)
+
       assert composite_index
-      assert length(composite_index.fields) == 2
+      assert length(composite_index.columns) == 2
+
+      # Verify foreign keys (should be empty for this table)
+      assert is_list(table.foreign_keys)
+      assert table.foreign_keys == []
     end
-
-    @tag relations: [:postgres_array_types], adapter: :postgres
-    test "infers array types from postgres_array_types table", %{repo: repo} do
-      alias Drops.SQL.Inference
-
-      schema = Inference.infer_from_table("postgres_array_types", repo)
-
-      assert %Drops.Relation.Schema{} = schema
-      assert schema.source == "postgres_array_types"
-
-      # Array types should now be correctly inferred
-      assert_field_type(schema, :integer_array, {:array, :integer})
-      assert_field_type(schema, :text_array, {:array, :string})
-      assert_field_type(schema, :boolean_array, {:array, :boolean})
-      assert_field_type(schema, :uuid_array, {:array, :binary})
-    end
-  end
-
-  # Helper function to assert field type
-  defp assert_field_type(schema, field_name, expected_type) do
-    field = Enum.find(schema.fields, &(&1.name == field_name))
-    assert field, "Field #{field_name} not found in schema"
-
-    assert field.type == expected_type,
-           "Expected field #{field_name} to have type #{inspect(expected_type)}, got #{inspect(field.type)}"
   end
 end

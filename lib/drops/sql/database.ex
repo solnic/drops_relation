@@ -1,144 +1,66 @@
 defmodule Drops.SQL.Database do
-  @moduledoc """
-  Behavior for database-specific introspection operations.
+  alias Drops.SQL.{Compiler, Postgres, Sqlite}
+  alias Drops.SQL.Database.Table
 
-  This behavior defines the interface that database adapters must implement
-  to support schema introspection in Drops.Relation. Each database adapter
-  provides its own implementation of these callbacks to handle database-specific
-  queries and return structured database metadata.
-
-  ## Callbacks
-
-  - `introspect_table/2` - Extract complete table metadata from the database
-  - `introspect_table_columns/2` - Get column metadata for a table
-  - `introspect_table_foreign_keys/2` - Get foreign key metadata for a table
-  - `introspect_table_indexes/2` - Get index metadata for a table
-  - `db_type_to_ecto_type/2` - Convert database types to Ecto types
-  - `index_type_to_atom/1` - Convert database index types to atoms
-
-  ## Implementations
-
-  - `Drops.SQL.Sqlite` - Sqlite adapter
-  - `Drops.SQL.Postgres` - PostgreSQL adapter
-
-  ## Example
-
-      defmodule MyCustomAdapter do
-        @behaviour Drops.SQL.Database
-
-        @impl true
-        def introspect_table(repo, table_name) do
-          # Return complete Table struct with all metadata
-        end
-
-        @impl true
-        def introspect_table_columns(repo, table_name) do
-          # Return list of Column structs
-        end
-
-        @impl true
-        def introspect_table_foreign_keys(repo, table_name) do
-          # Return list of ForeignKey structs
-        end
-
-        @impl true
-        def introspect_table_indexes(repo, table_name) do
-          # Return list of Index structs
-        end
-
-        @impl true
-        def db_type_to_ecto_type(db_type, field_name) do
-          # Custom type mapping for your database
-        end
-
-        @impl true
-        def index_type_to_atom(index_type) do
-          # Custom index type mapping for your database
-        end
-      end
-  """
-
-  alias Drops.SQL.Database.{Table, Column, ForeignKey, Index}
-
-  @doc """
-  Introspects a complete table with all metadata.
-
-  This is the main introspection function that returns a complete Table struct
-  with columns, primary key, foreign keys, and indices.
-
-  ## Parameters
-
-  - `repo` - The Ecto repository module
-  - `table_name` - The name of the table to introspect
-
-  ## Returns
-
-  Returns `{:ok, %Table{}}` on success or `{:error, reason}` on failure.
-
-  ## Examples
-
-      iex> MyAdapter.introspect_table(MyRepo, "users")
-      {:ok, %Drops.SQL.Database.Table{name: "users", columns: [...], ...}}
-  """
   @callback introspect_table(module(), String.t()) :: {:ok, Table.t()} | {:error, term()}
 
-  @doc """
-  Introspects database table columns.
-
-  ## Parameters
-
-  - `repo` - The Ecto repository module
-  - `table_name` - The name of the table to introspect
-
-  ## Returns
-
-  Returns `{:ok, [%Column{}]}` on success or `{:error, reason}` on failure.
-
-  ## Examples
-
-      iex> MyAdapter.introspect_table_columns(MyRepo, "users")
-      {:ok, [%Drops.SQL.Database.Column{name: "id", type: "integer", ...}]}
-  """
   @callback introspect_table_columns(module(), String.t()) ::
               {:ok, [Column.t()]} | {:error, term()}
 
-  @doc """
-  Introspects database table foreign keys.
-
-  ## Parameters
-
-  - `repo` - The Ecto repository module
-  - `table_name` - The name of the table to introspect
-
-  ## Returns
-
-  Returns `{:ok, [%ForeignKey{}]}` on success or `{:error, reason}` on failure.
-
-  ## Examples
-
-      iex> MyAdapter.introspect_table_foreign_keys(MyRepo, "posts")
-      {:ok, [%Drops.SQL.Database.ForeignKey{columns: ["user_id"], referenced_table: "users", ...}]}
-  """
   @callback introspect_table_foreign_keys(module(), String.t()) ::
               {:ok, [ForeignKey.t()]} | {:error, term()}
 
-  @doc """
-  Introspects database table indices.
-
-  ## Parameters
-
-  - `repo` - The Ecto repository module
-  - `table_name` - The name of the table to introspect
-
-  ## Returns
-
-  Returns `{:ok, [%Index{}]}` on success or `{:error, reason}` on failure.
-
-  ## Examples
-
-      iex> MyAdapter.introspect_table_indexes(MyRepo, "users")
-      {:ok, [%Drops.SQL.Database.Index{name: "idx_users_email", columns: ["email"], ...}]}
-  """
-  @callback introspect_table_indexes(module(), String.t()) ::
+  @callback introspect_table_indices(module(), String.t()) ::
               {:ok, [Index.t()]} | {:error, term()}
+
+  defmacro __using__(opts) do
+    quote location: :keep do
+      alias Drops.SQL.Database
+
+      @behaviour Database
+
+      @opts unquote(opts)
+      def opts, do: @opts
+
+      @adapter unquote(opts[:adapter])
+      def adapter, do: @adapter
+
+      def table(name, repo) do
+        case introspect_table(name, repo) do
+          {:ok, ast} -> Database.compile_table(ast, opts())
+          error -> error
+        end
+      end
+    end
+  end
+
+  def table(name, repo) do
+    case get_database_adapter(repo) do
+      {:ok, adapter} ->
+        adapter.table(name, repo)
+
+      error ->
+        error
+    end
+  end
+
+  def compile_table(ast, opts) do
+    case Compiler.visit(ast, opts) do
+      %Table{} = table -> {:ok, table}
+      error -> error
+    end
+  end
+
+  defp get_database_adapter(repo) do
+    case repo.__adapter__() do
+      Ecto.Adapters.SQLite3 ->
+        {:ok, Sqlite}
+
+      Ecto.Adapters.Postgres ->
+        {:ok, Postgres}
+
+      adapter ->
+        {:error, {:unsupported_adapter, adapter}}
+    end
+  end
 end

@@ -36,23 +36,16 @@ defmodule Drops.SQL.Database.Column do
       }
   """
 
-  @type t :: %__MODULE__{
-          name: String.t(),
-          type: String.t(),
+  @type meta :: %{
           nullable: boolean(),
           default: term(),
           primary_key: boolean(),
           check_constraints: [String.t()]
         }
 
-  defstruct [
-    :name,
-    :type,
-    :nullable,
-    :default,
-    :primary_key,
-    check_constraints: []
-  ]
+  @type t :: %__MODULE__{name: String.t(), type: String.t(), meta: meta()}
+
+  defstruct [:name, :type, :meta]
 
   @doc """
   Creates a new Column struct.
@@ -89,74 +82,9 @@ defmodule Drops.SQL.Database.Column do
         check_constraints: ["status IN ('active', 'inactive')"]
       }
   """
-  @spec new(String.t(), String.t(), boolean(), term(), boolean(), [String.t()]) :: t()
-  def new(name, type, nullable, default, primary_key, check_constraints \\ []) do
-    %__MODULE__{
-      name: name,
-      type: type,
-      nullable: nullable,
-      default: default,
-      primary_key: primary_key,
-      check_constraints: check_constraints
-    }
-  end
-
-  @doc """
-  Creates a Column struct from introspection data.
-
-  This is a convenience function for creating columns from the raw data
-  returned by database introspection queries.
-
-  ## Parameters
-
-  - `introspection_data` - A map with column metadata from database introspection
-
-  ## Examples
-
-      iex> data = %{
-      ...>   name: "email",
-      ...>   type: "varchar(255)",
-      ...>   not_null: false,
-      ...>   default: nil,
-      ...>   primary_key: false,
-      ...>   check_constraints: []
-      ...> }
-      iex> Drops.SQL.Database.Column.from_introspection(data)
-      %Drops.SQL.Database.Column{
-        name: "email",
-        type: "varchar(255)",
-        nullable: true,
-        default: nil,
-        primary_key: false,
-        check_constraints: []
-      }
-  """
-  @spec from_introspection(map()) :: t()
-  def from_introspection(data) when is_map(data) do
-    %__MODULE__{
-      name: Map.get(data, :name) || Map.get(data, "name"),
-      type: Map.get(data, :type) || Map.get(data, "type"),
-      nullable:
-        to_boolean(not (Map.get(data, :not_null, false) || Map.get(data, "not_null", false))),
-      default: Map.get(data, :default) || Map.get(data, "default"),
-      primary_key:
-        to_boolean(Map.get(data, :primary_key, false) || Map.get(data, "primary_key", false)),
-      check_constraints:
-        Map.get(data, :check_constraints, []) || Map.get(data, "check_constraints", [])
-    }
-  end
-
-  # Helper function to safely convert values to boolean
-  defp to_boolean(value) do
-    case value do
-      true -> true
-      false -> false
-      "true" -> true
-      "false" -> false
-      1 -> true
-      0 -> false
-      _ -> false
-    end
+  @spec new(atom(), String.t(), meta()) :: t()
+  def new(name, type, meta) do
+    %__MODULE__{name: name, type: type, meta: meta}
   end
 
   @doc """
@@ -173,7 +101,7 @@ defmodule Drops.SQL.Database.Column do
       false
   """
   @spec primary_key?(t()) :: boolean()
-  def primary_key?(%__MODULE__{primary_key: primary_key}), do: primary_key
+  def primary_key?(%__MODULE__{meta: %{primary_key: primary_key}}), do: primary_key
 
   @doc """
   Checks if the column allows NULL values.
@@ -189,7 +117,7 @@ defmodule Drops.SQL.Database.Column do
       false
   """
   @spec nullable?(t()) :: boolean()
-  def nullable?(%__MODULE__{nullable: nullable}), do: nullable
+  def nullable?(%__MODULE__{meta: %{nullable: nullable}}), do: nullable
 
   @doc """
   Checks if the column has a default value.
@@ -205,7 +133,7 @@ defmodule Drops.SQL.Database.Column do
       false
   """
   @spec has_default?(t()) :: boolean()
-  def has_default?(%__MODULE__{default: default}), do: not is_nil(default)
+  def has_default?(%__MODULE__{meta: %{default: default}}), do: not is_nil(default)
 
   @doc """
   Checks if the column has check constraints.
@@ -222,7 +150,7 @@ defmodule Drops.SQL.Database.Column do
       false
   """
   @spec has_check_constraints?(t()) :: boolean()
-  def has_check_constraints?(%__MODULE__{check_constraints: constraints}),
+  def has_check_constraints?(%__MODULE__{meta: %{check_constraints: constraints}}),
     do: constraints != []
 
   defimpl Drops.Relation.Schema.Field.Inference do
@@ -232,19 +160,18 @@ defmodule Drops.SQL.Database.Column do
     alias Drops.Relation.Schema
 
     def to_schema_field(%Database.Column{} = column, %Database.Table{} = table) do
-      atom_name = String.to_atom(column.name)
       ecto_type = Types.Conversion.to_ecto_type(table, column)
       atom_type = Types.Conversion.to_atom(table, ecto_type)
 
       meta = %{
-        primary_key: column.primary_key,
+        primary_key: column.meta.primary_key,
         foreign_key: Table.foreign_key_column?(table, column.name),
-        nullable: column.nullable,
-        default: column.default,
-        check_constraints: column.check_constraints
+        nullable: column.meta.nullable,
+        default: column.meta.default,
+        check_constraints: column.meta.check_constraints
       }
 
-      Schema.Field.new(atom_name, atom_type, ecto_type, atom_name, meta)
+      Schema.Field.new(column.name, atom_type, ecto_type, column.name, meta)
     end
   end
 end

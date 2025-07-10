@@ -33,11 +33,10 @@ defmodule Drops.SQL.Introspection do
       {:ok, %Drops.SQL.Database.Table{name: "users", columns: [...], ...}}
   """
   @spec introspect_table(module(), String.t()) :: {:ok, Table.t()} | {:error, term()}
-  def introspect_table(repo, table_name) when is_binary(table_name) do
-    # Get the appropriate database adapter and delegate
+  def introspect_table(table_name, repo) when is_binary(table_name) do
     case get_database_adapter(repo) do
       {:ok, adapter_module} ->
-        adapter_module.introspect_table(repo, table_name)
+        adapter_module.table(table_name, repo)
 
       {:error, reason} ->
         {:error, reason}
@@ -66,7 +65,7 @@ defmodule Drops.SQL.Introspection do
     # Get the appropriate database adapter and delegate
     case get_database_adapter(repo) do
       {:ok, adapter_module} ->
-        adapter_module.get_table_indices(repo, table_name)
+        adapter_module.introspect_table_indices(repo, table_name)
 
       {:error, reason} ->
         {:error, reason}

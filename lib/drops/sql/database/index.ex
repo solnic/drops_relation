@@ -35,21 +35,18 @@ defmodule Drops.SQL.Database.Index do
 
   @type index_type :: :btree | :hash | :gin | :gist | :brin | :unknown
 
-  @type t :: %__MODULE__{
-          name: String.t(),
-          columns: [String.t()],
+  @type meta :: %{
           unique: boolean(),
           type: index_type(),
           where_clause: String.t() | nil
         }
 
-  defstruct [
-    :name,
-    :columns,
-    :unique,
-    :type,
-    :where_clause
-  ]
+  @type t :: %__MODULE__{
+          name: String.t(),
+          columns: [String.t()]
+        }
+
+  defstruct [:name, :columns, :meta]
 
   @doc """
   Creates a new Index struct.
@@ -88,54 +85,9 @@ defmodule Drops.SQL.Database.Index do
         where_clause: "active = true"
       }
   """
-  @spec new(String.t(), [String.t()], boolean(), index_type(), String.t() | nil) :: t()
-  def new(name, columns, unique, type, where_clause \\ nil) do
-    %__MODULE__{
-      name: name,
-      columns: columns,
-      unique: unique,
-      type: type,
-      where_clause: where_clause
-    }
-  end
-
-  @doc """
-  Creates an Index struct from introspection data.
-
-  This is a convenience function for creating indices from the raw data
-  returned by database introspection queries.
-
-  ## Parameters
-
-  - `introspection_data` - A map with index metadata from database introspection
-
-  ## Examples
-
-      iex> data = %{
-      ...>   name: "idx_users_email",
-      ...>   columns: ["email"],
-      ...>   unique: true,
-      ...>   type: :btree,
-      ...>   where_clause: nil
-      ...> }
-      iex> Drops.SQL.Database.Index.from_introspection(data)
-      %Drops.SQL.Database.Index{
-        name: "idx_users_email",
-        columns: ["email"],
-        unique: true,
-        type: :btree,
-        where_clause: nil
-      }
-  """
-  @spec from_introspection(map()) :: t()
-  def from_introspection(data) when is_map(data) do
-    %__MODULE__{
-      name: Map.get(data, :name) || Map.get(data, "name"),
-      columns: Map.get(data, :columns, []) || Map.get(data, "columns", []),
-      unique: Map.get(data, :unique, false) || Map.get(data, "unique", false),
-      type: Map.get(data, :type, :unknown) || Map.get(data, "type", :unknown),
-      where_clause: Map.get(data, :where_clause) || Map.get(data, "where_clause")
-    }
+  @spec new(String.t(), [String.t()], meta()) :: t()
+  def new(name, columns, meta) do
+    %__MODULE__{name: name, columns: columns, meta: meta}
   end
 
   @doc """
@@ -170,7 +122,7 @@ defmodule Drops.SQL.Database.Index do
       false
   """
   @spec unique?(t()) :: boolean()
-  def unique?(%__MODULE__{unique: unique}), do: unique
+  def unique?(%__MODULE__{meta: %{unique: unique}}), do: unique
 
   @doc """
   Checks if the index is partial (has a WHERE clause).
@@ -186,7 +138,7 @@ defmodule Drops.SQL.Database.Index do
       false
   """
   @spec partial?(t()) :: boolean()
-  def partial?(%__MODULE__{where_clause: where_clause}), do: not is_nil(where_clause)
+  def partial?(%__MODULE__{meta: %{where_clause: where_clause}}), do: not is_nil(where_clause)
 
   @doc """
   Gets the column names that form the index.
@@ -246,13 +198,11 @@ defimpl Drops.Relation.Schema.Field.Inference, for: Drops.SQL.Database.Index do
   alias Drops.Relation.Schema
 
   def to_schema_field(%Drops.SQL.Database.Index{} = index, _table) do
-    field_names = Enum.map(index.columns, &String.to_atom/1)
-
     Schema.Index.from_names(
       index.name,
-      field_names,
-      index.unique,
-      index.type
+      index.columns,
+      index.meta.unique,
+      index.meta.type
     )
   end
 end

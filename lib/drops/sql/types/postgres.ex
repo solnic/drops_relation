@@ -17,13 +17,13 @@ defmodule Drops.SQL.Types.Postgres do
     case postgres_type do
       # Integer types - use :id for primary keys, :integer for others
       type when type in ["integer", "int", "int4"] ->
-        if column.primary_key, do: :id, else: :integer
+        if column.meta.primary_key, do: :id, else: :integer
 
       type when type in ["bigint", "int8"] ->
-        if column.primary_key, do: :id, else: :integer
+        if column.meta.primary_key, do: :id, else: :integer
 
       type when type in ["smallint", "int2"] ->
-        if column.primary_key, do: :id, else: :integer
+        if column.meta.primary_key, do: :id, else: :integer
 
       # Serial types are always primary keys
       type

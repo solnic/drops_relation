@@ -89,11 +89,11 @@ defmodule Drops.SQL.Database.Table do
         indices: []
       }
   """
-  @spec new(String.t(), adapter(), [Column.t()], PrimaryKey.t(), [ForeignKey.t()], [
+  @spec new(String.t(), adapter(), PrimaryKey.t(), [Column.t()], [ForeignKey.t()], [
           Index.t()
         ]) ::
           t()
-  def new(name, adapter, columns, primary_key, foreign_keys, indices) do
+  def new(name, adapter, primary_key, columns, foreign_keys, indices) do
     %__MODULE__{
       name: name,
       adapter: adapter,

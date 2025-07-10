@@ -64,7 +64,7 @@ defmodule Drops.SQL.Inference do
   """
   @spec infer_from_table(String.t(), module()) :: Schema.t()
   def infer_from_table(table_name, repo) do
-    case Introspection.introspect_table(repo, table_name) do
+    case Introspection.introspect_table(table_name, repo) do
       {:ok, table} ->
         Inference.to_schema(table)
 
