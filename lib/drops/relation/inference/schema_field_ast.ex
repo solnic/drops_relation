@@ -51,7 +51,7 @@ defprotocol Drops.Relation.Inference.SchemaFieldAST do
 
   ## Examples
 
-      iex> field = %Drops.Relation.Schema.Field{name: :email, ecto_type: :string, source: :email}
+      iex> field = %Drops.Relation.Schema.Field{name: :email, type: :string, source: :email}
       iex> Drops.Relation.Inference.SchemaFieldAST.to_field_ast(field)
       {:field, [], [:email, :string]}
   """
@@ -74,7 +74,7 @@ defprotocol Drops.Relation.Inference.SchemaFieldAST do
 
   ## Examples
 
-      iex> field = %Drops.Relation.Schema.Field{name: :id, ecto_type: :id, source: :id}
+      iex> field = %Drops.Relation.Schema.Field{name: :id, type: :id, source: :id}
       iex> Drops.Relation.Inference.SchemaFieldAST.to_field_ast_with_category(field, :composite_primary_key)
       {:field, [], [:id, :id, [primary_key: true]]}
   """
@@ -95,7 +95,7 @@ defprotocol Drops.Relation.Inference.SchemaFieldAST do
 
   ## Examples
 
-      iex> field = %Drops.Relation.Schema.Field{name: :id, ecto_type: :binary_id}
+      iex> field = %Drops.Relation.Schema.Field{name: :id, type: :binary_id}
       iex> Drops.Relation.Inference.SchemaFieldAST.to_attribute_ast(field)
       {:@, [], [{:primary_key, [], [{:id, :binary_id, [autogenerate: true]}]}]}
   """

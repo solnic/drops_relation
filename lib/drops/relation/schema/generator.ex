@@ -93,22 +93,22 @@ defmodule Drops.Relation.Schema.Generator do
   def generate_primary_key_attribute(%PrimaryKey{fields: fields}) do
     case fields do
       # Default case - single :id field
-      [%Field{name: :id, ecto_type: :id}] ->
+      [%Field{name: :id, type: :id}] ->
         ""
 
       # Ecto.UUID primary key - handled as regular field with primary_key: true
-      [%Field{name: _name, ecto_type: Ecto.UUID}] ->
+      [%Field{name: _name, type: Ecto.UUID}] ->
         ""
 
       # Single field with different name or type
-      [%Field{name: name, ecto_type: ecto_type}] when name != :id or ecto_type != :id ->
-        "  @primary_key {#{inspect(name)}, #{inspect(ecto_type)}, autogenerate: true}\n"
+      [%Field{name: name, type: type}] when name != :id or type != :id ->
+        "  @primary_key {#{inspect(name)}, #{inspect(type)}, autogenerate: true}\n"
 
       # Composite primary key
       multiple_fields when length(multiple_fields) > 1 ->
         field_specs =
           Enum.map(multiple_fields, fn field ->
-            "{#{inspect(field.name)}, #{inspect(field.ecto_type)}}"
+            "{#{inspect(field.name)}, #{inspect(field.type)}}"
           end)
 
         "  @primary_key [#{Enum.join(field_specs, ", ")}]\n"
@@ -138,7 +138,7 @@ defmodule Drops.Relation.Schema.Generator do
       Enum.any?(fields, fn field ->
         # Only consider fields that are explicitly marked as foreign keys in metadata
         Map.get(field.meta, :is_foreign_key, false) and
-          field.ecto_type in [:binary_id, Ecto.UUID]
+          field.type in [:binary_id, Ecto.UUID]
       end)
 
     if has_binary_id_fks do
@@ -190,12 +190,12 @@ defmodule Drops.Relation.Schema.Generator do
     fields
     |> Enum.reject(fn field ->
       # Don't exclude Ecto.UUID primary key fields - they need to be defined as regular fields
-      field.name in primary_key_names and field.ecto_type != Ecto.UUID
+      field.name in primary_key_names and field.type != Ecto.UUID
     end)
     |> Enum.reject(&is_timestamp_field?/1)
     |> Enum.map(fn field ->
       # Add primary_key: true option for Ecto.UUID primary key fields
-      if field.name in primary_key_names and field.ecto_type == Ecto.UUID do
+      if field.name in primary_key_names and field.type == Ecto.UUID do
         generate_uuid_primary_key_field_definition(field)
       else
         generate_field_definition(field)
@@ -220,8 +220,8 @@ defmodule Drops.Relation.Schema.Generator do
   A string containing the field definition.
   """
   @spec generate_field_definition(Field.t()) :: String.t()
-  def generate_field_definition(%Field{name: name, ecto_type: ecto_type, source: source}) do
-    base_definition = "    field #{inspect(name)}, #{format_ecto_type(ecto_type)}"
+  def generate_field_definition(%Field{name: name, type: type, source: source}) do
+    base_definition = "    field #{inspect(name)}, #{format_ecto_type(type)}"
 
     # Add source option if different from field name
     if source != name do
@@ -245,7 +245,7 @@ defmodule Drops.Relation.Schema.Generator do
   @spec generate_uuid_primary_key_field_definition(Field.t()) :: String.t()
   def generate_uuid_primary_key_field_definition(%Field{
         name: name,
-        ecto_type: Ecto.UUID,
+        type: Ecto.UUID,
         source: source
       }) do
     base_definition =
@@ -266,8 +266,8 @@ defmodule Drops.Relation.Schema.Generator do
 
   defp is_timestamp_field?(_), do: false
 
-  defp format_ecto_type(ecto_type) when is_atom(ecto_type) do
-    inspect(ecto_type)
+  defp format_ecto_type(type) when is_atom(type) do
+    inspect(type)
   end
 
   defp format_ecto_type({:array, inner_type}) do
@@ -278,8 +278,8 @@ defmodule Drops.Relation.Schema.Generator do
     ":map"
   end
 
-  defp format_ecto_type(ecto_type) do
-    inspect(ecto_type)
+  defp format_ecto_type(type) do
+    inspect(type)
   end
 
   @doc """

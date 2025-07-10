@@ -11,8 +11,8 @@ defmodule Drops.Relation.SchemaTest do
       fk = ForeignKey.new(:user_id, "users", :id, :user)
 
       fields = [
-        %{name: :id, type: :integer, ecto_type: :id, source: :id},
-        %{name: :user_id, type: :integer, ecto_type: :id, source: :user_id}
+        %{name: :id, type: :integer, type: :id, source: :id},
+        %{name: :user_id, type: :integer, type: :id, source: :user_id}
       ]
 
       indices = Indices.new([])

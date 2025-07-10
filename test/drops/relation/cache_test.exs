@@ -196,7 +196,7 @@ defmodule Drops.Relation.CacheTest do
       field = %Field{
         name: :email,
         type: :string,
-        ecto_type: :string,
+        type: :string,
         source: :email,
         meta: %{nullable: false, default: nil}
       }
@@ -205,7 +205,7 @@ defmodule Drops.Relation.CacheTest do
       assert dumped["__struct__"] == "Field"
       assert dumped["attributes"]["name"] == ["atom", "email"]
       assert dumped["attributes"]["type"] == ["atom", "string"]
-      assert dumped["attributes"]["ecto_type"] == ["atom", "string"]
+      assert dumped["attributes"]["type"] == ["atom", "string"]
       assert dumped["attributes"]["source"] == ["atom", "email"]
 
       loaded = Drops.Relation.Schema.Field.load(dumped)
@@ -216,21 +216,21 @@ defmodule Drops.Relation.CacheTest do
       field = %Field{
         name: :tags,
         type: :array,
-        ecto_type: {:array, :string},
+        type: {:array, :string},
         source: :tags,
         meta: %{}
       }
 
       dumped = JSON.encode!(field) |> JSON.decode!()
       loaded = Drops.Relation.Schema.Field.load(dumped)
-      assert loaded.ecto_type == {:array, :string}
+      assert loaded.type == {:array, :string}
       assert loaded == field
     end
   end
 
   describe "Serializable protocol for PrimaryKey" do
     test "dumps and loads PrimaryKey correctly" do
-      field = %Field{name: :id, type: :integer, ecto_type: :id, source: :id, meta: %{}}
+      field = %Field{name: :id, type: :integer, type: :id, source: :id, meta: %{}}
       pk = %PrimaryKey{fields: [field]}
 
       dumped = JSON.encode!(pk) |> JSON.decode!()
@@ -286,7 +286,7 @@ defmodule Drops.Relation.CacheTest do
 
   describe "Serializable protocol for Index" do
     test "dumps and loads Index correctly" do
-      field = %Field{name: :email, type: :string, ecto_type: :string, source: :email, meta: %{}}
+      field = %Field{name: :email, type: :string, type: :string, source: :email, meta: %{}}
 
       index = %Index{
         name: "users_email_index",
@@ -308,7 +308,7 @@ defmodule Drops.Relation.CacheTest do
 
   describe "Serializable protocol for Indices" do
     test "dumps and loads Indices correctly" do
-      field = %Field{name: :email, type: :string, ecto_type: :string, source: :email, meta: %{}}
+      field = %Field{name: :email, type: :string, type: :string, source: :email, meta: %{}}
       index = %Index{name: "users_email_index", fields: [field], unique: true, type: :btree}
       indices = %Indices{indices: [index]}
 
@@ -323,7 +323,7 @@ defmodule Drops.Relation.CacheTest do
 
   describe "Serializable protocol for Schema" do
     test "dumps and loads complete Schema correctly" do
-      field = %Field{name: :id, type: :integer, ecto_type: :id, source: :id, meta: %{}}
+      field = %Field{name: :id, type: :integer, type: :id, source: :id, meta: %{}}
       pk = %PrimaryKey{fields: [field]}
 
       fk = %ForeignKey{
@@ -373,7 +373,7 @@ defmodule Drops.Relation.CacheTest do
       field = %Field{
         name: :tags,
         type: :array,
-        ecto_type: {:array, :string},
+        type: {:array, :string},
         source: :tags,
         meta: %{}
       }
@@ -408,7 +408,7 @@ defmodule Drops.Relation.CacheTest do
       field = %Field{
         name: :complex_field,
         type: :array,
-        ecto_type: {:array, :string},
+        type: {:array, :string},
         source: :complex_field,
         meta: %{}
       }

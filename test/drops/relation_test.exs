@@ -153,8 +153,8 @@ defmodule Drops.Relations.SchemaSpec do
       assert length(schema.fields) > 0
       parent_id_field = Enum.find(schema.fields, &(&1.name == :parent_id))
       assert parent_id_field != nil
-      assert parent_id_field.type == :integer
-      assert parent_id_field.ecto_type == :id
+      assert parent_id_field.type == :id
+      assert parent_id_field.meta.type == :integer
 
       # Database introspection correctly detects foreign key constraints
       # even though association metadata is defined in Ecto schema code.

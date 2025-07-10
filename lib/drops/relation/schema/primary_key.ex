@@ -55,33 +55,6 @@ defmodule Drops.Relation.Schema.PrimaryKey do
     %__MODULE__{fields: fields}
   end
 
-  @doc """
-  Creates a new PrimaryKey struct from field names.
-
-  This is a convenience function for backward compatibility and simple cases.
-
-  ## Parameters
-
-  - `field_names` - List of field names that form the primary key
-
-  ## Examples
-
-      iex> pk = Drops.Relation.Schema.PrimaryKey.from_names([:id])
-      iex> [field] = pk.fields
-      iex> field.name
-      :id
-  """
-  @spec from_names([atom()]) :: t()
-  def from_names(field_names) when is_list(field_names) do
-    fields =
-      Enum.map(field_names, fn name ->
-        # Create minimal Field structs for backward compatibility
-        Field.new(name, :unknown, :unknown, name)
-      end)
-
-    new(fields)
-  end
-
   defimpl Inspect do
     def inspect(%Drops.Relation.Schema.PrimaryKey{} = pk, _opts) do
       case pk.fields do
@@ -152,27 +125,5 @@ defmodule Drops.Relation.Schema.PrimaryKey do
   @spec field_names(t()) :: [atom()]
   def field_names(%__MODULE__{fields: fields}) do
     Enum.map(fields, & &1.name)
-  end
-
-  @doc """
-  Extracts primary key information from an Ecto schema module.
-
-  ## Parameters
-
-  - `schema_module` - An Ecto schema module
-
-  ## Examples
-
-      iex> # Example with a hypothetical schema
-      iex> # Drops.Relation.Schema.PrimaryKey.from_ecto_schema(MyApp.User)
-      iex> # %Drops.Relation.Schema.PrimaryKey{fields: [%Field{name: :id, ...}]}
-      iex> pk = Drops.Relation.Schema.PrimaryKey.from_names([:id])
-      iex> Drops.Relation.Schema.PrimaryKey.field_names(pk)
-      [:id]
-  """
-  @spec from_ecto_schema(module()) :: t()
-  def from_ecto_schema(schema_module) when is_atom(schema_module) do
-    field_names = schema_module.__schema__(:primary_key)
-    from_names(field_names)
   end
 end

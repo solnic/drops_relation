@@ -93,7 +93,7 @@ defmodule Drops.Relation.Inference.FieldCandidates do
     # Check if there are any binary_id or Ecto.UUID foreign key fields
     has_binary_id_fks =
       Enum.any?(fk_candidates, fn candidate ->
-        candidate.field.ecto_type in [:binary_id, Ecto.UUID]
+        candidate.field.type in [:binary_id, Ecto.UUID]
       end)
 
     if has_binary_id_fks, do: :binary_id, else: nil

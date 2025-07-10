@@ -303,7 +303,7 @@ defmodule Drops.SQL.Database.Table do
     def to_atom(_table, :id), do: :integer
     def to_atom(_table, :binary_id), do: :binary
     def to_atom(_table, Ecto.UUID), do: :binary
-    def to_atom(table, {:array, ecto_type}), do: {:array, to_atom(table, ecto_type)}
+    def to_atom(table, {:array, type}), do: {:array, to_atom(table, type)}
     def to_atom(_table, other) when is_atom(other), do: other
 
     def to_ecto_type(%{adapter: adapter} = table, column) do

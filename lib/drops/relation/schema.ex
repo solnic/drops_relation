@@ -15,8 +15,8 @@ defmodule Drops.Relation.Schema do
         primary_key: %Drops.Relation.Schema.PrimaryKey{fields: [:id]},
         foreign_keys: [],
         fields: [
-          %{name: :id, type: :integer, ecto_type: :id, source: :id},
-          %{name: :email, type: :string, ecto_type: :string, source: :email}
+          %{name: :id, type: :integer, type: :id, source: :id},
+          %{name: :email, type: :string, type: :string, source: :email}
         ],
         indices: %Drops.Relation.Schema.Indices{indices: [...]},
         associations: [
@@ -30,7 +30,7 @@ defmodule Drops.Relation.Schema do
   @type field_metadata :: %{
           name: atom(),
           type: atom(),
-          ecto_type: term(),
+          type: term(),
           source: atom()
         }
 
@@ -122,7 +122,7 @@ defmodule Drops.Relation.Schema do
     def inspect(%Drops.Relation.Schema{} = schema, _opts) do
       fields_summary =
         schema.fields
-        |> Enum.map(fn field -> "#{field.name}: #{inspect(field.ecto_type)}" end)
+        |> Enum.map(fn field -> "#{field.name}: #{inspect(field.type)}" end)
         |> Enum.join(", ")
 
       pk_summary =

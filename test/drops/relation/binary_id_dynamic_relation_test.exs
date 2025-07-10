@@ -24,7 +24,7 @@ defmodule Drops.Relation.BinaryIdDynamicRelationTest do
       # Verify primary key field has correct types
       pk_field = hd(drops_relation_schema.primary_key.fields)
       assert pk_field.name == :id
-      assert pk_field.ecto_type == :binary_id
+      assert pk_field.type == :binary_id
       assert pk_field.type == :binary
 
       # Verify the module was generated with @primary_key attribute
@@ -143,12 +143,12 @@ defmodule Drops.Relation.BinaryIdDynamicRelationTest do
       assert length(drops_relation_schema.primary_key.fields) == 1
       pk_field = hd(drops_relation_schema.primary_key.fields)
       assert pk_field.name == :id
-      assert pk_field.ecto_type == :binary_id
+      assert pk_field.type == :binary_id
 
       # Check that binary_id foreign key fields are properly typed
       org_id_field = Enum.find(drops_relation_schema.fields, &(&1.name == :organization_id))
       assert org_id_field
-      assert org_id_field.ecto_type == :binary_id
+      assert org_id_field.type == :binary_id
     end
   end
 end

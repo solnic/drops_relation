@@ -107,7 +107,7 @@ defmodule Drops.Relation.MetadataIntegrationTest do
       merged = Drops.Relation.Schema.Field.merge(status_field, custom_field)
 
       # Custom field properties should take precedence
-      assert merged.ecto_type == {Ecto.Enum, values: [:active, :inactive, :pending]}
+      assert merged.type == {Ecto.Enum, values: [:active, :inactive, :pending]}
       # overridden
       assert merged.meta.nullable == true
       # overridden

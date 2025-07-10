@@ -298,21 +298,22 @@ defmodule Drops.Relation.Inference do
 
     Enum.map(expanded_fields, fn {name, type, opts} ->
       source = Keyword.get(opts, :source, name)
+      type = build_ecto_type(type, opts)
+      normalized_type = normalize_type(type)
 
       meta = %{
+        type: normalized_type,
+        source: source,
         nullable: Keyword.get(opts, :null),
         default: Keyword.get(opts, :default),
         check_constraints: []
       }
 
-      ecto_type = build_ecto_type(type, opts)
-      normalized_type = normalize_type(ecto_type)
-
-      Field.new(name, normalized_type, ecto_type, source, meta)
+      Field.new(name, type, meta)
     end)
   end
 
-  # Simplified ecto_type building (now works with expanded types)
+  # Simplified type building (now works with expanded types)
   defp build_ecto_type(type, opts) do
     if length(opts) > 0, do: {type, opts}, else: type
   end

@@ -24,7 +24,7 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       # Verify primary key field has correct types
       pk_field = hd(drops_relation_schema.primary_key.fields)
       assert pk_field.name == :id
-      assert pk_field.ecto_type == Ecto.UUID
+      assert pk_field.type == Ecto.UUID
       assert pk_field.type == :binary
 
       # Verify the module was generated with @primary_key attribute
@@ -143,12 +143,12 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       assert length(drops_relation_schema.primary_key.fields) == 1
       pk_field = hd(drops_relation_schema.primary_key.fields)
       assert pk_field.name == :id
-      assert pk_field.ecto_type == Ecto.UUID
+      assert pk_field.type == Ecto.UUID
 
       # Check that UUID foreign key fields are properly typed
       org_id_field = Enum.find(drops_relation_schema.fields, &(&1.name == :organization_id))
       assert org_id_field
-      assert org_id_field.ecto_type == Ecto.UUID
+      assert org_id_field.type == Ecto.UUID
     end
   end
 
@@ -175,7 +175,7 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       # Verify primary key field has correct types
       pk_field = hd(drops_relation_schema.primary_key.fields)
       assert pk_field.name == :id
-      assert pk_field.ecto_type == :binary_id
+      assert pk_field.type == :binary_id
       assert pk_field.type == :binary
     end
 

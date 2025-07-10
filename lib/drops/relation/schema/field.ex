@@ -10,21 +10,14 @@ defmodule Drops.Relation.Schema.Field do
       # Simple field
       %Drops.Relation.Schema.Field{
         name: :email,
-        type: :string,
-        ecto_type: :string,
-        source: :email
-      }
-
-      # Field with different source mapping
-      %Drops.Relation.Schema.Field{
-        name: :user_id,
-        type: :integer,
-        ecto_type: :id,
-        source: :user_id
+        type: :string
       }
   """
 
   @type meta :: %{
+          type: term(),
+          adapter: atom(),
+          source: atom(),
           nullable: boolean() | nil,
           default: term() | nil,
           check_constraints: [String.t()] | nil,
@@ -34,16 +27,14 @@ defmodule Drops.Relation.Schema.Field do
 
   @type t :: %__MODULE__{
           name: atom(),
-          type: atom(),
-          ecto_type: term(),
-          source: atom(),
+          type: term(),
           meta: meta()
         }
 
   alias Drops.Relation.Schema.Serializable
   use Serializable
 
-  defstruct [:name, :type, :ecto_type, :source, :meta]
+  defstruct [:name, :type, :source, :meta]
 
   @doc """
   Creates a new Field struct.
@@ -52,7 +43,7 @@ defmodule Drops.Relation.Schema.Field do
 
   - `name` - The field name as an atom
   - `type` - The normalized type (e.g., :string, :integer)
-  - `ecto_type` - The original Ecto type
+  - `type` - The original Ecto type
   - `source` - The source column name in the database
   - `meta` - Optional metadata map with nullable, default, check_constraints
 
@@ -62,7 +53,7 @@ defmodule Drops.Relation.Schema.Field do
       %Drops.Relation.Schema.Field{
         name: :email,
         type: :string,
-        ecto_type: :string,
+        type: :string,
         source: :email,
         meta: %{}
       }
@@ -72,77 +63,20 @@ defmodule Drops.Relation.Schema.Field do
       %Drops.Relation.Schema.Field{
         name: :status,
         type: :string,
-        ecto_type: :string,
+        type: :string,
         source: :status,
         meta: %{nullable: false, default: "active"}
       }
   """
-  @spec new(atom(), atom(), term(), atom(), meta()) :: t()
-  def new(name, type, ecto_type, source, meta \\ %{}) do
-    %__MODULE__{
-      name: name,
-      type: type,
-      ecto_type: ecto_type,
-      source: source,
-      meta: meta
-    }
-  end
-
-  @doc """
-  Creates a Field struct from field metadata map.
-
-  ## Parameters
-
-  - `field_metadata` - A map with :name, :type, :ecto_type, :source, and optionally :meta keys
-
-  ## Examples
-
-      iex> metadata = %{name: :email, type: :string, ecto_type: :string, source: :email}
-      iex> Drops.Relation.Schema.Field.from_metadata(metadata)
-      %Drops.Relation.Schema.Field{
-        name: :email,
-        type: :string,
-        ecto_type: :string,
-        source: :email,
-        meta: %{}
-      }
-  """
-  @spec from_metadata(map()) :: t()
-  def from_metadata(%{name: name, type: type, ecto_type: ecto_type, source: source} = metadata) do
-    meta = Map.get(metadata, :meta, %{})
-    new(name, type, ecto_type, source, meta)
+  @spec new(atom(), atom(), meta()) :: t()
+  def new(name, type, meta \\ %{}) do
+    %__MODULE__{name: name, type: type, meta: meta}
   end
 
   defimpl Inspect do
     def inspect(%Drops.Relation.Schema.Field{} = field, _opts) do
-      "#Field<#{field.name}: #{inspect(field.ecto_type)}>"
+      "#Field<#{field.name}: #{inspect(field.type)}>"
     end
-  end
-
-  @doc """
-  Converts a Field struct to field metadata map.
-
-  ## Examples
-
-      iex> field = Drops.Relation.Schema.Field.new(:email, :string, :string, :email)
-      iex> Drops.Relation.Schema.Field.to_metadata(field)
-      %{name: :email, type: :string, ecto_type: :string, source: :email, meta: %{}}
-  """
-  @spec to_metadata(t()) :: map()
-  def to_metadata(%__MODULE__{
-        name: name,
-        type: type,
-        ecto_type: ecto_type,
-        source: source,
-        meta: meta
-      }) do
-    %{
-      name: name,
-      type: type,
-      ecto_type: ecto_type,
-      source: source,
-      meta: meta
-    }
   end
 
   @doc """
@@ -162,7 +96,7 @@ defmodule Drops.Relation.Schema.Field do
       iex> inferred = Drops.Relation.Schema.Field.new(:email, :string, :string, :email, %{nullable: true})
       iex> custom = Drops.Relation.Schema.Field.new(:email, :string, {:parameterized, {Ecto.Enum, %{values: [:active, :inactive]}}}, :email)
       iex> merged = Drops.Relation.Schema.Field.merge(inferred, custom)
-      iex> merged.ecto_type
+      iex> merged.type
       {:parameterized, {Ecto.Enum, %{values: [:active, :inactive]}}}
       iex> merged.meta.nullable
       true
@@ -179,8 +113,6 @@ defmodule Drops.Relation.Schema.Field do
     %__MODULE__{
       name: right.name,
       type: right.type,
-      ecto_type: right.ecto_type,
-      source: right.source,
       meta: merged_meta
     }
   end
@@ -251,7 +183,7 @@ defimpl Drops.Relation.Inference.SchemaFieldAST, for: Drops.Relation.Schema.Fiel
   """
   def to_field_ast_with_category(%Drops.Relation.Schema.Field{} = field, category) do
     # Handle parameterized types by extracting options
-    {type, type_opts} = extract_type_and_options(field.ecto_type)
+    {type, type_opts} = extract_type_and_options(field.type)
 
     base_opts = if field.source != field.name, do: [source: field.source], else: []
 
@@ -287,27 +219,27 @@ defimpl Drops.Relation.Inference.SchemaFieldAST, for: Drops.Relation.Schema.Fiel
 
     cond do
       # Check if this is explicitly marked as a foreign key field in metadata
-      is_foreign_key and field.ecto_type in [:binary_id, Ecto.UUID] ->
+      is_foreign_key and field.type in [:binary_id, Ecto.UUID] ->
         quote do
           @foreign_key_type :binary_id
         end
 
       # Check if this is explicitly marked as a primary key field in metadata
-      is_primary_key and field.ecto_type == Ecto.UUID ->
+      is_primary_key and field.type == Ecto.UUID ->
         quote do
           @primary_key {unquote(field.name), Ecto.UUID, autogenerate: true}
         end
 
       # Check if this is explicitly marked as a primary key field in metadata
-      is_primary_key and field.ecto_type == :binary_id ->
+      is_primary_key and field.type == :binary_id ->
         quote do
           @primary_key {unquote(field.name), :binary_id, autogenerate: true}
         end
 
       # Check if this is explicitly marked as a primary key field with custom type
-      is_primary_key and field.ecto_type not in [:id, :integer] ->
+      is_primary_key and field.type not in [:id, :integer] ->
         quote do
-          @primary_key {unquote(field.name), unquote(field.ecto_type), autogenerate: true}
+          @primary_key {unquote(field.name), unquote(field.type), autogenerate: true}
         end
 
       true ->
@@ -317,9 +249,9 @@ defimpl Drops.Relation.Inference.SchemaFieldAST, for: Drops.Relation.Schema.Fiel
     end
   end
 
-  # Helper function to extract type and options from ecto_type for field generation
-  defp extract_type_and_options(ecto_type) do
-    case ecto_type do
+  # Helper function to extract type and options from type for field generation
+  defp extract_type_and_options(type) do
+    case type do
       {type, opts} when is_list(opts) ->
         {type, opts}
 

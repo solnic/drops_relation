@@ -44,12 +44,12 @@ defmodule Drops.Relation.Inference.FieldCandidate do
 
   # Determines where a field should be placed in the final schema.
   @spec determine_placement(Field.t(), atom()) :: atom()
-  defp determine_placement(%Field{name: name, ecto_type: ecto_type}, category) do
+  defp determine_placement(%Field{name: name, type: type}, category) do
     case category do
       :primary_key ->
         cond do
           # Default Ecto primary key - exclude (Ecto adds automatically)
-          name == :id and ecto_type == :id ->
+          name == :id and type == :id ->
             :excluded
 
           # Custom primary keys need @primary_key attribute only (no field definition)

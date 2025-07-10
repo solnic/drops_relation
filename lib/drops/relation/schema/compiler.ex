@@ -73,6 +73,8 @@ defmodule Drops.Relation.Schema.Compiler do
     atom_type = Types.Conversion.to_atom(table, ecto_type)
 
     meta = %{
+      type: atom_type,
+      source: column.name,
       primary_key: column.meta.primary_key,
       foreign_key: Database.Table.foreign_key_column?(table, column.name),
       nullable: column.meta.nullable,
@@ -80,7 +82,7 @@ defmodule Drops.Relation.Schema.Compiler do
       check_constraints: column.meta.check_constraints
     }
 
-    Field.new(column.name, atom_type, ecto_type, column.name, meta)
+    Field.new(column.name, ecto_type, meta)
   end
 
   def visit(%Database.PrimaryKey{} = primary_key, opts) do
