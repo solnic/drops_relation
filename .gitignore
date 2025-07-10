@@ -17,7 +17,7 @@ erl_crash.dump
 *.ez
 
 # Ignore package tarball (built via "mix hex.build").
-ecto_relation-*.tar
+drops_relation-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
