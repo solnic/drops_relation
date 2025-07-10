@@ -25,11 +25,6 @@ defmodule Drops.Relation.Schema do
       }
   """
 
-  defprotocol Inference do
-    @spec to_schema(term()) :: Drops.Relation.Schema.t()
-    def to_schema(table)
-  end
-
   alias Drops.Relation.Schema.{PrimaryKey, ForeignKey, Indices, Field}
 
   @type field_metadata :: %{
@@ -112,6 +107,11 @@ defmodule Drops.Relation.Schema do
       indices: indices
     }
   end
+
+  def new(%{indices: indices} = attributes) when is_list(indices),
+    do: new(Map.put(attributes, :indices, Indices.new(indices)))
+
+  def new(attributes) when is_map(attributes), do: struct(__MODULE__, attributes)
 
   @spec empty(String.t()) :: t()
   def empty(name) do

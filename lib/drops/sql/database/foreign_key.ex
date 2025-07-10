@@ -197,35 +197,3 @@ defmodule Drops.SQL.Database.ForeignKey do
   @spec column_count(t()) :: non_neg_integer()
   def column_count(%__MODULE__{columns: columns}), do: length(columns)
 end
-
-defimpl Drops.Relation.Schema.Field.Inference, for: Drops.SQL.Database.ForeignKey do
-  @moduledoc """
-  Implementation of Drops.Relation.Schema.Inference protocol for ForeignKey structs.
-
-  Converts database ForeignKey structs to Drops.Relation.Schema.ForeignKey structs.
-  """
-
-  alias Drops.Relation.Schema
-
-  def to_schema_field(%Drops.SQL.Database.ForeignKey{} = foreign_key, _table) do
-    field_name =
-      case foreign_key.columns do
-        [single_column] ->
-          single_column
-
-        multiple_columns ->
-          hd(multiple_columns)
-      end
-
-    referenced_field =
-      case foreign_key.referenced_columns do
-        [single_column] ->
-          single_column
-
-        multiple_columns ->
-          hd(multiple_columns)
-      end
-
-    Schema.ForeignKey.new(field_name, foreign_key.referenced_table, referenced_field)
-  end
-end

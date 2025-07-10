@@ -152,26 +152,4 @@ defmodule Drops.SQL.Database.Column do
   @spec has_check_constraints?(t()) :: boolean()
   def has_check_constraints?(%__MODULE__{meta: %{check_constraints: constraints}}),
     do: constraints != []
-
-  defimpl Drops.Relation.Schema.Field.Inference do
-    alias Drops.SQL.Database
-    alias Drops.SQL.Database.Table
-    alias Drops.SQL.Types
-    alias Drops.Relation.Schema
-
-    def to_schema_field(%Database.Column{} = column, %Database.Table{} = table) do
-      ecto_type = Types.Conversion.to_ecto_type(table, column)
-      atom_type = Types.Conversion.to_atom(table, ecto_type)
-
-      meta = %{
-        primary_key: column.meta.primary_key,
-        foreign_key: Table.foreign_key_column?(table, column.name),
-        nullable: column.meta.nullable,
-        default: column.meta.default,
-        check_constraints: column.meta.check_constraints
-      }
-
-      Schema.Field.new(column.name, atom_type, ecto_type, column.name, meta)
-    end
-  end
 end

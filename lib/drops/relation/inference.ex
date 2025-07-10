@@ -1,5 +1,4 @@
 defmodule Drops.Relation.Inference do
-  alias Drops.SQL
   alias Drops.Relation.Schema.Field
   alias Drops.Relation.Inference.FieldCandidate
   alias Drops.Relation.Inference.FieldCandidates
@@ -267,8 +266,15 @@ defmodule Drops.Relation.Inference do
   end
 
   def infer_schema(relation, name, repo) do
-    # Use the unified schema inference implementation
-    drops_relation_schema = SQL.Inference.infer_from_table(name, repo)
+    # Use Database.table to get SQL Database Table struct, then compile to Relation Schema
+    drops_relation_schema =
+      case Drops.SQL.Database.table(name, repo) do
+        {:ok, table} ->
+          Drops.Relation.Schema.Compiler.visit(table, [])
+
+        {:error, reason} ->
+          raise "Failed to introspect table #{name}: #{inspect(reason)}"
+      end
 
     # Get optional Ecto associations definitions AST
     association_definitions = Module.get_attribute(relation, :associations, [])

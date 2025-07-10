@@ -24,11 +24,6 @@ defmodule Drops.Relation.Schema.Field do
       }
   """
 
-  defprotocol Inference do
-    @spec to_schema_field(term(), term()) :: Drops.Relation.Schema.Field.t()
-    def to_schema_field(component, table)
-  end
-
   @type meta :: %{
           nullable: boolean() | nil,
           default: term() | nil,

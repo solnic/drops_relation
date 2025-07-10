@@ -124,7 +124,7 @@ defmodule Drops.Relations.SchemaSpec do
 
       # Should be a Drops.Relation.Schema struct
       assert %Drops.Relation.Schema{} = schema
-      assert schema.source == "users"
+      assert schema.source == :users
 
       # Should have primary key information
       assert Drops.Relation.Schema.PrimaryKey.field_names(schema.primary_key) == [:id]
@@ -144,7 +144,7 @@ defmodule Drops.Relations.SchemaSpec do
 
       # Should be a Drops.Relation.Schema struct
       assert %Drops.Relation.Schema{} = schema
-      assert schema.source == "associations"
+      assert schema.source == :associations
 
       # Should have primary key information
       assert Drops.Relation.Schema.PrimaryKey.field_names(schema.primary_key) == [:id]
@@ -162,11 +162,10 @@ defmodule Drops.Relations.SchemaSpec do
       assert length(schema.foreign_keys) == 1
       fk = hd(schema.foreign_keys)
       assert fk.field == :parent_id
-      assert fk.references_table == "association_parents"
+      assert fk.references_table == :association_parents
       assert fk.references_field == :id
 
-      # Association name is nil because this comes from database introspection, not Ecto schema
-      assert fk.association_name == nil
+      assert fk.association_name == :parent
     end
 
     @tag relations: [:composite_pk]
@@ -175,7 +174,7 @@ defmodule Drops.Relations.SchemaSpec do
 
       # Should be a Drops.Relation.Schema struct
       assert %Drops.Relation.Schema{} = schema
-      assert schema.source == "composite_pk"
+      assert schema.source == :composite_pk
 
       # Database introspection correctly detects composite primary keys
       # defined with @primary_key false and field-level primary_key: true

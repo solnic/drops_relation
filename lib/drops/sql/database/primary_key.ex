@@ -173,20 +173,3 @@ defmodule Drops.SQL.Database.PrimaryKey do
   @spec column_count(t()) :: non_neg_integer()
   def column_count(%__MODULE__{columns: columns}), do: length(columns)
 end
-
-defimpl Drops.Relation.Schema.Field.Inference, for: Drops.SQL.Database.PrimaryKey do
-  @moduledoc """
-  Implementation of Drops.Relation.Schema.Inference protocol for PrimaryKey structs.
-
-  Converts database PrimaryKey structs to Drops.Relation.Schema.PrimaryKey structs
-  using the provided column context.
-  """
-
-  alias Drops.Relation.Schema
-
-  def to_schema_field(%Drops.SQL.Database.PrimaryKey{} = primary_key, table) do
-    pk_fields = Enum.filter(table.columns, fn column -> column.name in primary_key.columns end)
-
-    Schema.PrimaryKey.new(Enum.map(pk_fields, &Schema.Field.Inference.to_schema_field(&1, table)))
-  end
-end

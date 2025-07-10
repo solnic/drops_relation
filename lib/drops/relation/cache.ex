@@ -253,7 +253,15 @@ defmodule Drops.Relation.Cache do
         if schema = get_cached_schema(repo, table_name) do
           schema
         else
-          schema = Drops.SQL.Inference.infer_from_table(table_name, repo)
+          schema =
+            case Drops.SQL.Database.table(table_name, repo) do
+              {:ok, table} ->
+                Drops.Relation.Schema.Compiler.visit(table, [])
+
+              {:error, reason} ->
+                raise "Failed to introspect table #{table_name}: #{inspect(reason)}"
+            end
+
           cache_schema(repo, table_name, schema)
           schema
         end

@@ -297,23 +297,6 @@ defmodule Drops.SQL.Database.Table do
     Enum.find(foreign_keys, &ForeignKey.includes_column?(&1, column_name))
   end
 
-  defimpl Drops.Relation.Schema.Inference do
-    import Drops.Relation.Schema.Field.Inference, only: [to_schema_field: 2]
-
-    alias Drops.Relation.Schema
-
-    def to_schema(%Drops.SQL.Database.Table{} = table) do
-      primary_key = to_schema_field(table.primary_key, table)
-      # TODO: optimize this because we already have field(s) from primary_key
-      #       so we can skip inferring those when mapping all columns
-      fields = Enum.map(table.columns, &to_schema_field(&1, table))
-      foreign_keys = Enum.map(table.foreign_keys, &to_schema_field(&1, table))
-      indices = Enum.map(table.indices, &to_schema_field(&1, table))
-
-      Schema.new(table.name, primary_key, foreign_keys, fields, indices)
-    end
-  end
-
   defimpl Drops.SQL.Types.Conversion do
     alias Drops.SQL.Types
 

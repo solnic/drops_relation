@@ -9,7 +9,6 @@ defmodule Drops.Relation.Schema.Generator do
 
   alias Drops.Relation.Schema
   alias Drops.Relation.Schema.{Field, PrimaryKey}
-  alias Drops.SQL
 
   require Logger
 
@@ -38,8 +37,15 @@ defmodule Drops.Relation.Schema.Generator do
     # Ensure the repo module is loaded and started
     repo = ensure_repo_started(repo_name)
 
-    # Use the unified schema inference implementation
-    drops_relation_schema = SQL.Inference.infer_from_table(table_name, repo)
+    # Use Database.table to get SQL Database Table struct, then compile to Relation Schema
+    drops_relation_schema =
+      case Drops.SQL.Database.table(table_name, repo) do
+        {:ok, table} ->
+          Drops.Relation.Schema.Compiler.visit(table, [])
+
+        {:error, reason} ->
+          raise "Failed to introspect table #{table_name}: #{inspect(reason)}"
+      end
 
     generate_module_content(module_name, table_name, drops_relation_schema)
   end

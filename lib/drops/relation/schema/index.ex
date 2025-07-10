@@ -74,38 +74,6 @@ defmodule Drops.Relation.Schema.Index do
   end
 
   @doc """
-  Creates a new Index struct from field names.
-
-  This is a convenience function for backward compatibility and simple cases.
-
-  ## Parameters
-
-  - `name` - The index name
-  - `field_names` - List of field names covered by the index
-  - `unique` - Whether the index enforces uniqueness
-  - `type` - The index type (optional)
-
-  ## Examples
-
-      iex> index = Drops.Relation.Schema.Index.from_names("users_email_index", [:email], true, :btree)
-      iex> index.name
-      "users_email_index"
-      iex> [field] = index.fields
-      iex> field.name
-      :email
-  """
-  @spec from_names(String.t(), [atom()], boolean(), index_type()) :: t()
-  def from_names(name, field_names, unique \\ false, type \\ nil) do
-    fields =
-      Enum.map(field_names, fn field_name ->
-        # Create minimal Field structs for backward compatibility
-        Field.new(field_name, :unknown, :unknown, field_name)
-      end)
-
-    new(name, fields, unique, type)
-  end
-
-  @doc """
   Checks if the index is composite (covers multiple fields).
 
   ## Examples

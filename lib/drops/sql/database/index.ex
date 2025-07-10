@@ -187,22 +187,3 @@ defmodule Drops.SQL.Database.Index do
   @spec column_count(t()) :: non_neg_integer()
   def column_count(%__MODULE__{columns: columns}), do: length(columns)
 end
-
-defimpl Drops.Relation.Schema.Field.Inference, for: Drops.SQL.Database.Index do
-  @moduledoc """
-  Implementation of Drops.Relation.Schema.Inference protocol for Index structs.
-
-  Converts database Index structs to Drops.Relation.Schema.Index structs.
-  """
-
-  alias Drops.Relation.Schema
-
-  def to_schema_field(%Drops.SQL.Database.Index{} = index, _table) do
-    Schema.Index.from_names(
-      index.name,
-      index.columns,
-      index.meta.unique,
-      index.meta.type
-    )
-  end
-end
