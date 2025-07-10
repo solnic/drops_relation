@@ -80,7 +80,7 @@ defmodule Drops.Relation.MixProject do
         Inference: [
           Drops.Relation.Inference,
           Drops.Relation.SQL.Inference,
-          Drops.Relation.SQL.Introspector
+          Drops.Relation.SQL.Introspection
         ],
         Cache: [
           Drops.Relation.Cache

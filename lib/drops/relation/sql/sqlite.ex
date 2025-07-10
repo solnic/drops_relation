@@ -1,15 +1,15 @@
-defmodule Drops.Relation.SQL.Database.SQLite do
+defmodule Drops.Relation.SQL.Sqlite do
   @moduledoc """
-  SQLite implementation of the Database behavior for schema introspection.
+  Sqlite implementation of the Database behavior for schema introspection.
 
-  This module provides SQLite-specific implementations for database introspection
-  operations using SQLite's PRAGMA statements and system tables.
+  This module provides Sqlite-specific implementations for database introspection
+  operations using Sqlite's PRAGMA statements and system tables.
 
   ## Features
 
   - Index introspection via PRAGMA statements
   - Column metadata extraction via PRAGMA table_info
-  - SQLite type to Ecto type conversion
+  - Sqlite type to Ecto type conversion
   - Support for unique and composite indices
   """
 
@@ -21,7 +21,7 @@ defmodule Drops.Relation.SQL.Database.SQLite do
 
   # Legacy method for backward compatibility - no longer part of behavior
   def get_table_indices(repo, table_name) do
-    # SQLite PRAGMA to get index list
+    # Sqlite PRAGMA to get index list
     index_list_query = "PRAGMA index_list(#{table_name})"
 
     case repo.query(index_list_query) do
@@ -103,7 +103,7 @@ defmodule Drops.Relation.SQL.Database.SQLite do
   defp parse_default_value(value), do: value
 
   defp enhance_with_check_constraints(repo, table_name, columns) do
-    # SQLite stores check constraints in the CREATE TABLE statement
+    # Sqlite stores check constraints in the CREATE TABLE statement
     # We can extract them from sqlite_master
     query = """
     SELECT sql FROM sqlite_master
@@ -168,7 +168,7 @@ defmodule Drops.Relation.SQL.Database.SQLite do
 
   @impl true
   def introspect_table_foreign_keys(repo, table_name) do
-    # SQLite foreign key introspection using PRAGMA foreign_key_list
+    # Sqlite foreign key introspection using PRAGMA foreign_key_list
     query = "PRAGMA foreign_key_list(#{table_name})"
 
     case repo.query(query) do
@@ -196,7 +196,7 @@ defmodule Drops.Relation.SQL.Database.SQLite do
             referenced_columns = Enum.map(fk_rows, &Enum.at(&1, 4))
 
             ForeignKey.new(
-              # SQLite doesn't provide constraint names in PRAGMA
+              # Sqlite doesn't provide constraint names in PRAGMA
               nil,
               columns,
               referenced_table,
@@ -247,7 +247,7 @@ defmodule Drops.Relation.SQL.Database.SQLite do
 
   # Rename the existing method to avoid conflicts
   defp introspect_table_columns_legacy(repo, table_name) do
-    # Use SQLite PRAGMA table_info to get column information
+    # Use Sqlite PRAGMA table_info to get column information
     query = "PRAGMA table_info(#{table_name})"
 
     case repo.query(query) do

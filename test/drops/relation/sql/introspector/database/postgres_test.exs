@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.Database.PostgresTest do
+defmodule Drops.Relation.SQL.PostgresTest do
   @moduledoc """
   Tests for PostgreSQL database introspection functionality.
 
@@ -19,7 +19,7 @@ defmodule Drops.Relation.SQL.Database.PostgresTest do
   """
   use Drops.RelationCase, async: false
 
-  alias Drops.Relation.SQL.Database.Postgres
+  alias Drops.Relation.SQL.Postgres
   alias Drops.Relation.Schema.Indices
 
   describe "get_table_indices/2" do

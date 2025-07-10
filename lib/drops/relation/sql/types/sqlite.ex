@@ -15,7 +15,7 @@ defmodule Drops.Relation.SQL.Types.Sqlite do
 
       # Text type - handle binary_id primary keys and foreign keys specially
       "TEXT" ->
-        # In SQLite, binary_id fields are stored as TEXT
+        # In Sqlite, binary_id fields are stored as TEXT
         # For single-column primary keys, we can reasonably assume TEXT primary keys are binary_id
         # For composite primary keys, TEXT fields should remain :string
         # For foreign keys, check if they reference a binary_id table
@@ -42,11 +42,11 @@ defmodule Drops.Relation.SQL.Types.Sqlite do
       type when type in ["NUMERIC", "DECIMAL"] ->
         :decimal
 
-      # UUID type - use Ecto.UUID for SQLite UUID handling
+      # UUID type - use Ecto.UUID for Sqlite UUID handling
       "UUID" ->
         Ecto.UUID
 
-      # Boolean types (stored as INTEGER in SQLite)
+      # Boolean types (stored as INTEGER in Sqlite)
       type when type in ["BOOLEAN", "BOOL"] ->
         :boolean
 
@@ -103,7 +103,7 @@ defmodule Drops.Relation.SQL.Types.Sqlite do
   # Check if a foreign key references a table with binary_id primary key
   defp references_binary_id_table?(foreign_key) do
     # This is a heuristic: if the referenced table name contains "binary_id"
-    # we assume it's a binary_id table. This is not ideal but necessary for SQLite
+    # we assume it's a binary_id table. This is not ideal but necessary for Sqlite
     # where type information is lost during introspection.
     String.contains?(foreign_key.referenced_table, "binary_id")
   end

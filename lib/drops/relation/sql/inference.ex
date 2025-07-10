@@ -28,7 +28,7 @@ defmodule Drops.Relation.SQL.Inference do
 
   alias Drops.Relation.Schema
   alias Drops.Relation.Schema.Inference
-  alias Drops.Relation.SQL.Introspector
+  alias Drops.Relation.SQL.Introspection
 
   require Logger
 
@@ -64,7 +64,7 @@ defmodule Drops.Relation.SQL.Inference do
   """
   @spec infer_from_table(String.t(), module()) :: Schema.t()
   def infer_from_table(table_name, repo) do
-    case Introspector.introspect_table(repo, table_name) do
+    case Introspection.introspect_table(repo, table_name) do
       {:ok, table} ->
         Inference.to_schema(table)
 

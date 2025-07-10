@@ -26,7 +26,7 @@ defmodule Drops.Relation.Schema.MetadataExtractor do
     Field
   }
 
-  alias Drops.Relation.SQL.Introspector
+  alias Drops.Relation.SQL.Introspection
 
   @type field_metadata :: %{
           name: atom(),
@@ -169,7 +169,7 @@ defmodule Drops.Relation.Schema.MetadataExtractor do
   def extract_indices(schema_module, repo)
       when is_atom(schema_module) and is_atom(repo) do
     table_name = schema_module.__schema__(:source)
-    Introspector.get_table_indices(repo, table_name)
+    Introspection.get_table_indices(repo, table_name)
   end
 
   @doc """

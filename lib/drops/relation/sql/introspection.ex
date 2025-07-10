@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.Introspector do
+defmodule Drops.Relation.SQL.Introspection do
   @moduledoc """
   Database introspection utilities for extracting schema metadata.
 
@@ -9,7 +9,7 @@ defmodule Drops.Relation.SQL.Introspector do
   """
 
   alias Drops.Relation.Schema.Indices
-  alias Drops.Relation.SQL.Database
+  alias Drops.Relation.SQL
   alias Drops.Relation.SQL.Database.Table
 
   @doc """
@@ -29,7 +29,7 @@ defmodule Drops.Relation.SQL.Introspector do
 
   ## Examples
 
-      iex> Drops.Relation.SQL.Introspector.introspect_table(MyRepo, "users")
+      iex> Drops.Relation.SQL.Introspection.introspect_table(MyRepo, "users")
       {:ok, %Drops.Relation.SQL.Database.Table{name: "users", columns: [...], ...}}
   """
   @spec introspect_table(module(), String.t()) :: {:ok, Table.t()} | {:error, term()}
@@ -58,7 +58,7 @@ defmodule Drops.Relation.SQL.Introspector do
 
   ## Examples
 
-      iex> Drops.Relation.SQL.Introspector.get_table_indices(MyRepo, "users")
+      iex> Drops.Relation.SQL.Introspection.get_table_indices(MyRepo, "users")
       {:ok, %Drops.Relation.Schema.Indices{indices: [...]}}
   """
   @spec get_table_indices(module(), String.t()) :: {:ok, Indices.t()} | {:error, term()}
@@ -78,10 +78,10 @@ defmodule Drops.Relation.SQL.Introspector do
   defp get_database_adapter(repo) do
     case repo.__adapter__() do
       Ecto.Adapters.SQLite3 ->
-        {:ok, Database.SQLite}
+        {:ok, SQL.Sqlite}
 
       Ecto.Adapters.Postgres ->
-        {:ok, Database.Postgres}
+        {:ok, SQL.Postgres}
 
       adapter ->
         {:error, {:unsupported_adapter, adapter}}

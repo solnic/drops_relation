@@ -29,7 +29,7 @@ config :logger, :drops_relation,
   level: :debug,
   format: "$time $metadata[$level] $message\n"
 
-# Configure the SQLite repository for examples in dev environment
+# Configure the Sqlite repository for examples in dev environment
 config :drops_relation, Drops.Relation.Repos.Sqlite,
   adapter: Ecto.Adapters.SQLite3,
   database: "priv/drops_relation_sqlite_#{env}.db",

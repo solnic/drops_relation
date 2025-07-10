@@ -33,7 +33,7 @@ defmodule Drops.RelationCase do
         adapters([:sqlite, :postgres]) do
           @tag relations: [:users]
           test "works with both adapters", %{users: users} do
-            # This test will run for both SQLite and PostgreSQL
+            # This test will run for both Sqlite and PostgreSQL
           end
         end
       end
@@ -203,7 +203,7 @@ defmodule Drops.RelationCase do
       adapters([:sqlite, :postgres]) do
         @tag relations: [:users]
         test "works with both adapters", %{users: users} do
-          # This test will run for both SQLite and PostgreSQL
+          # This test will run for both Sqlite and PostgreSQL
         end
       end
   """

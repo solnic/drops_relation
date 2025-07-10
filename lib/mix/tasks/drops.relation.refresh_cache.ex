@@ -208,7 +208,7 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
   defp get_all_tables(repo) do
     try do
       # Query the database for all table names
-      # This is database-specific, but works for PostgreSQL, MySQL, and SQLite
+      # This is database-specific, but works for PostgreSQL, MySQL, and Sqlite
       case repo.__adapter__() do
         Ecto.Adapters.Postgres ->
           query = """

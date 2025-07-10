@@ -179,7 +179,7 @@ defmodule Drops.Relations.SchemaSpec do
 
       # Database introspection correctly detects composite primary keys
       # defined with @primary_key false and field-level primary_key: true
-      # SQLite PRAGMA table_info properly shows all primary key columns.
+      # Sqlite PRAGMA table_info properly shows all primary key columns.
       assert Drops.Relation.Schema.PrimaryKey.field_names(schema.primary_key) == [
                :part1,
                :part2

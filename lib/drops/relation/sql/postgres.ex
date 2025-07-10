@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.Database.Postgres do
+defmodule Drops.Relation.SQL.Postgres do
   @moduledoc """
   PostgreSQL implementation of the Database behavior for schema introspection.
 

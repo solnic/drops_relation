@@ -18,8 +18,8 @@ defmodule Drops.Relation.SQL.Database do
 
   ## Implementations
 
-  - `Drops.Relation.SQL.Database.SQLite` - SQLite adapter
-  - `Drops.Relation.SQL.Database.Postgres` - PostgreSQL adapter
+  - `Drops.Relation.SQL.Sqlite` - Sqlite adapter
+  - `Drops.Relation.SQL.Postgres` - PostgreSQL adapter
 
   ## Example
 

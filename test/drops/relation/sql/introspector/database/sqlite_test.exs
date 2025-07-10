@@ -1,11 +1,11 @@
-defmodule Drops.Relation.SQL.Database.SQLiteTest do
+defmodule Drops.Relation.SQL.SqliteTest do
   use Drops.RelationCase, async: false
 
-  alias Drops.Relation.SQL.Database.SQLite
+  alias Drops.Relation.SQL.Sqlite
   alias Drops.Relation.Schema.Indices
 
   describe "get_table_indices/2" do
-    test "extracts indices from SQLite database" do
+    test "extracts indices from Sqlite database" do
       # Create a test table with indices
       Ecto.Adapters.SQL.query!(
         Drops.Relation.Repos.Sqlite,
@@ -34,7 +34,7 @@ defmodule Drops.Relation.SQL.Database.SQLiteTest do
 
       # Test index extraction
       {:ok, indices} =
-        SQLite.get_table_indices(Drops.Relation.Repos.Sqlite, "test_sqlite_indices")
+        Sqlite.get_table_indices(Drops.Relation.Repos.Sqlite, "test_sqlite_indices")
 
       assert %Indices{} = indices
       assert length(indices.indices) >= 2
@@ -70,7 +70,7 @@ defmodule Drops.Relation.SQL.Database.SQLiteTest do
       )
 
       {:ok, indices} =
-        SQLite.get_table_indices(Drops.Relation.Repos.Sqlite, "test_sqlite_no_indices")
+        Sqlite.get_table_indices(Drops.Relation.Repos.Sqlite, "test_sqlite_no_indices")
 
       assert %Indices{} = indices
       # Should have at least the primary key index
@@ -78,15 +78,15 @@ defmodule Drops.Relation.SQL.Database.SQLiteTest do
     end
 
     test "returns empty indices for non-existent table" do
-      # SQLite PRAGMA doesn't error for non-existent tables, it just returns empty results
-      {:ok, indices} = SQLite.get_table_indices(Drops.Relation.Repos.Sqlite, "non_existent_table")
+      # Sqlite PRAGMA doesn't error for non-existent tables, it just returns empty results
+      {:ok, indices} = Sqlite.get_table_indices(Drops.Relation.Repos.Sqlite, "non_existent_table")
       assert %Indices{} = indices
       assert indices.indices == []
     end
   end
 
   describe "introspect_table_columns/2" do
-    test "extracts column information from SQLite table" do
+    test "extracts column information from Sqlite table" do
       # Create a test table
       Ecto.Adapters.SQL.query!(
         Drops.Relation.Repos.Sqlite,
@@ -104,7 +104,7 @@ defmodule Drops.Relation.SQL.Database.SQLiteTest do
       )
 
       {:ok, columns} =
-        SQLite.introspect_table_columns(Drops.Relation.Repos.Sqlite, "test_sqlite_columns")
+        Sqlite.introspect_table_columns(Drops.Relation.Repos.Sqlite, "test_sqlite_columns")
 
       assert is_list(columns)
       assert length(columns) == 6

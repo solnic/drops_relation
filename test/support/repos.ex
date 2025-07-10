@@ -86,7 +86,7 @@ defmodule Drops.Relation.Repos.Postgres do
 end
 
 if Mix.env() == :test do
-  # Keep the original TestRepo as a simple SQLite repo for Operations tests
+  # Keep the original TestRepo as a simple Sqlite repo for Operations tests
   defmodule Drops.Relation.TestRepo do
     use Ecto.Repo,
       otp_app: :drops_relation,
