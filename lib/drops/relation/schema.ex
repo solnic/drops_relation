@@ -118,38 +118,6 @@ defmodule Drops.Relation.Schema do
     new(name, nil, [], [], [])
   end
 
-  @doc """
-  Creates a Schema struct from an Ecto schema module.
-
-  This function uses the MetadataExtractor to gather all available metadata
-  from the Ecto schema and optionally from the database.
-
-  ## Parameters
-
-  - `schema_module` - The Ecto schema module
-  - `repo` - The Ecto repository (optional, required for index introspection)
-
-  ## Examples
-
-      iex> schema = Drops.Relation.Schema.from_ecto_schema(MyApp.User, MyApp.Repo)
-      iex> schema.source
-      "users"
-  """
-  @spec from_ecto_schema(module(), module() | nil) :: t()
-  def from_ecto_schema(schema_module, repo \\ nil) when is_atom(schema_module) do
-    alias Drops.Relation.Schema.MetadataExtractor
-
-    metadata = MetadataExtractor.extract_metadata(schema_module, repo)
-
-    %__MODULE__{
-      source: metadata.source,
-      primary_key: metadata.primary_key,
-      foreign_keys: metadata.foreign_keys,
-      fields: metadata.fields,
-      indices: metadata.indices
-    }
-  end
-
   defimpl Inspect do
     def inspect(%Drops.Relation.Schema{} = schema, _opts) do
       fields_summary =
