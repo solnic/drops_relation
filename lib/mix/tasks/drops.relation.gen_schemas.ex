@@ -205,7 +205,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
 
     try do
       # Generate the schema content using the new Generator module
-      schema_content = Generator.generate_schema_module(table, module_name, options)
+      schema_content = Generator.generate_schema_module_string(table, module_name, options)
 
       if options[:sync] and File.exists?(file_path) do
         # Sync/update existing file
@@ -216,9 +216,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
       end
     rescue
       error ->
-        Mix.shell().error(
-          "Failed to generate schema for table '#{table}': #{inspect(error)}"
-        )
+        Mix.shell().error("Failed to generate schema for table '#{table}': #{inspect(error)}")
 
         igniter
     end
