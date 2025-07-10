@@ -9,7 +9,7 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
 
   alias Drops.Relation.Schema
   alias Drops.Relation.Schema.{Field, PrimaryKey}
-  alias Drops.Relation.Schema.CodeCompiler
+  alias Drops.Relation.Compilers.CodeCompiler
 
   describe "CodeCompiler uses metadata instead of field names" do
     test "generates primary key attribute based on metadata, not field name" do

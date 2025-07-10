@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Schema.CodeCompiler do
+defmodule Drops.Relation.Compilers.CodeCompiler do
   @moduledoc """
   Compiler for converting Drops.Relation.Schema structures to Ecto schema AST.
 
@@ -13,12 +13,12 @@ defmodule Drops.Relation.Schema.CodeCompiler do
 
       # Convert a Relation Schema to field AST
       schema = %Drops.Relation.Schema{...}
-      field_asts = Drops.Relation.Schema.CodeCompiler.visit(schema, [])
+      field_asts = Drops.Relation.Compilers.CodeCompiler.visit(schema, [])
 
   ## Examples
 
       iex> schema = %Drops.Relation.Schema{fields: [...], primary_key: ...}
-      iex> asts = Drops.Relation.Schema.CodeCompiler.visit(schema, [])
+      iex> asts = Drops.Relation.Compilers.CodeCompiler.visit(schema, [])
       iex> is_list(asts)
       true
   """
@@ -40,7 +40,7 @@ defmodule Drops.Relation.Schema.CodeCompiler do
   ## Examples
 
       iex> schema = %Drops.Relation.Schema{fields: [...], ...}
-      iex> asts = Drops.Relation.Schema.CodeCompiler.visit(schema, [])
+      iex> asts = Drops.Relation.Compilers.CodeCompiler.visit(schema, [])
       iex> is_list(asts)
       true
   """

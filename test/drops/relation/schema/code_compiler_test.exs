@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Schema.CodeCompilerTest do
+defmodule Drops.Relation.Compilers.CodeCompilerTest do
   @moduledoc """
   Tests for the CodeCompiler that converts Drops.Relation.Schema to Ecto schema AST.
 
@@ -9,7 +9,8 @@ defmodule Drops.Relation.Schema.CodeCompilerTest do
   use ExUnit.Case, async: true
 
   alias Drops.Relation.Schema
-  alias Drops.Relation.Schema.{Field, PrimaryKey, CodeCompiler}
+  alias Drops.Relation.Schema.{Field, PrimaryKey}
+  alias Drops.Relation.Compilers.CodeCompiler
 
   # Helper function to compile a schema module from CodeCompiler output
   defp compile_test_schema(schema, module_name) do

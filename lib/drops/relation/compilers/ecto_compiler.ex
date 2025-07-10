@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Schema.EctoCompiler do
+defmodule Drops.Relation.Compilers.EctoCompiler do
   @moduledoc """
   Compiler for converting compiled Ecto schema modules to Relation Schema structures.
 
@@ -12,11 +12,11 @@ defmodule Drops.Relation.Schema.EctoCompiler do
   ## Usage
 
       # Convert a compiled Ecto schema module to a Relation Schema
-      schema = Drops.Relation.Schema.EctoCompiler.visit(MyApp.UserSchema, [])
+      schema = Drops.Relation.Compilers.EctoCompiler.visit(MyApp.UserSchema, [])
 
   ## Examples
 
-      iex> schema = Drops.Relation.Schema.EctoCompiler.visit(MyApp.UserSchema, [])
+      iex> schema = Drops.Relation.Compilers.EctoCompiler.visit(MyApp.UserSchema, [])
       iex> schema.source
       "users"
   """
@@ -38,7 +38,7 @@ defmodule Drops.Relation.Schema.EctoCompiler do
 
   ## Examples
 
-      iex> schema = Drops.Relation.Schema.EctoCompiler.visit(MyApp.UserSchema, [])
+      iex> schema = Drops.Relation.Compilers.EctoCompiler.visit(MyApp.UserSchema, [])
       iex> %Drops.Relation.Schema{} = schema
   """
   def visit(schema_module, _opts) when is_atom(schema_module) do

@@ -27,7 +27,7 @@ defmodule Drops.Relation do
   """
 
   alias Drops.Relation.Query
-  alias Drops.Relation.Schema.CodeCompiler
+  alias Drops.Relation.Compilers.CodeCompiler
 
   defmacro __using__(opts) do
     quote do
@@ -415,7 +415,7 @@ defmodule Drops.Relation do
     define_temporary_schema_module(inferred_module_name, inferred_ecto_schema_ast)
 
     # Convert inferred module to Drops.Relation.Schema struct
-    inferred_drops_schema = Drops.Relation.Schema.EctoCompiler.visit(inferred_module_name, [])
+    inferred_drops_schema = Drops.Relation.Compilers.EctoCompiler.visit(inferred_module_name, [])
 
     # Extract custom fields directly from AST to preserve original types
     custom_drops_schema = extract_custom_schema_from_ast(custom_schema_definitions, table_name)
