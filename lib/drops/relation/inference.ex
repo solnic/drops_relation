@@ -9,7 +9,7 @@ defmodule Drops.Relation.Inference do
   def infer_schema(name, repo) do
     case Drops.SQL.Database.table(name, repo) do
       {:ok, table} ->
-        Drops.Relation.Schema.Compiler.visit(table, [])
+        Drops.Relation.Compilers.SchemaCompiler.visit(table, [])
 
       {:error, reason} ->
         raise "Failed to introspect table #{name}: #{inspect(reason)}"

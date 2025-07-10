@@ -41,7 +41,7 @@ defmodule Drops.Relation.Schema.Generator do
     drops_relation_schema =
       case Drops.SQL.Database.table(table_name, repo) do
         {:ok, table} ->
-          Drops.Relation.Schema.Compiler.visit(table, [])
+          Drops.Relation.Compilers.SchemaCompiler.visit(table, [])
 
         {:error, reason} ->
           raise "Failed to introspect table #{table_name}: #{inspect(reason)}"

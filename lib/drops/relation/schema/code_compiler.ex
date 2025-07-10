@@ -3,7 +3,7 @@ defmodule Drops.Relation.Schema.CodeCompiler do
   Compiler for converting Drops.Relation.Schema structures to Ecto schema AST.
 
   This module follows the same visitor pattern as Drops.SQL.Compiler and
-  Drops.Relation.Schema.Compiler but works with Drops.Relation.Schema structs
+  Drops.Relation.Compilers.SchemaCompiler but works with Drops.Relation.Schema structs
   and converts them to quoted expressions for field definitions and attributes.
 
   The compiler replaces the SchemaFieldAST protocol approach with a more

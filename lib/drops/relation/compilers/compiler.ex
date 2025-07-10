@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Schema.Compiler do
+defmodule Drops.Relation.Compilers.SchemaCompiler do
   @moduledoc """
   Compiler for converting SQL Database structures to Relation Schema structures.
 
@@ -13,13 +13,13 @@ defmodule Drops.Relation.Schema.Compiler do
 
       # Convert a SQL Database Table to a Relation Schema
       {:ok, table} = Database.table("users", MyApp.Repo)
-      schema = Drops.Relation.Schema.Compiler.visit(table, opts)
+      schema = Drops.Relation.Compilers.SchemaCompiler.visit(table, opts)
 
   ## Examples
 
       iex> alias Drops.SQL.Database
       iex> table = %Database.Table{name: "users", columns: [...], ...}
-      iex> schema = Drops.Relation.Schema.Compiler.visit(table, [])
+      iex> schema = Drops.Relation.Compilers.SchemaCompiler.visit(table, [])
       iex> schema.source
       "users"
   """
@@ -44,7 +44,7 @@ defmodule Drops.Relation.Schema.Compiler do
   ## Examples
 
       iex> table = %Drops.SQL.Database.Table{name: "users", ...}
-      iex> schema = Drops.Relation.Schema.Compiler.visit(table, [])
+      iex> schema = Drops.Relation.Compilers.SchemaCompiler.visit(table, [])
       iex> %Drops.Relation.Schema{} = schema
   """
 

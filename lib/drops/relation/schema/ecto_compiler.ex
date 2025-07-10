@@ -2,7 +2,7 @@ defmodule Drops.Relation.Schema.EctoCompiler do
   @moduledoc """
   Compiler for converting compiled Ecto schema modules to Relation Schema structures.
 
-  This module follows the same pattern as Drops.Relation.Schema.Compiler but works with
+  This module follows the same pattern as Drops.Relation.Compilers.SchemaCompiler but works with
   compiled Ecto schema modules and uses Ecto's reflection functions to extract schema
   information.
 
