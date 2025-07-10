@@ -248,22 +248,18 @@ defmodule Drops.Relation.Cache do
 
   @spec warm_up(module(), [String.t()]) :: :ok | {:error, term()}
   def warm_up(repo, table_names) when is_atom(repo) and is_list(table_names) do
-    try do
-      schemas =
-        Enum.map(table_names, fn table_name ->
-          if schema = get_cached_schema(repo, table_name) do
-            schema
-          else
-            schema = Drops.SQL.Inference.infer_from_table(table_name, repo)
-            cache_schema(repo, table_name, schema)
-            schema
-          end
-        end)
+    schemas =
+      Enum.map(table_names, fn table_name ->
+        if schema = get_cached_schema(repo, table_name) do
+          schema
+        else
+          schema = Drops.SQL.Inference.infer_from_table(table_name, repo)
+          cache_schema(repo, table_name, schema)
+          schema
+        end
+      end)
 
-      {:ok, schemas}
-    rescue
-      error -> {:error, error}
-    end
+    {:ok, schemas}
   end
 
   @doc """
