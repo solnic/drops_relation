@@ -27,14 +27,19 @@ defmodule Drops.Relation.Schema.PrimaryKey do
 
   alias Drops.Relation.Schema.Field
 
+  @type meta :: %{
+          composite: boolean()
+        }
+
   @type t :: %__MODULE__{
-          fields: [Field.t()]
+          fields: [Field.t()],
+          meta: meta()
         }
 
   alias Drops.Relation.Schema.Serializable
   use Serializable
 
-  defstruct [:fields]
+  defstruct fields: [], meta: %{composite: false}
 
   @doc """
   Creates a new PrimaryKey struct.
@@ -49,10 +54,13 @@ defmodule Drops.Relation.Schema.PrimaryKey do
       iex> pk = Drops.Relation.Schema.PrimaryKey.new([field])
       iex> length(pk.fields)
       1
+      iex> pk.meta.composite
+      false
   """
   @spec new([Field.t()]) :: t()
   def new(fields) when is_list(fields) do
-    %__MODULE__{fields: fields}
+    composite = length(fields) > 1
+    %__MODULE__{fields: fields, meta: %{composite: composite}}
   end
 
   defimpl Inspect do
@@ -89,8 +97,8 @@ defmodule Drops.Relation.Schema.PrimaryKey do
       true
   """
   @spec composite?(t()) :: boolean()
-  def composite?(%__MODULE__{fields: fields}) do
-    length(fields) > 1
+  def composite?(%__MODULE__{meta: %{composite: composite}}) do
+    composite
   end
 
   @doc """
@@ -160,7 +168,7 @@ defimpl Enumerable, for: Drops.Relation.Schema.PrimaryKey do
   Enumerable protocol implementation for Drops.Relation.Schema.PrimaryKey.
 
   Returns a tuple structure for compiler processing:
-  `{:primary_key, [name, columns]}` where columns are field names
+  `{:primary_key, [name, columns, meta]}` where columns are field names and meta contains composite info
 
   This enables the compiler to process primary keys using pattern matching
   on tagged tuples following the visitor pattern.
@@ -173,14 +181,14 @@ defimpl Enumerable, for: Drops.Relation.Schema.PrimaryKey do
   def member?(%Drops.Relation.Schema.PrimaryKey{} = pk, element) do
     columns = Enum.map(pk.fields, & &1.name)
     name = generate_primary_key_name(columns)
-    tuple_representation = {:primary_key, [name, columns]}
+    tuple_representation = {:primary_key, [name, columns, pk.meta]}
     {:ok, element == tuple_representation}
   end
 
   def slice(%Drops.Relation.Schema.PrimaryKey{} = pk) do
     columns = Enum.map(pk.fields, & &1.name)
     name = generate_primary_key_name(columns)
-    tuple_representation = {:primary_key, [name, columns]}
+    tuple_representation = {:primary_key, [name, columns, pk.meta]}
 
     {:ok, 1,
      fn
@@ -192,7 +200,7 @@ defimpl Enumerable, for: Drops.Relation.Schema.PrimaryKey do
   def reduce(%Drops.Relation.Schema.PrimaryKey{} = pk, acc, fun) do
     columns = Enum.map(pk.fields, & &1.name)
     name = generate_primary_key_name(columns)
-    tuple_representation = {:primary_key, [name, columns]}
+    tuple_representation = {:primary_key, [name, columns, pk.meta]}
     Enumerable.reduce([tuple_representation], acc, fun)
   end
 

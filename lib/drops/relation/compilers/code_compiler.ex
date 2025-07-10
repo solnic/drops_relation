@@ -6,8 +6,8 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
   Drops.Relation.Compilers.SchemaCompiler but works with Drops.Relation.Schema structs
   and converts them to quoted expressions for field definitions and attributes.
 
-  The compiler replaces the SchemaFieldAST protocol approach with a more
-  consistent compiler pattern that can recursively process schema components.
+  Since primary key nodes now contain complete field information, field nodes
+  with primary_key: true are skipped and handled entirely by primary key processing.
 
   ## Usage
 
@@ -69,30 +69,34 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
     |> Enum.reject(&is_nil/1)
   end
 
-  # Visit primary key tuple structure
-  def visit({:primary_key, [_name, columns]}, opts) when is_list(columns) do
-    case length(columns) do
-      0 ->
-        # No primary key
+  # Visit primary key tuple structure - now handles both attributes and field definitions
+  def visit({:primary_key, [_name, columns, meta]}, opts) when is_list(columns) do
+    composite = Map.get(meta, :composite, false)
+    schema = opts[:schema]
+
+    case {length(columns), composite} do
+      {0, _} ->
         nil
 
-      1 ->
-        # Single primary key - generate @primary_key attribute if needed
+      {1, false} ->
         field_name = List.first(columns)
-        schema = opts[:schema]
         field = Enum.find(schema.fields, &(&1.name == field_name))
-        visit({:single_primary_key_attribute, field}, opts)
+        generate_single_primary_key_attribute(field)
 
-      _ ->
-        # Composite primary key - generate @primary_key false to disable default
-        # Individual fields will be marked with primary_key: true in field definitions
-        quote do
-          @primary_key false
-        end
+      {_, true} ->
+        pk_fields = Enum.filter(schema.fields, &(&1.name in columns))
+
+        attribute =
+          quote do
+            @primary_key false
+          end
+
+        field_definitions = Enum.map(pk_fields, &generate_composite_primary_key_field/1)
+        [attribute | field_definitions]
     end
   end
 
-  # Visit field tuple structure
+  # Visit field tuple structure - simplified to skip primary key fields
   def visit({:field, nodes}, opts) do
     [name, type_tuple, meta_tuple] = visit(nodes, opts)
 
@@ -100,99 +104,18 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
     type = visit(type_tuple, opts)
     meta = visit(meta_tuple, opts)
 
-    # Skip timestamp fields
-    if name in [:inserted_at, :updated_at] do
-      nil
-    else
-      # Generate field definition based on meta information
-      is_primary_key = Map.get(meta, :primary_key, false)
-      pk_field_count = Map.get(meta, :primary_key_count, 0)
+    cond do
+      # Skip timestamp fields
+      name in [:inserted_at, :updated_at] ->
+        nil
 
-      cond do
-        # Single primary key with special type handled by @primary_key attribute only
-        is_primary_key and pk_field_count == 1 and type in [Ecto.UUID, :binary_id] ->
-          nil
+      # Skip primary key fields - they're handled by primary key processing
+      Map.get(meta, :primary_key, false) ->
+        nil
 
-        # Single primary key with default type - no field definition needed, Ecto handles it
-        is_primary_key and pk_field_count == 1 and type in [:id, :integer] ->
-          nil
-
-        # Composite primary key fields need field definitions with primary_key: true
-        is_primary_key and pk_field_count > 1 ->
-          # Build field options directly
-          field_opts = []
-
-          # Add source option if different from field name
-          source = Map.get(meta, :source, name)
-          field_opts = if source != name, do: [{:source, source} | field_opts], else: field_opts
-
-          # Add default option if present (skip auto_increment)
-          field_opts =
-            case Map.get(meta, :default) do
-              nil -> field_opts
-              :auto_increment -> field_opts
-              value -> [{:default, value} | field_opts]
-            end
-
-          # Add primary_key: true for composite keys
-          field_opts = [{:primary_key, true} | field_opts]
-
-          # Extract type and options
-          {field_type, type_opts} =
-            case type do
-              {type_module, opts} when is_list(opts) -> {type_module, opts}
-              {type_module, opts} when is_map(opts) -> {type_module, Map.to_list(opts)}
-              _ -> {type, []}
-            end
-
-          all_opts = type_opts ++ field_opts
-
-          if all_opts == [] do
-            quote do
-              Ecto.Schema.field(unquote(name), unquote(field_type))
-            end
-          else
-            quote do
-              Ecto.Schema.field(unquote(name), unquote(field_type), unquote(all_opts))
-            end
-          end
-
-        true ->
-          # Generate regular field definition
-          field_opts = []
-
-          # Add source option if different from field name
-          source = Map.get(meta, :source, name)
-          field_opts = if source != name, do: [{:source, source} | field_opts], else: field_opts
-
-          # Add default option if present (skip auto_increment)
-          field_opts =
-            case Map.get(meta, :default) do
-              nil -> field_opts
-              :auto_increment -> field_opts
-              value -> [{:default, value} | field_opts]
-            end
-
-          # Extract type and options
-          {field_type, type_opts} =
-            case type do
-              {type_module, opts} when is_list(opts) -> {type_module, opts}
-              {type_module, opts} when is_map(opts) -> {type_module, Map.to_list(opts)}
-              _ -> {type, []}
-            end
-
-          all_opts = type_opts ++ field_opts
-
-          if all_opts == [] do
-            quote do
-              Ecto.Schema.field(unquote(name), unquote(field_type))
-            end
-          else
-            quote do
-              Ecto.Schema.field(unquote(name), unquote(field_type), unquote(all_opts))
-            end
-          end
-      end
+      true ->
+        # Generate regular field definition
+        generate_field_definition(name, type, meta)
     end
   end
 
@@ -208,41 +131,6 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
   # Visit meta tuple structure
   def visit({:meta, meta}, _opts) when is_map(meta) do
     meta
-  end
-
-  # Visit single primary key attribute generation
-  def visit({:single_primary_key_attribute, field}, _opts) when is_nil(field) do
-    nil
-  end
-
-  def visit({:single_primary_key_attribute, field}, _opts) do
-    is_foreign_key = Map.get(field.meta, :foreign_key, false)
-
-    cond do
-      is_foreign_key and field.type in [:binary_id, Ecto.UUID] ->
-        quote do
-          @foreign_key_type :binary_id
-        end
-
-      field.type == Ecto.UUID ->
-        quote do
-          @primary_key {unquote(field.name), Ecto.UUID, autogenerate: true}
-        end
-
-      field.type == :binary_id ->
-        quote do
-          @primary_key {unquote(field.name), :binary_id, autogenerate: true}
-        end
-
-      field.type not in [:id, :integer] ->
-        quote do
-          @primary_key {unquote(field.name), unquote(field.type), autogenerate: true}
-        end
-
-      true ->
-        # Default :id or :integer type - no attribute needed, Ecto will use default
-        nil
-    end
   end
 
   # Visit foreign key tuple structure
@@ -338,4 +226,107 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
 
   # Fallback for other values
   def visit(value, _opts), do: value
+
+  # Helper function to generate single primary key attributes
+  defp generate_single_primary_key_attribute(field) when is_nil(field) do
+    nil
+  end
+
+  defp generate_single_primary_key_attribute(field) do
+    is_foreign_key = Map.get(field.meta, :foreign_key, false)
+
+    cond do
+      is_foreign_key and field.type in [:binary_id, Ecto.UUID] ->
+        quote do
+          @foreign_key_type :binary_id
+        end
+
+      field.type == Ecto.UUID ->
+        quote do
+          @primary_key {unquote(field.name), Ecto.UUID, autogenerate: true}
+        end
+
+      field.type == :binary_id ->
+        quote do
+          @primary_key {unquote(field.name), :binary_id, autogenerate: true}
+        end
+
+      field.type not in [:id, :integer] ->
+        quote do
+          @primary_key {unquote(field.name), unquote(field.type), autogenerate: true}
+        end
+
+      true ->
+        # Default :id or :integer type - no attribute needed, Ecto will use default
+        nil
+    end
+  end
+
+  # Helper function to generate composite primary key field definitions
+  defp generate_composite_primary_key_field(field) do
+    field_opts = [{:primary_key, true}]
+
+    # Add source option if different from field name
+    source = Map.get(field.meta, :source, field.name)
+    field_opts = if source != field.name, do: [{:source, source} | field_opts], else: field_opts
+
+    # Add default option if present (skip auto_increment)
+    field_opts =
+      case Map.get(field.meta, :default) do
+        nil -> field_opts
+        :auto_increment -> field_opts
+        value -> [{:default, value} | field_opts]
+      end
+
+    # Extract type and options
+    {field_type, type_opts} =
+      case field.type do
+        {type_module, opts} when is_list(opts) -> {type_module, opts}
+        {type_module, opts} when is_map(opts) -> {type_module, Map.to_list(opts)}
+        _ -> {field.type, []}
+      end
+
+    all_opts = type_opts ++ field_opts
+
+    quote do
+      Ecto.Schema.field(unquote(field.name), unquote(field_type), unquote(all_opts))
+    end
+  end
+
+  # Helper function to generate regular field definitions
+  defp generate_field_definition(name, type, meta) do
+    field_opts = []
+
+    # Add source option if different from field name
+    source = Map.get(meta, :source, name)
+    field_opts = if source != name, do: [{:source, source} | field_opts], else: field_opts
+
+    # Add default option if present (skip auto_increment)
+    field_opts =
+      case Map.get(meta, :default) do
+        nil -> field_opts
+        :auto_increment -> field_opts
+        value -> [{:default, value} | field_opts]
+      end
+
+    # Extract type and options
+    {field_type, type_opts} =
+      case type do
+        {type_module, opts} when is_list(opts) -> {type_module, opts}
+        {type_module, opts} when is_map(opts) -> {type_module, Map.to_list(opts)}
+        _ -> {type, []}
+      end
+
+    all_opts = type_opts ++ field_opts
+
+    if all_opts == [] do
+      quote do
+        Ecto.Schema.field(unquote(name), unquote(field_type))
+      end
+    else
+      quote do
+        Ecto.Schema.field(unquote(name), unquote(field_type), unquote(all_opts))
+      end
+    end
+  end
 end

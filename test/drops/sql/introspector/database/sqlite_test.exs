@@ -38,7 +38,8 @@ defmodule Drops.SQL.SqliteTest do
 
       # Verify primary key
       assert %Database.PrimaryKey{} = table.primary_key
-      assert table.primary_key.columns == [:id]
+      assert [pk] = table.primary_key.columns
+      assert pk.name == :id
 
       # Verify indices are present (from migration)
       assert is_list(table.indices)
@@ -107,7 +108,8 @@ defmodule Drops.SQL.SqliteTest do
 
       # Verify primary key
       assert %Database.PrimaryKey{} = table.primary_key
-      assert table.primary_key.columns == [:id]
+      assert [pk] = table.primary_key.columns
+      assert pk.name == :id
 
       # Verify indices
       assert is_list(table.indices)
@@ -167,7 +169,8 @@ defmodule Drops.SQL.SqliteTest do
 
       # Verify primary key
       assert %Database.PrimaryKey{} = table.primary_key
-      assert table.primary_key.columns == [:id]
+      assert [pk] = table.primary_key.columns
+      assert pk.name == :id
 
       # Verify indices from migration
       assert is_list(table.indices)

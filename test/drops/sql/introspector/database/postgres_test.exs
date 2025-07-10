@@ -37,7 +37,8 @@ defmodule Drops.SQL.PostgresTest do
 
       # Verify primary key
       assert %Database.PrimaryKey{} = table.primary_key
-      assert table.primary_key.columns == [:id]
+      primary_key_column_names = Enum.map(table.primary_key.columns, & &1.name)
+      assert primary_key_column_names == [:id]
 
       # Verify indices are present (from migration)
       assert is_list(table.indices)
@@ -99,7 +100,8 @@ defmodule Drops.SQL.PostgresTest do
 
       # Verify primary key
       assert %Database.PrimaryKey{} = table.primary_key
-      assert table.primary_key.columns == [:id]
+      primary_key_column_names = Enum.map(table.primary_key.columns, & &1.name)
+      assert primary_key_column_names == [:id]
 
       # Verify indices are present (from migration)
       assert is_list(table.indices)
@@ -170,7 +172,8 @@ defmodule Drops.SQL.PostgresTest do
 
       # Verify primary key
       assert %Database.PrimaryKey{} = table.primary_key
-      assert table.primary_key.columns == [:id]
+      primary_key_column_names = Enum.map(table.primary_key.columns, & &1.name)
+      assert primary_key_column_names == [:id]
 
       # Verify indices
       assert is_list(table.indices)
@@ -229,7 +232,8 @@ defmodule Drops.SQL.PostgresTest do
 
       # Verify primary key
       assert %Database.PrimaryKey{} = table.primary_key
-      assert table.primary_key.columns == [:id]
+      primary_key_column_names = Enum.map(table.primary_key.columns, & &1.name)
+      assert primary_key_column_names == [:id]
 
       # Verify indices from migration
       assert is_list(table.indices)
@@ -264,7 +268,8 @@ defmodule Drops.SQL.PostgresTest do
       primary_key = table.primary_key
       id_column = Enum.find(table.columns, &(&1.name == :uuid))
 
-      assert primary_key.columns == [:uuid]
+      primary_key_column_names = Enum.map(primary_key.columns, & &1.name)
+      assert primary_key_column_names == [:uuid]
       assert id_column.type == "uuid"
     end
   end

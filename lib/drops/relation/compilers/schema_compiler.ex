@@ -86,7 +86,8 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
   end
 
   def visit(%Database.PrimaryKey{} = primary_key, opts) do
-    fields = Enum.filter(opts[:fields], fn field -> field.name in primary_key.columns end)
+    names = Enum.map(primary_key.columns, & &1.name)
+    fields = Enum.filter(opts[:fields], &(&1.name in names))
 
     PrimaryKey.new(fields)
   end

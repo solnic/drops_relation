@@ -4,8 +4,7 @@ defmodule Drops.SQL.Compiler do
   def visit({:table, components}, opts) do
     [name, columns, foreign_keys, indices] = visit(components, opts)
 
-    primary_key =
-      PrimaryKey.new(Enum.filter(columns, & &1.meta.primary_key) |> Enum.map(& &1.name))
+    primary_key = PrimaryKey.from_columns(columns)
 
     Table.new(name, opts[:adapter], primary_key, columns, foreign_keys, indices)
   end

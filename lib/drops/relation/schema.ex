@@ -111,7 +111,20 @@ defmodule Drops.Relation.Schema do
   def new(%{indices: indices} = attributes) when is_list(indices),
     do: new(Map.put(attributes, :indices, Indices.new(indices)))
 
-  def new(attributes) when is_map(attributes), do: struct(__MODULE__, attributes)
+  def new(attributes) when is_map(attributes) do
+    # Ensure fields only contains Field structs
+    cleaned_attributes =
+      case Map.get(attributes, :fields) do
+        fields when is_list(fields) ->
+          cleaned_fields = Enum.filter(fields, &is_struct(&1, Field))
+          Map.put(attributes, :fields, cleaned_fields)
+
+        _ ->
+          attributes
+      end
+
+    struct(__MODULE__, cleaned_attributes)
+  end
 
   @spec empty(String.t()) :: t()
   def empty(name) do
@@ -517,13 +530,6 @@ defimpl Enumerable, for: Drops.Relation.Schema do
     components = []
 
     # Calculate primary key count for field meta enhancement
-    pk_field_count =
-      if schema.primary_key && schema.primary_key.fields do
-        length(schema.primary_key.fields)
-      else
-        0
-      end
-
     # Add source
     components = components ++ [{:source, schema.source}]
 
@@ -541,9 +547,8 @@ defimpl Enumerable, for: Drops.Relation.Schema do
     # Add foreign keys
     components = components ++ safe_flat_map(schema.foreign_keys)
 
-    # Add fields with enhanced meta containing primary key count
-    enhanced_fields = enhance_fields_with_pk_count(schema.fields, pk_field_count)
-    components = components ++ safe_flat_map(enhanced_fields)
+    # Add fields
+    components = components ++ safe_flat_map(schema.fields)
 
     # Add indices
     components = components ++ safe_flat_map(get_indices(schema))
@@ -557,22 +562,27 @@ defimpl Enumerable, for: Drops.Relation.Schema do
 
   # Helper to safely flat_map, handling nil values
   defp safe_flat_map(nil), do: []
-  defp safe_flat_map(list) when is_list(list), do: Enum.flat_map(list, &safe_to_list_unwrapped/1)
+
+  # Handle case where a PrimaryKey struct is passed instead of a list
+  defp safe_flat_map(%Drops.Relation.Schema.PrimaryKey{}), do: []
+
+  defp safe_flat_map(list) when is_list(list) do
+    # Filter out any non-Field structs that might have ended up in the fields list
+    filtered_list = Enum.filter(list, &is_struct(&1, Drops.Relation.Schema.Field))
+    Enum.flat_map(filtered_list, &safe_to_list_unwrapped/1)
+  end
 
   # Helper to get the tuple representation without extra wrapping
   defp safe_to_list_unwrapped(nil), do: []
-  defp safe_to_list_unwrapped(enumerable), do: Enum.to_list(enumerable)
+
+  defp safe_to_list_unwrapped(enumerable) do
+    # Enum.to_list returns a list with one tuple, flat_map expects a list
+    # so we return the list as-is
+    Enum.to_list(enumerable)
+  end
 
   # Helper to get indices, handling nil values
   defp get_indices(%{indices: nil}), do: []
   defp get_indices(%{indices: %{indices: indices}}), do: indices
   defp get_indices(_), do: []
-
-  # Helper to enhance fields with primary key count in their meta
-  defp enhance_fields_with_pk_count(fields, pk_field_count) do
-    Enum.map(fields, fn field ->
-      enhanced_meta = Map.put(field.meta, :primary_key_count, pk_field_count)
-      %{field | meta: enhanced_meta}
-    end)
-  end
 end

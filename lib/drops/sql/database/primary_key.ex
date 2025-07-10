@@ -4,59 +4,85 @@ defmodule Drops.SQL.Database.PrimaryKey do
 
   This struct stores information about primary key columns, supporting both
   single-column and composite primary keys. The columns attribute contains
-  the names of columns that form the primary key.
+  the actual Column structs that form the primary key, and meta contains
+  additional information including whether it's a composite key.
 
   ## Examples
 
       # Single primary key
       %Drops.SQL.Database.PrimaryKey{
-        columns: ["id"]
+        columns: [%Drops.SQL.Database.Column{name: "id", ...}],
+        meta: %{composite: false}
       }
 
       # Composite primary key
       %Drops.SQL.Database.PrimaryKey{
-        columns: ["user_id", "role_id"]
+        columns: [
+          %Drops.SQL.Database.Column{name: "user_id", ...},
+          %Drops.SQL.Database.Column{name: "role_id", ...}
+        ],
+        meta: %{composite: true}
       }
 
       # No primary key
       %Drops.SQL.Database.PrimaryKey{
-        columns: []
+        columns: [],
+        meta: %{composite: false}
       }
   """
 
-  @type t :: %__MODULE__{
-          columns: [String.t()]
+  alias Drops.SQL.Database.Column
+
+  @type meta :: %{
+          composite: boolean()
         }
 
-  defstruct columns: []
+  @type t :: %__MODULE__{
+          columns: [Column.t()],
+          meta: meta()
+        }
+
+  defstruct columns: [], meta: %{composite: false}
 
   @doc """
   Creates a new PrimaryKey struct.
 
   ## Parameters
 
-  - `columns` - List of column names that form the primary key
+  - `columns` - List of Column structs that form the primary key
 
   ## Examples
 
-      iex> Drops.SQL.Database.PrimaryKey.new(["id"])
-      %Drops.SQL.Database.PrimaryKey{columns: ["id"]}
+      iex> alias Drops.SQL.Database.Column
+      iex> col = Column.new("id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> pk = Drops.SQL.Database.PrimaryKey.new([col])
+      iex> length(pk.columns)
+      1
+      iex> pk.meta.composite
+      false
 
-      iex> Drops.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
-      %Drops.SQL.Database.PrimaryKey{columns: ["user_id", "role_id"]}
+      iex> alias Drops.SQL.Database.Column
+      iex> col1 = Column.new("user_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col2 = Column.new("role_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> pk = Drops.SQL.Database.PrimaryKey.new([col1, col2])
+      iex> length(pk.columns)
+      2
+      iex> pk.meta.composite
+      true
 
       iex> Drops.SQL.Database.PrimaryKey.new([])
-      %Drops.SQL.Database.PrimaryKey{columns: []}
+      %Drops.SQL.Database.PrimaryKey{columns: [], meta: %{composite: false}}
   """
-  @spec new([String.t()]) :: t()
+  @spec new([Column.t()]) :: t()
   def new(columns) when is_list(columns) do
-    %__MODULE__{columns: columns}
+    composite = length(columns) > 1
+    %__MODULE__{columns: columns, meta: %{composite: composite}}
   end
 
   @doc """
   Creates a PrimaryKey struct from a list of Column structs.
 
-  Extracts the names of columns that are marked as primary key columns.
+  Extracts the columns that are marked as primary key columns.
 
   ## Parameters
 
@@ -66,19 +92,18 @@ defmodule Drops.SQL.Database.PrimaryKey do
 
       iex> alias Drops.SQL.Database.Column
       iex> columns = [
-      ...>   Column.new("id", "integer", false, nil, true),
-      ...>   Column.new("name", "varchar(255)", true, nil, false)
+      ...>   Column.new("id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []}),
+      ...>   Column.new("name", "varchar(255)", %{nullable: true, default: nil, primary_key: false, check_constraints: []})
       ...> ]
-      iex> Drops.SQL.Database.PrimaryKey.from_columns(columns)
-      %Drops.SQL.Database.PrimaryKey{columns: ["id"]}
+      iex> pk = Drops.SQL.Database.PrimaryKey.from_columns(columns)
+      iex> length(pk.columns)
+      1
+      iex> hd(pk.columns).name
+      "id"
   """
-  @spec from_columns([Drops.SQL.Database.Column.t()]) :: t()
+  @spec from_columns([Column.t()]) :: t()
   def from_columns(columns) when is_list(columns) do
-    primary_key_columns =
-      columns
-      |> Enum.filter(&Drops.SQL.Database.Column.primary_key?/1)
-      |> Enum.map(& &1.name)
-
+    primary_key_columns = Enum.filter(columns, &Column.primary_key?/1)
     new(primary_key_columns)
   end
 
@@ -87,11 +112,16 @@ defmodule Drops.SQL.Database.PrimaryKey do
 
   ## Examples
 
-      iex> pk = Drops.SQL.Database.PrimaryKey.new(["id"])
+      iex> alias Drops.SQL.Database.Column
+      iex> col = Column.new("id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> pk = Drops.SQL.Database.PrimaryKey.new([col])
       iex> Drops.SQL.Database.PrimaryKey.composite?(pk)
       false
 
-      iex> pk = Drops.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
+      iex> alias Drops.SQL.Database.Column
+      iex> col1 = Column.new("user_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col2 = Column.new("role_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> pk = Drops.SQL.Database.PrimaryKey.new([col1, col2])
       iex> Drops.SQL.Database.PrimaryKey.composite?(pk)
       true
 
@@ -100,8 +130,8 @@ defmodule Drops.SQL.Database.PrimaryKey do
       false
   """
   @spec composite?(t()) :: boolean()
-  def composite?(%__MODULE__{columns: columns}) do
-    length(columns) > 1
+  def composite?(%__MODULE__{meta: %{composite: composite}}) do
+    composite
   end
 
   @doc """
@@ -127,7 +157,10 @@ defmodule Drops.SQL.Database.PrimaryKey do
 
   ## Examples
 
-      iex> pk = Drops.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
+      iex> alias Drops.SQL.Database.Column
+      iex> col1 = Column.new("user_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col2 = Column.new("role_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> pk = Drops.SQL.Database.PrimaryKey.new([col1, col2])
       iex> Drops.SQL.Database.PrimaryKey.column_names(pk)
       ["user_id", "role_id"]
 
@@ -136,25 +169,33 @@ defmodule Drops.SQL.Database.PrimaryKey do
       []
   """
   @spec column_names(t()) :: [String.t()]
-  def column_names(%__MODULE__{columns: columns}), do: columns
+  def column_names(%__MODULE__{columns: columns}) do
+    Enum.map(columns, & &1.name)
+  end
 
   @doc """
   Checks if a specific column is part of the primary key.
 
   ## Examples
 
-      iex> pk = Drops.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
+      iex> alias Drops.SQL.Database.Column
+      iex> col1 = Column.new("user_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col2 = Column.new("role_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> pk = Drops.SQL.Database.PrimaryKey.new([col1, col2])
       iex> Drops.SQL.Database.PrimaryKey.includes_column?(pk, "user_id")
       true
 
-      iex> pk = Drops.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
+      iex> alias Drops.SQL.Database.Column
+      iex> col1 = Column.new("user_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col2 = Column.new("role_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> pk = Drops.SQL.Database.PrimaryKey.new([col1, col2])
       iex> Drops.SQL.Database.PrimaryKey.includes_column?(pk, "name")
       false
   """
   @spec includes_column?(t(), String.t()) :: boolean()
   def includes_column?(%__MODULE__{columns: columns}, column_name)
       when is_binary(column_name) do
-    column_name in columns
+    Enum.any?(columns, &(&1.name == column_name))
   end
 
   @doc """
@@ -162,7 +203,10 @@ defmodule Drops.SQL.Database.PrimaryKey do
 
   ## Examples
 
-      iex> pk = Drops.SQL.Database.PrimaryKey.new(["user_id", "role_id"])
+      iex> alias Drops.SQL.Database.Column
+      iex> col1 = Column.new("user_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col2 = Column.new("role_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> pk = Drops.SQL.Database.PrimaryKey.new([col1, col2])
       iex> Drops.SQL.Database.PrimaryKey.column_count(pk)
       2
 
