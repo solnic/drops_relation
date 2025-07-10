@@ -23,42 +23,16 @@ defmodule Drops.Relation.MetadataIntegrationTest do
       assert score_field.meta.nullable == false
       assert is_list(score_field.meta.check_constraints)
     end
-
-    test "custom fields merge with inferred metadata" do
-      # Get the inferred schema
-      drops_relation_schema =
-        Inference.infer_schema("metadata_test", Drops.Relation.Repos.Sqlite)
-
-      # Define custom fields that override some inferred fields
-      custom_fields = [
-        {:status, Ecto.Enum, [values: [:active, :inactive, :pending]]},
-        # Override default
-        {:priority, :integer, [default: 5]},
-        # New field not in database
-        {:new_field, :string, []}
-      ]
-
-      # Use the combine function to merge
-      ecto_schema_ast =
-        Inference.generate_schema_ast_from_candidates(
-          drops_relation_schema,
-          # no associations
-          [],
-          custom_fields,
-          "metadata_test"
-        )
-
-      # The AST should be generated without errors and contain the expected structure
-      assert {:schema, _fields, _opts} = ecto_schema_ast
-    end
   end
 
   describe "parameterized types with metadata" do
     @describetag adapter: :sqlite
 
     relation(:metadata_test) do
-      field(:status, Ecto.Enum, values: [:active, :inactive, :pending])
-      field(:priority, :integer, default: 10)
+      schema(:metadata_test) do
+        field(:status, Ecto.Enum, values: [:active, :inactive, :pending])
+        field(:priority, :integer, default: 10)
+      end
     end
 
     test "Ecto.Enum fields work with inferred metadata", %{metadata_test: relation} do

@@ -157,3 +157,29 @@ defmodule Drops.Relation.Schema.Indices do
     length(indices)
   end
 end
+
+# Enumerable protocol implementation for Indices
+defimpl Enumerable, for: Drops.Relation.Schema.Indices do
+  @moduledoc """
+  Enumerable protocol implementation for Drops.Relation.Schema.Indices.
+
+  Allows iterating over the collection of indices and provides standard enumerable operations.
+  This enables the compiler to process indices in an abstract way.
+  """
+
+  def count(%Drops.Relation.Schema.Indices{indices: indices}) do
+    {:ok, length(indices)}
+  end
+
+  def member?(%Drops.Relation.Schema.Indices{indices: indices}, index) do
+    {:ok, index in indices}
+  end
+
+  def slice(%Drops.Relation.Schema.Indices{indices: indices}) do
+    {:ok, length(indices), &Enum.slice(indices, &1, &2)}
+  end
+
+  def reduce(%Drops.Relation.Schema.Indices{indices: indices}, acc, fun) do
+    Enumerable.reduce(indices, acc, fun)
+  end
+end

@@ -6,7 +6,11 @@ defmodule Drops.SQL.Types.Sqlite do
 
     case normalized_type do
       "INTEGER" ->
-        :integer
+        cond do
+          column.meta.primary_key -> :id
+          is_boolean(column.meta.default) -> :boolean
+          true -> :integer
+        end
 
       "TEXT" ->
         :string

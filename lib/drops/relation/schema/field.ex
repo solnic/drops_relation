@@ -159,111 +159,39 @@ defmodule Drops.Relation.Schema.Field do
   end
 end
 
-defimpl Drops.Relation.Inference.SchemaFieldAST, for: Drops.Relation.Schema.Field do
+# Enumerable protocol implementation for Field
+defimpl Enumerable, for: Drops.Relation.Schema.Field do
   @moduledoc """
-  Default implementation of SchemaFieldAST protocol for Field structs.
+  Enumerable protocol implementation for Drops.Relation.Schema.Field.
 
-  This implementation provides the default behavior for generating Ecto schema
-  AST from Field structs, handling common cases like regular fields, primary keys,
-  foreign keys, and parameterized types.
+  Returns a tuple structure for compiler processing:
+  `{:field, [name, {:type, type}, {:meta, meta}]}`
+
+  This enables the compiler to process fields using pattern matching
+  on tagged tuples following the visitor pattern.
   """
 
-  @doc """
-  Generates field definition AST for a Field struct.
-
-  This function handles the conversion of a Field struct to the appropriate
-  `field(...)` AST, including handling of options like source mapping and
-  parameterized types.
-  """
-  def to_field_ast(%Drops.Relation.Schema.Field{} = field) do
-    to_field_ast_with_category(field, :regular)
+  def count(%Drops.Relation.Schema.Field{}) do
+    {:ok, 1}
   end
 
-  @doc """
-  Generates field definition AST for a Field struct with category information.
-
-  This function handles the conversion of a Field struct to the appropriate
-  `field(...)` AST, taking into account the field's category in the schema.
-  """
-  def to_field_ast_with_category(%Drops.Relation.Schema.Field{} = field, category) do
-    # Handle parameterized types by extracting options
-    {type, type_opts} = extract_type_and_options(field.type)
-
-    base_opts = if field.source != field.name, do: [source: field.source], else: []
-
-    # Add primary_key: true for composite primary key fields
-    pk_opts = if category == :composite_primary_key, do: [primary_key: true], else: []
-
-    all_opts = Keyword.merge(type_opts, base_opts) |> Keyword.merge(pk_opts)
-
-    if all_opts == [] do
-      quote do
-        Ecto.Schema.field(unquote(field.name), unquote(type))
-      end
-    else
-      quote do
-        Ecto.Schema.field(unquote(field.name), unquote(type), unquote(all_opts))
-      end
-    end
+  def member?(%Drops.Relation.Schema.Field{} = field, element) do
+    tuple_representation = {:field, [field.name, {:type, field.type}, {:meta, field.meta}]}
+    {:ok, element == tuple_representation}
   end
 
-  @doc """
-  Generates attribute AST for a Field struct.
+  def slice(%Drops.Relation.Schema.Field{} = field) do
+    tuple_representation = {:field, [field.name, {:type, field.type}, {:meta, field.meta}]}
 
-  This function determines if a field needs a special attribute (like @primary_key)
-  and generates the appropriate AST. Returns nil for fields that don't need attributes.
-
-  This function is called by the Inference module for fields that have placement: :attribute,
-  which means they need to generate an attribute rather than a field definition.
-  """
-  def to_attribute_ast(%Drops.Relation.Schema.Field{} = field) do
-    # Get boolean values from metadata
-    is_foreign_key = Map.get(field.meta, :foreign_key, false)
-    is_primary_key = Map.get(field.meta, :primary_key, false)
-
-    cond do
-      # Check if this is explicitly marked as a foreign key field in metadata
-      is_foreign_key and field.type in [:binary_id, Ecto.UUID] ->
-        quote do
-          @foreign_key_type :binary_id
-        end
-
-      # Check if this is explicitly marked as a primary key field in metadata
-      is_primary_key and field.type == Ecto.UUID ->
-        quote do
-          @primary_key {unquote(field.name), Ecto.UUID, autogenerate: true}
-        end
-
-      # Check if this is explicitly marked as a primary key field in metadata
-      is_primary_key and field.type == :binary_id ->
-        quote do
-          @primary_key {unquote(field.name), :binary_id, autogenerate: true}
-        end
-
-      # Check if this is explicitly marked as a primary key field with custom type
-      is_primary_key and field.type not in [:id, :integer] ->
-        quote do
-          @primary_key {unquote(field.name), unquote(field.type), autogenerate: true}
-        end
-
-      true ->
-        # Default case - no attribute needed
-        # We rely purely on metadata and do not infer based on field names
-        nil
-    end
+    {:ok, 1,
+     fn
+       0, 1, _step -> [tuple_representation]
+       _, _, _ -> []
+     end}
   end
 
-  # Helper function to extract type and options from type for field generation
-  defp extract_type_and_options(type) do
-    case type do
-      {type, opts} when is_list(opts) ->
-        {type, opts}
-
-      {type, opts} when is_map(opts) ->
-        {type, Map.to_list(opts)}
-
-      type ->
-        {type, []}
-    end
+  def reduce(%Drops.Relation.Schema.Field{} = field, acc, fun) do
+    tuple_representation = {:field, [field.name, {:type, field.type}, {:meta, field.meta}]}
+    Enumerable.reduce([tuple_representation], acc, fun)
   end
 end

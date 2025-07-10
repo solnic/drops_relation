@@ -118,6 +118,107 @@ defmodule Drops.Relation.Schema do
     new(name, nil, [], [], [])
   end
 
+  @doc """
+  Merges two schemas, with the right schema taking precedence for conflicts.
+
+  ## Parameters
+
+  - `left` - The base schema
+  - `right` - The schema to merge into the base, takes precedence
+
+  ## Returns
+
+  A merged Drops.Relation.Schema.t() struct.
+
+  ## Examples
+
+      iex> left = Drops.Relation.Schema.new("users", pk, [], [field1], [])
+      iex> right = Drops.Relation.Schema.new("users", pk, [], [field2], [])
+      iex> merged = Drops.Relation.Schema.merge(left, right)
+      iex> length(merged.fields)
+      2
+  """
+  @spec merge(t(), t()) :: t()
+  def merge(%__MODULE__{source: source} = left, %__MODULE__{source: source} = right) do
+    # Merge primary keys (right takes precedence if not nil)
+    merged_primary_key =
+      if right.primary_key != nil do
+        PrimaryKey.merge(left.primary_key, right.primary_key)
+      else
+        left.primary_key
+      end
+
+    # Merge fields by name, with right taking precedence
+    merged_fields = merge_fields(left.fields, right.fields)
+
+    # Merge foreign keys (combine both lists, right takes precedence for same field names)
+    merged_foreign_keys = merge_foreign_keys(left.foreign_keys, right.foreign_keys)
+
+    # Merge indices (combine both lists)
+    merged_indices = merge_indices(left.indices, right.indices)
+
+    %__MODULE__{
+      source: source,
+      primary_key: merged_primary_key,
+      foreign_keys: merged_foreign_keys,
+      fields: merged_fields,
+      indices: merged_indices
+    }
+  end
+
+  def merge(%__MODULE__{source: left_source}, %__MODULE__{source: right_source}) do
+    raise ArgumentError,
+          "Cannot merge schemas with different sources: #{left_source} != #{right_source}"
+  end
+
+  # Merge fields by name, with right taking precedence
+  defp merge_fields(left_fields, right_fields) do
+    left_map = Map.new(left_fields, &{&1.name, &1})
+    right_map = Map.new(right_fields, &{&1.name, &1})
+
+    # Merge fields with same names, keep unique fields from both sides
+    all_field_names =
+      MapSet.union(MapSet.new(Map.keys(left_map)), MapSet.new(Map.keys(right_map)))
+
+    Enum.map(all_field_names, fn field_name ->
+      case {Map.get(left_map, field_name), Map.get(right_map, field_name)} do
+        {left_field, nil} -> left_field
+        {nil, right_field} -> right_field
+        {left_field, right_field} -> Field.merge(left_field, right_field)
+      end
+    end)
+  end
+
+  # Merge foreign keys by field name, with right taking precedence
+  defp merge_foreign_keys(left_fks, right_fks) do
+    left_map = Map.new(left_fks, &{&1.field_name, &1})
+    right_map = Map.new(right_fks, &{&1.field_name, &1})
+
+    # Right takes precedence, then add any left FKs not in right
+    Map.merge(left_map, right_map) |> Map.values()
+  end
+
+  # Merge indices (combine both lists for now)
+  defp merge_indices(left_indices, right_indices) do
+    alias Drops.Relation.Schema.Indices
+
+    # For now, just combine the indices from both schemas
+    # In a more sophisticated implementation, we might merge by name
+    case {left_indices, right_indices} do
+      {%Indices{indices: left_list}, %Indices{indices: right_list}} ->
+        Indices.new(left_list ++ right_list)
+
+      {left_list, right_list} when is_list(left_list) and is_list(right_list) ->
+        Indices.new(left_list ++ right_list)
+
+      {%Indices{} = left_indices, _} ->
+        left_indices
+
+      {left_indices, _} ->
+        left_indices
+    end
+  end
+
   defimpl Inspect do
     def inspect(%Drops.Relation.Schema{} = schema, _opts) do
       fields_summary =
@@ -377,39 +478,101 @@ defimpl Enumerable, for: Drops.Relation.Schema do
   @moduledoc """
   Enumerable protocol implementation for Drops.Relation.Schema.
 
-  Allows iterating over schema fields as {name, field} tuples and provides
-  standard enumerable operations.
+  Returns a tuple structure for compiler processing:
+  `{:schema, list_of_its_components_dumped_via_to_list}`
+
+  This enables the compiler to process schemas using pattern matching
+  on tagged tuples following the visitor pattern.
   """
 
-  def count(%Drops.Relation.Schema{fields: fields}) do
-    {:ok, length(fields)}
+  def count(%Drops.Relation.Schema{}) do
+    {:ok, 1}
   end
 
-  def member?(%Drops.Relation.Schema{} = schema, {key, field}) when is_atom(key) do
-    case Drops.Relation.Schema.find_field(schema, key) do
-      ^field -> {:ok, true}
-      _ -> {:ok, false}
-    end
+  def member?(%Drops.Relation.Schema{} = schema, element) do
+    components = build_schema_components(schema)
+    tuple_representation = {:schema, components}
+    {:ok, element == tuple_representation}
   end
 
-  def member?(%Drops.Relation.Schema{} = schema, key) when is_atom(key) do
-    case Drops.Relation.Schema.find_field(schema, key) do
-      nil -> {:ok, false}
-      _ -> {:ok, true}
-    end
+  def slice(%Drops.Relation.Schema{} = schema) do
+    components = build_schema_components(schema)
+    tuple_representation = {:schema, components}
+
+    {:ok, 1,
+     fn
+       0, 1, _step -> [tuple_representation]
+       _, _, _ -> []
+     end}
   end
 
-  def member?(%Drops.Relation.Schema{}, _element) do
-    {:ok, false}
+  def reduce(%Drops.Relation.Schema{} = schema, acc, fun) do
+    components = build_schema_components(schema)
+    tuple_representation = {:schema, components}
+    Enumerable.reduce([tuple_representation], acc, fun)
   end
 
-  def slice(%Drops.Relation.Schema{fields: fields}) do
-    field_tuples = Enum.map(fields, fn field -> {field.name, field} end)
-    {:ok, length(field_tuples), &Enum.slice(field_tuples, &1, &2)}
+  # Helper function to build schema components list
+  defp build_schema_components(schema) do
+    components = []
+
+    # Calculate primary key count for field meta enhancement
+    pk_field_count =
+      if schema.primary_key && schema.primary_key.fields do
+        length(schema.primary_key.fields)
+      else
+        0
+      end
+
+    # Add source
+    components = components ++ [{:source, schema.source}]
+
+    # Add primary key if present
+    components =
+      if schema.primary_key do
+        components ++ [safe_to_list(schema.primary_key)]
+      else
+        components
+      end
+
+    # Add foreign key attributes (for @foreign_key_type generation)
+    components = components ++ [{:foreign_key_attributes, schema.fields}]
+
+    # Add foreign keys
+    components = components ++ safe_flat_map(schema.foreign_keys)
+
+    # Add fields with enhanced meta containing primary key count
+    enhanced_fields = enhance_fields_with_pk_count(schema.fields, pk_field_count)
+    components = components ++ safe_flat_map(enhanced_fields)
+
+    # Add indices
+    components = components ++ safe_flat_map(get_indices(schema))
+
+    components
   end
 
-  def reduce(%Drops.Relation.Schema{fields: fields}, acc, fun) do
-    field_tuples = Enum.map(fields, fn field -> {field.name, field} end)
-    Enumerable.reduce(field_tuples, acc, fun)
+  # Helper to safely convert to list, handling nil values
+  defp safe_to_list(nil), do: []
+  defp safe_to_list(enumerable), do: Enum.to_list(enumerable) |> List.first()
+
+  # Helper to safely flat_map, handling nil values
+  defp safe_flat_map(nil), do: []
+  defp safe_flat_map(list) when is_list(list), do: Enum.flat_map(list, &safe_to_list_unwrapped/1)
+
+  # Helper to get the tuple representation without extra wrapping
+  defp safe_to_list_unwrapped(nil), do: []
+  defp safe_to_list_unwrapped(enumerable), do: Enum.to_list(enumerable)
+
+  # Helper to get indices, handling nil values
+  defp get_indices(%{indices: nil}), do: []
+  defp get_indices(%{indices: %{indices: indices}}), do: indices
+  defp get_indices(_), do: []
+
+  # Helper to enhance fields with primary key count in their meta
+  defp enhance_fields_with_pk_count(fields, pk_field_count) do
+    Enum.map(fields, fn field ->
+      enhanced_meta = Map.put(field.meta, :primary_key_count, pk_field_count)
+      %{field | meta: enhanced_meta}
+    end)
   end
 end

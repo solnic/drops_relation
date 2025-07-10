@@ -7,64 +7,88 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
   """
   use ExUnit.Case, async: true
 
-  alias Drops.Relation.Schema.Field
-  alias Drops.Relation.Inference.SchemaFieldAST
+  alias Drops.Relation.Schema
+  alias Drops.Relation.Schema.{Field, PrimaryKey}
+  alias Drops.Relation.Schema.CodeCompiler
 
-  describe "SchemaFieldAST protocol uses metadata instead of field names" do
+  describe "CodeCompiler uses metadata instead of field names" do
     test "generates primary key attribute based on metadata, not field name" do
       # Create a field with a non-standard primary key name but proper metadata
       meta = %{primary_key: true}
-      field = Field.new(:uuid_identifier, :binary, :binary_id, :uuid_identifier, meta)
+      field = Field.new(:uuid_identifier, :binary_id, meta)
+      pk = PrimaryKey.new([field])
 
-      result = SchemaFieldAST.to_attribute_ast(field)
+      schema = Schema.new("test_table", pk, [], [field], [])
+
+      result = CodeCompiler.visit(schema, [])
 
       # Should generate @primary_key attribute based on metadata, not field name
-      assert {:@, _, [{:primary_key, _, [tuple_ast]}]} = result
+      assert [attr_ast] = result
+      assert {:@, _, [{:primary_key, _, [tuple_ast]}]} = attr_ast
       assert {:{}, _, [:uuid_identifier, :binary_id, [autogenerate: true]]} = tuple_ast
     end
 
     test "generates foreign key attribute based on metadata, not field name" do
       # Create a field with a non-standard foreign key name but proper metadata
       meta = %{foreign_key: true}
-      field = Field.new(:owner_reference, :binary, :binary_id, :owner_reference, meta)
+      field = Field.new(:owner_reference, :binary_id, meta)
 
-      result = SchemaFieldAST.to_attribute_ast(field)
+      schema = Schema.new("test_table", nil, [], [field], [])
+
+      result = CodeCompiler.visit(schema, [])
 
       # Should generate @foreign_key_type attribute based on metadata, not field name
-      assert {:@, _, [{:foreign_key_type, _, [:binary_id]}]} = result
+      assert [attr_ast, _field_ast] = result
+      assert {:@, _, [{:foreign_key_type, _, [:binary_id]}]} = attr_ast
     end
 
     test "does not generate primary key attribute for field named 'id' without metadata" do
       # Create a field named 'id' but without primary_key metadata
       meta = %{primary_key: false}
-      field = Field.new(:id, :binary, :binary_id, :id, meta)
+      field = Field.new(:id, :binary_id, meta)
 
-      result = SchemaFieldAST.to_attribute_ast(field)
+      schema = Schema.new("test_table", nil, [], [field], [])
+
+      result = CodeCompiler.visit(schema, [])
 
       # Should NOT generate @primary_key attribute since metadata says it's not a primary key
-      assert result == nil
+      # Should only generate field definition
+      assert [field_ast] = result
+
+      assert {{:., _, [{:__aliases__, _, [:Ecto, :Schema]}, :field]}, _, [:id, :binary_id]} =
+               field_ast
     end
 
     test "does not generate foreign key attribute for field ending in '_id' without metadata" do
       # Create a field with typical foreign key naming but without foreign_key metadata
       meta = %{foreign_key: false}
-      field = Field.new(:user_id, :binary, :binary_id, :user_id, meta)
+      field = Field.new(:user_id, :binary_id, meta)
 
-      result = SchemaFieldAST.to_attribute_ast(field)
+      schema = Schema.new("test_table", nil, [], [field], [])
+
+      result = CodeCompiler.visit(schema, [])
 
       # Should NOT generate @foreign_key_type attribute since metadata says it's not a foreign key
-      assert result == nil
+      # Should only generate field definition
+      assert [field_ast] = result
+
+      assert {{:., _, [{:__aliases__, _, [:Ecto, :Schema]}, :field]}, _, [:user_id, :binary_id]} =
+               field_ast
     end
 
     test "handles UUID primary key with non-standard name" do
       # Create a UUID primary key field with non-standard name
       meta = %{primary_key: true}
-      field = Field.new(:entity_uuid, :binary, Ecto.UUID, :entity_uuid, meta)
+      field = Field.new(:entity_uuid, Ecto.UUID, meta)
+      pk = PrimaryKey.new([field])
 
-      result = SchemaFieldAST.to_attribute_ast(field)
+      schema = Schema.new("test_table", pk, [], [field], [])
+
+      result = CodeCompiler.visit(schema, [])
 
       # Should generate @primary_key attribute for UUID type
-      assert {:@, _, [{:primary_key, _, [tuple_ast]}]} = result
+      assert [attr_ast] = result
+      assert {:@, _, [{:primary_key, _, [tuple_ast]}]} = attr_ast
 
       assert {:{}, _, [:entity_uuid, {:__aliases__, _, [:Ecto, :UUID]}, [autogenerate: true]]} =
                tuple_ast
@@ -73,23 +97,32 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
     test "handles UUID foreign key with non-standard name" do
       # Create a UUID foreign key field with non-standard name
       meta = %{foreign_key: true}
-      field = Field.new(:parent_entity, :binary, Ecto.UUID, :parent_entity, meta)
+      field = Field.new(:parent_entity, Ecto.UUID, meta)
 
-      result = SchemaFieldAST.to_attribute_ast(field)
+      schema = Schema.new("test_table", nil, [], [field], [])
+
+      result = CodeCompiler.visit(schema, [])
 
       # Should generate @foreign_key_type attribute for UUID foreign key
-      assert {:@, _, [{:foreign_key_type, _, [:binary_id]}]} = result
+      assert [attr_ast, _field_ast] = result
+      assert {:@, _, [{:foreign_key_type, _, [:binary_id]}]} = attr_ast
     end
 
     test "regular field with standard naming does not generate attributes" do
       # Create a regular field that happens to end in '_id' but is not a foreign key
       meta = %{primary_key: false, foreign_key: false}
-      field = Field.new(:external_id, :string, :string, :external_id, meta)
+      field = Field.new(:external_id, :string, meta)
 
-      result = SchemaFieldAST.to_attribute_ast(field)
+      schema = Schema.new("test_table", nil, [], [field], [])
+
+      result = CodeCompiler.visit(schema, [])
 
       # Should not generate any attribute since it's just a regular field
-      assert result == nil
+      # Should only generate field definition
+      assert [field_ast] = result
+
+      assert {{:., _, [{:__aliases__, _, [:Ecto, :Schema]}, :field]}, _, [:external_id, :string]} =
+               field_ast
     end
   end
 

@@ -189,8 +189,10 @@ defmodule Drops.Relations.SchemaSpec do
 
   describe "customizing fields" do
     relation(:users) do
-      field(:tags, Ecto.Enum, values: [:red, :green, :blue])
-      field(:status, :string, default: "active")
+      schema(:users) do
+        field(:tags, Ecto.Enum, values: [:red, :green, :blue])
+        field(:status, :string, default: "active")
+      end
     end
 
     test "custom fields are respected", %{users: users} do
@@ -224,8 +226,9 @@ defmodule Drops.Relations.SchemaSpec do
 
   describe "overriding inferred fields" do
     relation(:users) do
-      # Override the 'name' field that exists in the database
-      field(:name, :binary)
+      schema(:users) do
+        field(:name, :binary)
+      end
     end
 
     test "custom field definitions override inferred ones", %{users: users} do

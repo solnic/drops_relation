@@ -126,4 +126,86 @@ defmodule Drops.Relation.Schema.PrimaryKey do
   def field_names(%__MODULE__{fields: fields}) do
     Enum.map(fields, & &1.name)
   end
+
+  @doc """
+  Merges two primary keys, with the right primary key taking precedence.
+
+  ## Parameters
+
+  - `left` - The base primary key
+  - `right` - The primary key to merge into the base, takes precedence
+
+  ## Returns
+
+  A merged Drops.Relation.Schema.PrimaryKey.t() struct.
+
+  ## Examples
+
+      iex> left = Drops.Relation.Schema.PrimaryKey.new([field1])
+      iex> right = Drops.Relation.Schema.PrimaryKey.new([field2])
+      iex> merged = Drops.Relation.Schema.PrimaryKey.merge(left, right)
+      iex> length(merged.fields)
+      1
+  """
+  @spec merge(t(), t()) :: t()
+  def merge(%__MODULE__{} = _left, %__MODULE__{} = right) do
+    # Right takes precedence for primary key
+    right
+  end
+end
+
+# Enumerable protocol implementation for PrimaryKey
+defimpl Enumerable, for: Drops.Relation.Schema.PrimaryKey do
+  @moduledoc """
+  Enumerable protocol implementation for Drops.Relation.Schema.PrimaryKey.
+
+  Returns a tuple structure for compiler processing:
+  `{:primary_key, [name, columns]}` where columns are field names
+
+  This enables the compiler to process primary keys using pattern matching
+  on tagged tuples following the visitor pattern.
+  """
+
+  def count(%Drops.Relation.Schema.PrimaryKey{}) do
+    {:ok, 1}
+  end
+
+  def member?(%Drops.Relation.Schema.PrimaryKey{} = pk, element) do
+    columns = Enum.map(pk.fields, & &1.name)
+    name = generate_primary_key_name(columns)
+    tuple_representation = {:primary_key, [name, columns]}
+    {:ok, element == tuple_representation}
+  end
+
+  def slice(%Drops.Relation.Schema.PrimaryKey{} = pk) do
+    columns = Enum.map(pk.fields, & &1.name)
+    name = generate_primary_key_name(columns)
+    tuple_representation = {:primary_key, [name, columns]}
+
+    {:ok, 1,
+     fn
+       0, 1, _step -> [tuple_representation]
+       _, _, _ -> []
+     end}
+  end
+
+  def reduce(%Drops.Relation.Schema.PrimaryKey{} = pk, acc, fun) do
+    columns = Enum.map(pk.fields, & &1.name)
+    name = generate_primary_key_name(columns)
+    tuple_representation = {:primary_key, [name, columns]}
+    Enumerable.reduce([tuple_representation], acc, fun)
+  end
+
+  # Helper function to generate primary key name
+  defp generate_primary_key_name([]), do: nil
+  defp generate_primary_key_name([single_column]), do: single_column
+
+  defp generate_primary_key_name(columns) when is_list(columns) do
+    # For composite primary keys, create a descriptive name
+    columns
+    |> Enum.map(&Atom.to_string/1)
+    |> Enum.join("_")
+    |> then(&"#{&1}_pk")
+    |> String.to_atom()
+  end
 end

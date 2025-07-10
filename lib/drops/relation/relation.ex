@@ -26,14 +26,14 @@ defmodule Drops.Relation do
   but can be overridden by passing a `:repo` option to any function call.
   """
 
-  alias Drops.Relation.Inference
   alias Drops.Relation.Query
+  alias Drops.Relation.Schema.CodeCompiler
 
   defmacro __using__(opts) do
     quote do
       import Drops.Relation
 
-      Module.register_attribute(__MODULE__, :fields, accumulate: true)
+      Module.register_attribute(__MODULE__, :custom_schema_definitions, accumulate: true)
 
       @before_compile Drops.Relation
       @after_compile Drops.Relation
@@ -50,9 +50,9 @@ defmodule Drops.Relation do
     end
   end
 
-  defmacro field(name, type, opts \\ []) do
+  defmacro schema(table_name, do: block) do
     quote do
-      @fields unquote(Macro.escape({name, type, opts}))
+      @custom_schema_definitions unquote(Macro.escape({table_name, block}))
     end
   end
 
@@ -87,18 +87,28 @@ defmodule Drops.Relation do
     repo = opts[:repo]
     name = opts[:name]
 
-    custom_fields = Module.get_attribute(relation, :fields, [])
     association_definitions = Module.get_attribute(relation, :associations, [])
+    custom_schema_definitions = Module.get_attribute(relation, :custom_schema_definitions, [])
 
-    # Combine the base schema with current associations and custom fields
-    # Use the improved approach that works directly with the Drops.Relation.Schema
+    # Generate Ecto schema AST
     ecto_schema_ast =
-      Inference.generate_schema_ast_from_candidates(
-        drops_relation_schema,
-        association_definitions,
-        custom_fields,
-        name
-      )
+      if custom_schema_definitions != [] do
+        # Use the temporary Ecto schema modules approach to merge schemas
+        final_schema =
+          generate_merged_schema_from_temporary_modules(
+            drops_relation_schema,
+            custom_schema_definitions,
+            association_definitions,
+            name,
+            relation
+          )
+
+        # Generate schema AST from the merged Drops.Relation.Schema
+        generate_inferred_schema_ast(final_schema, association_definitions, name)
+      else
+        # Generate from inferred schema
+        generate_inferred_schema_ast(drops_relation_schema, association_definitions, name)
+      end
 
     # Generate the nested Schema module
     schema_module_ast = generate_schema_module(relation, ecto_schema_ast)
@@ -322,14 +332,15 @@ defmodule Drops.Relation do
     end
   end
 
-  # Generates the nested Struct module AST
+  # Generates the Struct module as a separate, standalone module
   defp generate_schema_module(relation, ecto_schema_ast) do
     struct_module_name = Module.concat(relation, Struct)
 
-    quote location: :keep do
+    # Generate the module AST
+    quote do
       defmodule unquote(struct_module_name) do
         use Ecto.Schema
-
+        import Ecto.Schema
         unquote(ecto_schema_ast)
       end
     end
@@ -338,5 +349,251 @@ defmodule Drops.Relation do
   # Generates query API functions that delegate to module-level functions
   defp generate_query_api(opts, drops_relation_schema) do
     Query.generate_functions(opts, drops_relation_schema)
+  end
+
+  # Generate Ecto schema AST from inferred schema using CodeCompiler
+  defp generate_inferred_schema_ast(schema, association_definitions, table_name) do
+    # Use the new CodeCompiler to generate field definitions and attributes
+    compiled_asts = CodeCompiler.visit(schema, [])
+
+    # Separate attributes from field definitions
+    {attributes, field_definitions} =
+      Enum.split_with(compiled_asts, fn ast ->
+        case ast do
+          {:@, _, _} -> true
+          _ -> false
+        end
+      end)
+
+    # Add timestamps if we have both inserted_at and updated_at
+    has_inserted_at = Enum.any?(schema.fields, &(&1.name == :inserted_at))
+    has_updated_at = Enum.any?(schema.fields, &(&1.name == :updated_at))
+
+    all_field_definitions =
+      if has_inserted_at and has_updated_at do
+        field_definitions ++ [quote(do: timestamps())]
+      else
+        field_definitions
+      end
+
+    # Create the schema AST
+    schema_ast =
+      quote location: :keep do
+        Ecto.Schema.schema unquote(table_name) do
+          (unquote_splicing(all_field_definitions))
+          unquote(association_definitions)
+        end
+      end
+
+    # Add attributes if needed
+    if attributes != [] do
+      quote location: :keep do
+        (unquote_splicing(attributes))
+        unquote(schema_ast)
+      end
+    else
+      schema_ast
+    end
+  end
+
+  # Generate merged schema from temporary Ecto schema modules
+  defp generate_merged_schema_from_temporary_modules(
+         inferred_schema,
+         custom_schema_definitions,
+         association_definitions,
+         table_name,
+         relation_module
+       ) do
+    # Generate temporary module name for inferred schema only
+    inferred_module_name = Module.concat(relation_module, TempInferredSchema)
+
+    # Generate the inferred Ecto schema module AST
+    inferred_ecto_schema_ast =
+      generate_inferred_schema_ast(inferred_schema, association_definitions, table_name)
+
+    # Define temporary module for inferred schema
+    define_temporary_schema_module(inferred_module_name, inferred_ecto_schema_ast)
+
+    # Convert inferred module to Drops.Relation.Schema struct
+    inferred_drops_schema = Drops.Relation.Schema.EctoCompiler.visit(inferred_module_name, [])
+
+    # Extract custom fields directly from AST to preserve original types
+    custom_drops_schema = extract_custom_schema_from_ast(custom_schema_definitions, table_name)
+
+    # Merge the schemas (custom takes precedence)
+    merged_schema = Drops.Relation.Schema.merge(inferred_drops_schema, custom_drops_schema)
+
+    # Clean up temporary module
+    :code.purge(inferred_module_name)
+    :code.delete(inferred_module_name)
+
+    merged_schema
+  end
+
+  # Extract custom schema information directly from AST to preserve original types
+  defp extract_custom_schema_from_ast([{table_name, schema_block}], _table_name_string) do
+    # Extract field definitions from the schema block
+    field_definitions = extract_field_definitions_from_block(schema_block)
+
+    # Convert field definitions to Field structs
+    custom_fields = Enum.map(field_definitions, &ast_to_field/1)
+
+    # Create a minimal schema with just the custom fields
+    # We don't need primary key, foreign keys, or indices from custom schema
+    alias Drops.Relation.Schema
+
+    Schema.new(
+      Atom.to_string(table_name),
+      # no primary key from custom schema
+      nil,
+      # no foreign keys from custom schema
+      [],
+      custom_fields,
+      # no indices from custom schema
+      []
+    )
+  end
+
+  # Extract field definitions from schema block AST
+  defp extract_field_definitions_from_block(schema_block) do
+    case schema_block do
+      {:__block__, _meta, field_definitions} ->
+        Enum.filter(field_definitions, &is_field_definition?/1)
+
+      single_definition when is_tuple(single_definition) ->
+        if is_field_definition?(single_definition), do: [single_definition], else: []
+
+      _ ->
+        []
+    end
+  end
+
+  # Check if an AST node is a field definition
+  defp is_field_definition?({:field, _meta, _args}), do: true
+  defp is_field_definition?(_), do: false
+
+  # Convert field definition AST to Field struct
+  defp ast_to_field({:field, _meta, [field_name, field_type]}) do
+    alias Drops.Relation.Schema.Field
+    # Evaluate the type AST to resolve aliases like Ecto.Enum
+    resolved_type = resolve_type_ast(field_type)
+    Field.new(field_name, resolved_type, %{source: field_name})
+  end
+
+  defp ast_to_field({:field, _meta, [field_name, field_type, opts]}) do
+    alias Drops.Relation.Schema.Field
+
+    # Evaluate the type AST to resolve aliases like Ecto.Enum
+    resolved_type = resolve_type_ast(field_type)
+
+    # Evaluate the options AST to resolve any complex values
+    resolved_opts = resolve_opts_ast(opts)
+
+    # For parameterized types, separate type options from field metadata
+    {final_type, field_meta_opts} = separate_type_and_field_options(resolved_type, resolved_opts)
+
+    # Extract metadata from field options (not type options)
+    meta = %{
+      source: Keyword.get(field_meta_opts, :source, field_name),
+      default: Keyword.get(field_meta_opts, :default),
+      nullable: Keyword.get(field_meta_opts, :null)
+    }
+
+    Field.new(field_name, final_type, meta)
+  end
+
+  # Separate type options from field metadata options
+  defp separate_type_and_field_options(type, opts) do
+    # Check if this is a parameterized type that needs options
+    case type do
+      Ecto.Enum ->
+        # For Ecto.Enum, the 'values' option belongs to the type
+        type_opts = Keyword.take(opts, [:values])
+        field_opts = Keyword.drop(opts, [:values])
+        final_type = if type_opts != [], do: {type, type_opts}, else: type
+        {final_type, field_opts}
+
+      # Add other parameterized types here as needed
+      _ ->
+        # For regular types, all options are field metadata
+        {type, opts}
+    end
+  end
+
+  # Resolve type AST to actual types
+  defp resolve_type_ast(type_ast) do
+    case type_ast do
+      # Handle module aliases like Ecto.Enum
+      {:__aliases__, _meta, module_parts} ->
+        Module.concat(module_parts)
+
+      # Handle tuples like {Ecto.Enum, opts}
+      {type_ast, opts_ast} ->
+        resolved_type = resolve_type_ast(type_ast)
+        resolved_opts = resolve_opts_ast(opts_ast)
+        {resolved_type, resolved_opts}
+
+      # Handle atoms and other simple types
+      atom when is_atom(atom) ->
+        atom
+
+      # Return as-is for other cases
+      other ->
+        other
+    end
+  end
+
+  # Resolve options AST to actual values
+  defp resolve_opts_ast(opts_ast) do
+    case opts_ast do
+      # Handle keyword lists
+      list when is_list(list) ->
+        Enum.map(list, fn
+          {key, value_ast} -> {key, resolve_value_ast(value_ast)}
+          other -> other
+        end)
+
+      # Return as-is for other cases
+      other ->
+        other
+    end
+  end
+
+  # Resolve value AST to actual values
+  defp resolve_value_ast(value_ast) do
+    case value_ast do
+      # Handle lists like [:red, :green, :blue]
+      list when is_list(list) ->
+        Enum.map(list, &resolve_value_ast/1)
+
+      # Handle atoms, strings, numbers
+      atom when is_atom(atom) ->
+        atom
+
+      string when is_binary(string) ->
+        string
+
+      number when is_number(number) ->
+        number
+
+      # Return as-is for other cases
+      other ->
+        other
+    end
+  end
+
+  # Define a temporary Ecto schema module
+  defp define_temporary_schema_module(module_name, schema_ast) do
+    module_ast =
+      quote do
+        defmodule unquote(module_name) do
+          use Ecto.Schema
+          import Ecto.Schema
+          unquote(schema_ast)
+        end
+      end
+
+    # Compile the module
+    Code.eval_quoted(module_ast)
   end
 end

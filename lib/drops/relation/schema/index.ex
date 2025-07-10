@@ -138,3 +138,43 @@ defmodule Drops.Relation.Schema.Index do
     Enum.any?(fields, &Field.matches_name?(&1, field_name))
   end
 end
+
+# Enumerable protocol implementation for Index
+defimpl Enumerable, for: Drops.Relation.Schema.Index do
+  @moduledoc """
+  Enumerable protocol implementation for Drops.Relation.Schema.Index.
+
+  Returns a tuple structure for compiler processing:
+  `{:index, [name, columns, unique, type]}` where columns are field names
+
+  This enables the compiler to process indices using pattern matching
+  on tagged tuples following the visitor pattern.
+  """
+
+  def count(%Drops.Relation.Schema.Index{}) do
+    {:ok, 1}
+  end
+
+  def member?(%Drops.Relation.Schema.Index{} = index, element) do
+    columns = Enum.map(index.fields, & &1.name)
+    tuple_representation = {:index, [index.name, columns, index.unique, index.type]}
+    {:ok, element == tuple_representation}
+  end
+
+  def slice(%Drops.Relation.Schema.Index{} = index) do
+    columns = Enum.map(index.fields, & &1.name)
+    tuple_representation = {:index, [index.name, columns, index.unique, index.type]}
+
+    {:ok, 1,
+     fn
+       0, 1, _step -> [tuple_representation]
+       _, _, _ -> []
+     end}
+  end
+
+  def reduce(%Drops.Relation.Schema.Index{} = index, acc, fun) do
+    columns = Enum.map(index.fields, & &1.name)
+    tuple_representation = {:index, [index.name, columns, index.unique, index.type]}
+    Enumerable.reduce([tuple_representation], acc, fun)
+  end
+end
