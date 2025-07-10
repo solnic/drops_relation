@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.Introspector.Database.SQLite do
+defmodule Drops.Relation.SQL.Database.SQLite do
   @moduledoc """
   SQLite implementation of the Database behavior for schema introspection.
 
@@ -13,7 +13,7 @@ defmodule Drops.Relation.SQL.Introspector.Database.SQLite do
   - Support for unique and composite indices
   """
 
-  @behaviour Drops.Relation.SQL.Introspector.Database
+  @behaviour Drops.Relation.SQL.Database
 
   alias Drops.Relation.Schema.{Index, Indices}
   alias Drops.Relation.SQL.Database.{Table, Column, ForeignKey}

@@ -9,7 +9,7 @@ defmodule Drops.Relation.SQL.Introspector do
   """
 
   alias Drops.Relation.Schema.Indices
-  alias Drops.Relation.SQL.Introspector.Database
+  alias Drops.Relation.SQL.Database
   alias Drops.Relation.SQL.Database.Table
 
   @doc """

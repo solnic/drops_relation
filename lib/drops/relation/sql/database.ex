@@ -1,4 +1,4 @@
-defmodule Drops.Relation.SQL.Introspector.Database do
+defmodule Drops.Relation.SQL.Database do
   @moduledoc """
   Behavior for database-specific introspection operations.
 
@@ -18,13 +18,13 @@ defmodule Drops.Relation.SQL.Introspector.Database do
 
   ## Implementations
 
-  - `Drops.Relation.SQL.Introspector.Database.SQLite` - SQLite adapter
-  - `Drops.Relation.SQL.Introspector.Database.Postgres` - PostgreSQL adapter
+  - `Drops.Relation.SQL.Database.SQLite` - SQLite adapter
+  - `Drops.Relation.SQL.Database.Postgres` - PostgreSQL adapter
 
   ## Example
 
       defmodule MyCustomAdapter do
-        @behaviour Drops.Relation.SQL.Introspector.Database
+        @behaviour Drops.Relation.SQL.Database
 
         @impl true
         def introspect_table(repo, table_name) do

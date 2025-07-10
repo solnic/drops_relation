@@ -1,7 +1,7 @@
-defmodule Drops.Relation.SQL.Introspector.Database.SQLiteTest do
+defmodule Drops.Relation.SQL.Database.SQLiteTest do
   use Drops.RelationCase, async: false
 
-  alias Drops.Relation.SQL.Introspector.Database.SQLite
+  alias Drops.Relation.SQL.Database.SQLite
   alias Drops.Relation.Schema.Indices
 
   describe "get_table_indices/2" do
@@ -33,7 +33,8 @@ defmodule Drops.Relation.SQL.Introspector.Database.SQLiteTest do
       )
 
       # Test index extraction
-      {:ok, indices} = SQLite.get_table_indices(Drops.Relation.Repos.Sqlite, "test_sqlite_indices")
+      {:ok, indices} =
+        SQLite.get_table_indices(Drops.Relation.Repos.Sqlite, "test_sqlite_indices")
 
       assert %Indices{} = indices
       assert length(indices.indices) >= 2
