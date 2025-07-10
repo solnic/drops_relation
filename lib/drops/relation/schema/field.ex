@@ -73,6 +73,10 @@ defmodule Drops.Relation.Schema.Field do
     %__MODULE__{name: name, type: type, meta: meta}
   end
 
+  def new(name, db_type, ecto_type, source, meta \\ %{}) do
+    __MODULE__.new(name, ecto_type, Map.merge(%{source: source, type: db_type}, meta))
+  end
+
   defimpl Inspect do
     def inspect(%Drops.Relation.Schema.Field{} = field, _opts) do
       "#Field<#{field.name}: #{inspect(field.type)}>"

@@ -256,5 +256,16 @@ defmodule Drops.SQL.PostgresTest do
       assert is_list(table.foreign_keys)
       assert table.foreign_keys == []
     end
+
+    @tag relations: [:custom_pk], adapter: :postgres
+    test "correctly handles UUID primary key" do
+      {:ok, table} = Database.table("custom_pk", Drops.Relation.Repos.Postgres)
+
+      primary_key = table.primary_key
+      id_column = Enum.find(table.columns, &(&1.name == :uuid))
+
+      assert primary_key.columns == [:uuid]
+      assert id_column.type == "uuid"
+    end
   end
 end

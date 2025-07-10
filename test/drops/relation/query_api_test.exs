@@ -105,7 +105,7 @@ defmodule Drops.Relations.QueryAPISpec do
     test "provides access to Drops.Relation.Schema", %{users: users} do
       schema = users.schema()
       assert schema.__struct__ == Drops.Relation.Schema
-      assert schema.source == "users"
+      assert schema.source == :users
       assert length(schema.fields) > 0
 
       # Check that fields contain expected field structs

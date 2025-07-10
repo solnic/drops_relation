@@ -1,14 +1,13 @@
 defmodule Drops.Relation.MetadataIntegrationTest do
   use Drops.RelationCase, async: false
 
-  alias Drops.SQL.Inference, as: SQLInference
   alias Drops.Relation.Inference
 
   describe "metadata integration with field inference" do
     @describetag adapter: :sqlite
 
     test "inferred fields include metadata from database introspection" do
-      schema = SQLInference.infer_from_table("metadata_test", Drops.Relation.Repos.Sqlite)
+      schema = Inference.infer_schema("metadata_test", Drops.Relation.Repos.Sqlite)
 
       # Find specific fields
       status_field = Enum.find(schema.fields, &(&1.name == :status))
@@ -28,7 +27,7 @@ defmodule Drops.Relation.MetadataIntegrationTest do
     test "custom fields merge with inferred metadata" do
       # Get the inferred schema
       drops_relation_schema =
-        SQLInference.infer_from_table("metadata_test", Drops.Relation.Repos.Sqlite)
+        Inference.infer_schema("metadata_test", Drops.Relation.Repos.Sqlite)
 
       # Define custom fields that override some inferred fields
       custom_fields = [
@@ -87,7 +86,7 @@ defmodule Drops.Relation.MetadataIntegrationTest do
 
     test "custom field options override inferred metadata appropriately" do
       # Get an inferred field with metadata
-      schema = SQLInference.infer_from_table("metadata_test", Drops.Relation.Repos.Sqlite)
+      schema = Inference.infer_schema("metadata_test", Drops.Relation.Repos.Sqlite)
       status_field = Enum.find(schema.fields, &(&1.name == :status))
 
       # Create a custom field that overrides some properties
@@ -97,9 +96,7 @@ defmodule Drops.Relation.MetadataIntegrationTest do
       custom_field =
         Drops.Relation.Schema.Field.new(
           :status,
-          :string,
           {Ecto.Enum, values: [:active, :inactive, :pending]},
-          :status,
           custom_meta
         )
 

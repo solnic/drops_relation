@@ -66,8 +66,7 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
       # Should generate @primary_key attribute for UUID type
       assert {:@, _, [{:primary_key, _, [tuple_ast]}]} = result
 
-      assert {:{}, _,
-              [:entity_uuid, {:__aliases__, _, [:Ecto, :UUID]}, [autogenerate: true]]} =
+      assert {:{}, _, [:entity_uuid, {:__aliases__, _, [:Ecto, :UUID]}, [autogenerate: true]]} =
                tuple_ast
     end
 
@@ -114,10 +113,8 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
     test "Field metadata defaults work correctly" do
       field = Field.new(:test_field, :string, :string, :test_field)
 
-      # Default metadata should be empty map
-      assert field.meta == %{}
+      assert field.meta == %{source: :test_field, type: :string}
 
-      # Accessing non-existent keys should return nil/false appropriately
       assert Map.get(field.meta, :primary_key, false) == false
       assert Map.get(field.meta, :foreign_key, false) == false
     end

@@ -15,17 +15,17 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
 
       # Check the field type for the primary key
       id_type = schema_module.__schema__(:type, :id)
-      assert id_type == Ecto.UUID
+      assert id_type == :binary_id
 
       # Check the Drops schema for comparison
       drops_relation_schema = orgs.schema()
-      assert drops_relation_schema.source == "uuid_organizations"
+      assert drops_relation_schema.source == :uuid_organizations
 
       # Verify primary key field has correct types
       pk_field = hd(drops_relation_schema.primary_key.fields)
       assert pk_field.name == :id
-      assert pk_field.type == Ecto.UUID
-      assert pk_field.type == :binary
+      assert pk_field.type == :binary_id
+      assert pk_field.meta.type == :binary
 
       # Verify the module was generated with @primary_key attribute
       # We can't directly inspect module attributes, but we can check the behavior
@@ -41,9 +41,8 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       # Get the generated schema module
       schema_module = Module.concat(users, Struct)
 
-      # Check that foreign key fields have Ecto.UUID type
       org_id_type = schema_module.__schema__(:type, :organization_id)
-      assert org_id_type == Ecto.UUID
+      assert org_id_type == :binary_id
 
       # Verify the struct has the foreign key field
       struct = struct(schema_module)
@@ -60,11 +59,11 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       assert primary_key == [:id]
 
       id_type = schema_module.__schema__(:type, :id)
-      assert id_type == Ecto.UUID
+      assert id_type == :binary_id
 
       # Check foreign key
       user_id_type = schema_module.__schema__(:type, :user_id)
-      assert user_id_type == Ecto.UUID
+      assert user_id_type == :binary_id
 
       # Verify all expected fields exist
       struct = struct(schema_module)
@@ -121,7 +120,7 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       # UUID PK relation
       uuid_schema = Module.concat(uuid_users, Struct)
       uuid_id_type = uuid_schema.__schema__(:type, :id)
-      assert uuid_id_type == Ecto.UUID
+      assert uuid_id_type == :binary_id
 
       # Verify they're different
       assert int_id_type != uuid_id_type
@@ -137,18 +136,18 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       drops_relation_schema = users.schema()
 
       # Check that the schema has the correct source
-      assert drops_relation_schema.source == "uuid_users"
+      assert drops_relation_schema.source == :uuid_users
 
       # Check primary key information
       assert length(drops_relation_schema.primary_key.fields) == 1
       pk_field = hd(drops_relation_schema.primary_key.fields)
       assert pk_field.name == :id
-      assert pk_field.type == Ecto.UUID
+      assert pk_field.type == :binary_id
 
       # Check that UUID foreign key fields are properly typed
       org_id_field = Enum.find(drops_relation_schema.fields, &(&1.name == :organization_id))
       assert org_id_field
-      assert org_id_field.type == Ecto.UUID
+      assert org_id_field.type == :binary_id
     end
   end
 
@@ -170,16 +169,16 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
 
       # Check the Drops schema for comparison
       drops_relation_schema = orgs.schema()
-      assert drops_relation_schema.source == "uuid_organizations"
+      assert drops_relation_schema.source == :uuid_organizations
 
       # Verify primary key field has correct types
       pk_field = hd(drops_relation_schema.primary_key.fields)
       assert pk_field.name == :id
       assert pk_field.type == :binary_id
-      assert pk_field.type == :binary
+      assert pk_field.meta.type == :binary
     end
 
-    @tag relations: [:uuid_users], adapter: :postgres, refresh_cache: true
+    @tag relations: [:uuid_users], adapter: :postgres
     test "PostgreSQL generates correct @foreign_key_type attribute for uuid FKs", %{
       uuid_users: users
     } do

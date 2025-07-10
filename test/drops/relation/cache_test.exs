@@ -59,12 +59,12 @@ defmodule Drops.Relation.CacheTest do
 
   describe "get_cached_schema/2" do
     test "returns cached schema on cache hit" do
-      test_schema = Schema.empty("users")
+      test_schema = Schema.empty(:users)
       :ok = Cache.cache_schema(TestRepo, "users", test_schema)
 
       schema = Cache.get_cached_schema(TestRepo, "users")
 
-      assert schema.source == "users"
+      assert schema.source == :users
     end
 
     test "returns nil on cache miss" do
@@ -73,11 +73,11 @@ defmodule Drops.Relation.CacheTest do
     end
 
     test "invalidates cache when migration digest changes" do
-      test_schema = Schema.empty("users")
+      test_schema = Schema.empty(:users)
       Cache.cache_schema(TestRepo, "users", test_schema)
 
       result1 = Cache.get_cached_schema(TestRepo, "users")
-      assert result1.source == "users"
+      assert result1.source == :users
 
       # Modify migration file to change digest
       File.write!(
@@ -92,57 +92,57 @@ defmodule Drops.Relation.CacheTest do
 
     test "handles repository with no migrations" do
       # Cache a schema for empty repo
-      test_schema = Schema.empty("users")
+      test_schema = Schema.empty(:users)
       Cache.cache_schema(EmptyRepo, "users", test_schema)
 
       result = Cache.get_cached_schema(EmptyRepo, "users")
-      assert result.source == "users"
+      assert result.source == :users
     end
   end
 
   describe "cache_schema/3" do
     test "caches schema successfully" do
-      test_schema = Schema.empty("users")
+      test_schema = Schema.empty(:users)
       Cache.cache_schema(TestRepo, "users", test_schema)
 
       result = Cache.get_cached_schema(TestRepo, "users")
-      assert result.source == "users"
+      assert result.source == :users
     end
   end
 
   describe "clear_repo_cache/1" do
     test "clears cache for specific repository" do
       # Cache schemas for both repos
-      test_schema = Schema.empty("users")
+      test_schema = Schema.empty(:users)
       Cache.cache_schema(TestRepo, "users", test_schema)
       Cache.cache_schema(TestRepo2, "users", test_schema)
 
       # Verify both are cached
-      assert Cache.get_cached_schema(TestRepo, "users").source == "users"
-      assert Cache.get_cached_schema(TestRepo2, "users").source == "users"
+      assert Cache.get_cached_schema(TestRepo, "users").source == :users
+      assert Cache.get_cached_schema(TestRepo2, "users").source == :users
 
       # Clear cache for TestRepo only
       Cache.clear_repo_cache(TestRepo)
 
       # TestRepo should be cleared, TestRepo2 should still be cached
       assert Cache.get_cached_schema(TestRepo, "users") == nil
-      assert Cache.get_cached_schema(TestRepo2, "users").source == "users"
+      assert Cache.get_cached_schema(TestRepo2, "users").source == :users
     end
   end
 
   describe "clear_all/0" do
     test "clears entire cache" do
       # Cache multiple schemas
-      users_schema = Schema.empty("users")
-      posts_schema = Schema.empty("posts")
+      users_schema = Schema.empty(:users)
+      posts_schema = Schema.empty(:posts)
       Cache.cache_schema(TestRepo, "users", users_schema)
       Cache.cache_schema(TestRepo, "posts", posts_schema)
       Cache.cache_schema(TestRepo2, "users", users_schema)
 
       # Verify all are cached
-      assert Cache.get_cached_schema(TestRepo, "users").source == "users"
-      assert Cache.get_cached_schema(TestRepo, "posts").source == "posts"
-      assert Cache.get_cached_schema(TestRepo2, "users").source == "users"
+      assert Cache.get_cached_schema(TestRepo, "users").source == :users
+      assert Cache.get_cached_schema(TestRepo, "posts").source == :posts
+      assert Cache.get_cached_schema(TestRepo2, "users").source == :users
 
       # Clear all
       Cache.clear_all()
@@ -156,31 +156,31 @@ defmodule Drops.Relation.CacheTest do
 
   describe "warm_up/2" do
     test "returns ok when cache is enabled" do
-      assert {:ok, _} = Cache.warm_up(TestRepo, [])
+      assert {:ok, []} = Cache.warm_up(TestRepo, [])
     end
   end
 
   describe "refresh/2" do
     test "clears and optionally warms up cache" do
-      test_schema = Schema.empty("users")
+      test_schema = Schema.empty(:users)
       Cache.cache_schema(TestRepo, "users", test_schema)
 
-      assert Cache.get_cached_schema(TestRepo, "users").source == "users"
+      assert Cache.get_cached_schema(TestRepo, "users").source == :users
 
       result = Cache.refresh(TestRepo)
       assert result == :ok
       assert Cache.get_cached_schema(TestRepo, "users") == nil
 
-      assert {:ok, _} = Cache.refresh(TestRepo, [])
+      assert :ok = Cache.refresh(TestRepo, [])
     end
   end
 
   describe "maybe_get_cached_schema/2" do
     test "returns cached schema when available" do
-      test_schema = Schema.empty("users")
+      test_schema = Schema.empty(:users)
       Cache.cache_schema(TestRepo, "users", test_schema)
       result = Cache.maybe_get_cached_schema(TestRepo, "users")
-      assert result.source == "users"
+      assert result.source == :users
     end
 
     test "returns empty schema when not cached" do
@@ -195,7 +195,6 @@ defmodule Drops.Relation.CacheTest do
     test "dumps and loads Field correctly" do
       field = %Field{
         name: :email,
-        type: :string,
         type: :string,
         source: :email,
         meta: %{nullable: false, default: nil}
@@ -215,7 +214,6 @@ defmodule Drops.Relation.CacheTest do
     test "handles complex ecto types in Field" do
       field = %Field{
         name: :tags,
-        type: :array,
         type: {:array, :string},
         source: :tags,
         meta: %{}
@@ -230,7 +228,7 @@ defmodule Drops.Relation.CacheTest do
 
   describe "Serializable protocol for PrimaryKey" do
     test "dumps and loads PrimaryKey correctly" do
-      field = %Field{name: :id, type: :integer, type: :id, source: :id, meta: %{}}
+      field = %Field{name: :id, type: :id, source: :id, meta: %{}}
       pk = %PrimaryKey{fields: [field]}
 
       dumped = JSON.encode!(pk) |> JSON.decode!()
@@ -286,7 +284,7 @@ defmodule Drops.Relation.CacheTest do
 
   describe "Serializable protocol for Index" do
     test "dumps and loads Index correctly" do
-      field = %Field{name: :email, type: :string, type: :string, source: :email, meta: %{}}
+      field = %Field{name: :email, type: :string, source: :email, meta: %{}}
 
       index = %Index{
         name: "users_email_index",
@@ -308,7 +306,7 @@ defmodule Drops.Relation.CacheTest do
 
   describe "Serializable protocol for Indices" do
     test "dumps and loads Indices correctly" do
-      field = %Field{name: :email, type: :string, type: :string, source: :email, meta: %{}}
+      field = %Field{name: :email, type: :string, source: :email, meta: %{}}
       index = %Index{name: "users_email_index", fields: [field], unique: true, type: :btree}
       indices = %Indices{indices: [index]}
 
@@ -323,7 +321,7 @@ defmodule Drops.Relation.CacheTest do
 
   describe "Serializable protocol for Schema" do
     test "dumps and loads complete Schema correctly" do
-      field = %Field{name: :id, type: :integer, type: :id, source: :id, meta: %{}}
+      field = %Field{name: :id, type: :id, source: :id, meta: %{}}
       pk = %PrimaryKey{fields: [field]}
 
       fk = %ForeignKey{
@@ -372,7 +370,6 @@ defmodule Drops.Relation.CacheTest do
       # Create a schema with array ecto type using the new protocol
       field = %Field{
         name: :tags,
-        type: :array,
         type: {:array, :string},
         source: :tags,
         meta: %{}
@@ -407,10 +404,8 @@ defmodule Drops.Relation.CacheTest do
       # Test round-trip with the new protocol
       field = %Field{
         name: :complex_field,
-        type: :array,
         type: {:array, :string},
-        source: :complex_field,
-        meta: %{}
+        meta: %{type: :array, source: :complex_field}
       }
 
       schema = %Schema{

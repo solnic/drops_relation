@@ -265,16 +265,18 @@ defmodule Drops.Relation.Inference do
     end
   end
 
-  def infer_schema(relation, name, repo) do
-    # Use Database.table to get SQL Database Table struct, then compile to Relation Schema
-    drops_relation_schema =
-      case Drops.SQL.Database.table(name, repo) do
-        {:ok, table} ->
-          Drops.Relation.Schema.Compiler.visit(table, [])
+  def infer_schema(name, repo) do
+    case Drops.SQL.Database.table(name, repo) do
+      {:ok, table} ->
+        Drops.Relation.Schema.Compiler.visit(table, [])
 
-        {:error, reason} ->
-          raise "Failed to introspect table #{name}: #{inspect(reason)}"
-      end
+      {:error, reason} ->
+        raise "Failed to introspect table #{name}: #{inspect(reason)}"
+    end
+  end
+
+  def infer_schema(relation, name, repo) do
+    drops_relation_schema = infer_schema(name, repo)
 
     # Get optional Ecto associations definitions AST
     association_definitions = Module.get_attribute(relation, :associations, [])

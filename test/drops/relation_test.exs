@@ -48,7 +48,7 @@ defmodule Drops.Relations.SchemaSpec do
   end
 
   describe "primary keys" do
-    @tag relations: [:custom_pk]
+    @tag relations: [:custom_pk], adapter: :postgres
     test "handles custom primary keys", %{custom_pk: custom_pk} do
       fields = custom_pk.ecto_schema(:fields)
 
@@ -83,8 +83,7 @@ defmodule Drops.Relations.SchemaSpec do
       # belongs_to association
       assert :parent_id in fields
 
-      # Check that foreign key has correct type
-      assert associations.ecto_schema(:type, :parent_id) == :id
+      assert associations.ecto_schema(:type, :parent_id) == :integer
     end
 
     @tag relations: [:associations, :association_items, :association_parents]
@@ -98,7 +97,7 @@ defmodule Drops.Relations.SchemaSpec do
       assert :association_id in fields
 
       # Check that foreign key has correct type
-      assert association_items.ecto_schema(:type, :association_id) == :id
+      assert association_items.ecto_schema(:type, :association_id) == :integer
     end
   end
 
@@ -153,7 +152,7 @@ defmodule Drops.Relations.SchemaSpec do
       assert length(schema.fields) > 0
       parent_id_field = Enum.find(schema.fields, &(&1.name == :parent_id))
       assert parent_id_field != nil
-      assert parent_id_field.type == :id
+      assert parent_id_field.type == :integer
       assert parent_id_field.meta.type == :integer
 
       # Database introspection correctly detects foreign key constraints

@@ -246,7 +246,7 @@ defmodule Drops.Relation.Cache do
     end
   end
 
-  @spec warm_up(module(), [String.t()]) :: :ok | {:error, term()}
+  @spec warm_up(module(), [String.t()]) :: {:ok, [Schema.t()]} | {:error, term()}
   def warm_up(repo, table_names) when is_atom(repo) and is_list(table_names) do
     schemas =
       Enum.map(table_names, fn table_name ->
@@ -294,8 +294,14 @@ defmodule Drops.Relation.Cache do
     clear_repo_cache(repo)
 
     case table_names do
-      nil -> :ok
-      names when is_list(names) -> warm_up(repo, names)
+      nil ->
+        :ok
+
+      names when is_list(names) ->
+        case warm_up(repo, names) do
+          {:ok, _schemas} -> :ok
+          {:error, reason} -> {:error, reason}
+        end
     end
   end
 

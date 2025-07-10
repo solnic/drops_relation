@@ -18,7 +18,13 @@ defmodule Drops.SQL.Compiler do
   end
 
   def visit({:type, type}, _opts), do: type
-  def visit({:meta, meta}, _opts) when is_map(meta), do: meta
+
+  def visit({:meta, meta}, opts) when is_map(meta) do
+    # Process meta values to convert {:identifier, value} tuples
+    Enum.reduce(meta, %{}, fn {key, value}, acc ->
+      Map.put(acc, key, visit(value, opts))
+    end)
+  end
 
   def visit({:index, components}, opts) do
     [name, columns, meta] = visit(components, opts)

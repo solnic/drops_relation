@@ -240,7 +240,10 @@ defmodule Drops.RelationCase do
     table_names = Enum.map(relations, &Atom.to_string/1)
 
     # Always force refresh in tests to ensure fresh schema inference
-    {:ok, _} = Drops.Relation.Cache.refresh(repo, table_names)
+    case Drops.Relation.Cache.refresh(repo, table_names) do
+      :ok -> :ok
+      {:error, reason} -> raise "Failed to refresh cache: #{inspect(reason)}"
+    end
 
     {context, cleanup_modules} =
       Enum.reduce(relations, {%{}, []}, fn relation_name, {context, cleanup_modules} ->

@@ -30,7 +30,6 @@ defmodule Drops.SQL.Types.Postgres do
       when type in ["serial", "serial4", "bigserial", "serial8", "smallserial", "serial2"] ->
         :id
 
-      # UUID type - use :binary_id for consistency with Ecto conventions
       "uuid" ->
         :binary_id
 
