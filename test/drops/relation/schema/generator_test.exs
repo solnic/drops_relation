@@ -165,8 +165,12 @@ defmodule Drops.Relation.Schema.GeneratorTest do
       assert string_result =~ "defmodule :TestStringModule"
       assert string_result =~ "use Ecto.Schema"
       assert string_result =~ "schema(\"users\")"
-      assert string_result =~ "Ecto.Schema.field(:name, :string)"
+      assert string_result =~ "field(:name, :string)"
       assert string_result =~ "timestamps()"
+
+      # Verify there's only one defmodule declaration
+      defmodule_count = string_result |> String.split("defmodule") |> length() |> Kernel.-(1)
+      assert defmodule_count == 1
     end
   end
 
@@ -192,7 +196,7 @@ defmodule Drops.Relation.Schema.GeneratorTest do
       assert result =~ "defmodule MyApp.User"
       assert result =~ "use Ecto.Schema"
       assert result =~ "schema(\"users\")"
-      assert result =~ "Ecto.Schema.field(:name, :string)"
+      assert result =~ "field(:name, :string)"
       assert result =~ "timestamps()"
     end
 

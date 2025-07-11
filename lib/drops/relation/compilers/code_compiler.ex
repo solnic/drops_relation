@@ -26,22 +26,40 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
   alias Drops.Relation.Schema
 
   @doc """
-  Main entry point for converting Relation Schema to field AST.
+  Main entry point for converting Relation Schema to structured compilation output.
 
   ## Parameters
 
   - `schema` - A Drops.Relation.Schema struct
   - `opts` - Optional compilation options
+    - `:grouped` - If true, returns structured map; if false, returns flat list (default: false for backward compatibility)
 
   ## Returns
 
-  A list of quoted expressions containing field definitions and attributes.
+  When `:grouped` is true, returns a map with:
+  ```
+  %{
+    attributes: %{
+      primary_key: [...],      # @primary_key definitions
+      foreign_key_type: [...], # @foreign_key_type definitions
+      other: [...]             # Other @ attributes
+    },
+    field_definitions: [...],  # field() calls
+    schema_options: [...]      # Any schema-level options
+  }
+  ```
+
+  When `:grouped` is false (default), returns a flat list of quoted expressions for backward compatibility.
 
   ## Examples
 
       iex> schema = %Drops.Relation.Schema{fields: [...], ...}
       iex> asts = Drops.Relation.Compilers.CodeCompiler.visit(schema, [])
       iex> is_list(asts)
+      true
+
+      iex> grouped = Drops.Relation.Compilers.CodeCompiler.visit(schema, grouped: true)
+      iex> is_map(grouped) and Map.has_key?(grouped, :attributes)
       true
   """
   def visit(%Schema{} = schema, opts) do
@@ -55,7 +73,17 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
       # Get the {:schema, components} tuple
       |> List.first()
 
-    visit(schema_tuple, new_opts)
+    result = visit(schema_tuple, new_opts)
+
+    # Return grouped or flat result based on options
+    if opts[:grouped] do
+      group_compilation_result(result)
+    else
+      # Backward compatibility: return flat list
+      result
+      |> List.flatten()
+      |> Enum.reject(&is_nil/1)
+    end
   end
 
   # Visit schema tuple structure
@@ -105,7 +133,7 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
     meta = visit(meta_tuple, opts)
 
     cond do
-      # Skip timestamp fields
+      # Skip timestamp fields - they're handled by timestamps() macro
       name in [:inserted_at, :updated_at] ->
         nil
 
@@ -227,6 +255,53 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
   # Fallback for other values
   def visit(value, _opts), do: value
 
+  # Groups the flat compilation result into structured categories.
+  # Returns a map with categorized compilation results.
+  defp group_compilation_result(result) do
+    flattened_result =
+      result
+      |> List.flatten()
+      |> Enum.reject(&is_nil/1)
+
+    # Separate attributes from field definitions
+    {attributes, field_definitions} =
+      Enum.split_with(flattened_result, fn ast ->
+        case ast do
+          {:@, _, _} -> true
+          _ -> false
+        end
+      end)
+
+    # Further categorize attributes by type
+    categorized_attributes = categorize_attributes(attributes)
+
+    %{
+      attributes: categorized_attributes,
+      field_definitions: field_definitions,
+      # Reserved for future use
+      schema_options: []
+    }
+  end
+
+  # Categorizes attribute AST nodes by their type.
+  # Returns a map with categorized attributes.
+  defp categorize_attributes(attributes) do
+    Enum.reduce(attributes, %{primary_key: [], foreign_key_type: [], other: []}, fn attr, acc ->
+      case attr do
+        {:@, _, [{:primary_key, _, _}]} ->
+          Map.update!(acc, :primary_key, &[attr | &1])
+
+        {:@, _, [{:foreign_key_type, _, _}]} ->
+          Map.update!(acc, :foreign_key_type, &[attr | &1])
+
+        _ ->
+          Map.update!(acc, :other, &[attr | &1])
+      end
+    end)
+    |> Enum.map(fn {key, value} -> {key, Enum.reverse(value)} end)
+    |> Map.new()
+  end
+
   # Helper function to generate single primary key attributes
   defp generate_single_primary_key_attribute(field) when is_nil(field) do
     nil
@@ -289,7 +364,7 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
     all_opts = type_opts ++ field_opts
 
     quote do
-      Ecto.Schema.field(unquote(field.name), unquote(field_type), unquote(all_opts))
+      field(unquote(field.name), unquote(field_type), unquote(all_opts))
     end
   end
 
@@ -309,23 +384,44 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
         value -> [{:default, value} | field_opts]
       end
 
-    # Extract type and options
+    # Extract type and options, handling parameterized types specially
     {field_type, type_opts} =
       case type do
-        {type_module, opts} when is_list(opts) -> {type_module, opts}
-        {type_module, opts} when is_map(opts) -> {type_module, Map.to_list(opts)}
-        _ -> {type, []}
+        # Handle runtime parameterized types (from compiled Ecto schemas)
+        {:parameterized, {type_module, type_config}} when is_map(type_config) ->
+          # Extract the original type definition from the parameterized type
+          # For Ecto.Enum, we need to get the values from the config
+          case type_module do
+            Ecto.Enum ->
+              values = Map.get(type_config, :mappings, []) |> Keyword.keys()
+              {type_module, [values: values]}
+
+            _ ->
+              # For other parameterized types, try to extract meaningful options
+              {type_module, []}
+          end
+
+        # Handle tuple types with options
+        {type_module, opts} when is_list(opts) ->
+          {type_module, opts}
+
+        {type_module, opts} when is_map(opts) ->
+          {type_module, Map.to_list(opts)}
+
+        # Handle simple types
+        _ ->
+          {type, []}
       end
 
     all_opts = type_opts ++ field_opts
 
     if all_opts == [] do
       quote do
-        Ecto.Schema.field(unquote(name), unquote(field_type))
+        field(unquote(name), unquote(field_type))
       end
     else
       quote do
-        Ecto.Schema.field(unquote(name), unquote(field_type), unquote(all_opts))
+        field(unquote(name), unquote(field_type), unquote(all_opts))
       end
     end
   end

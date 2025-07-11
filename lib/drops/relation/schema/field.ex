@@ -107,11 +107,45 @@ defmodule Drops.Relation.Schema.Field do
         if right_val != nil, do: right_val, else: left_val
       end)
 
+    # Handle special case: if type changes to Ecto.Enum and there's an incompatible default,
+    # remove the default to avoid Ecto validation errors, but only if the default comes from
+    # the left (inferred) field, not from the right (custom) field
+    final_meta =
+      case {left.type, right.type} do
+        # Handle both tuple format and parameterized format for Ecto.Enum
+        {_left_type, {Ecto.Enum, _opts}} ->
+          # When changing to Ecto.Enum, remove string defaults from left field only
+          case {Map.get(left.meta, :default), Map.get(right.meta, :default)} do
+            {left_default, nil} when is_binary(left_default) ->
+              # Remove the incompatible default from left field
+              Map.delete(merged_meta, :default)
+
+            _ ->
+              # Keep the default if it's from right field or not a string
+              merged_meta
+          end
+
+        {_left_type, {:parameterized, {Ecto.Enum, _config}}} ->
+          # When changing to parameterized Ecto.Enum, remove string defaults from left field only
+          case {Map.get(left.meta, :default), Map.get(right.meta, :default)} do
+            {left_default, nil} when is_binary(left_default) ->
+              # Remove the incompatible default from left field
+              Map.delete(merged_meta, :default)
+
+            _ ->
+              # Keep the default if it's from right field or not a string
+              merged_meta
+          end
+
+        _ ->
+          merged_meta
+      end
+
     # Right field takes precedence for all other properties
     %__MODULE__{
       name: right.name,
       type: right.type,
-      meta: merged_meta
+      meta: final_meta
     }
   end
 

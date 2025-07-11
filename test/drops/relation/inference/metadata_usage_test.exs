@@ -55,8 +55,7 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
       # Should only generate field definition
       assert [field_ast] = result
 
-      assert {{:., _, [{:__aliases__, _, [:Ecto, :Schema]}, :field]}, _, [:id, :binary_id]} =
-               field_ast
+      assert {:field, _, [:id, :binary_id]} = field_ast
     end
 
     test "does not generate foreign key attribute for field ending in '_id' without metadata" do
@@ -72,8 +71,7 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
       # Should only generate field definition
       assert [field_ast] = result
 
-      assert {{:., _, [{:__aliases__, _, [:Ecto, :Schema]}, :field]}, _, [:user_id, :binary_id]} =
-               field_ast
+      assert {:field, _, [:user_id, :binary_id]} = field_ast
     end
 
     test "handles UUID primary key with non-standard name" do
@@ -121,8 +119,7 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
       # Should only generate field definition
       assert [field_ast] = result
 
-      assert {{:., _, [{:__aliases__, _, [:Ecto, :Schema]}, :field]}, _, [:external_id, :string]} =
-               field_ast
+      assert {:field, _, [:external_id, :string]} = field_ast
     end
   end
 

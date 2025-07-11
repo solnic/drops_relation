@@ -12,7 +12,6 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
   ## Options
 
     * `--namespace` - The namespace for generated schemas (e.g., "MyApp.Relations")
-    * `--dir` - Directory to place generated files (inferred from namespace if not provided)
     * `--repo` - The Ecto repository module (e.g., "MyApp.Repo")
     * `--app` - The application name to infer defaults from (e.g., "MyApp")
     * `--sync` - Whether to sync/update existing files (default: true)
@@ -23,8 +22,8 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
       # Generate schemas for all tables with default settings
       mix drops.relations.gen_schemas --app MyApp
 
-      # Generate schemas with custom namespace and directory
-      mix drops.relations.gen_schemas --namespace MyApp.Schemas --dir lib/my_app/schemas
+      # Generate schemas with custom namespace
+      mix drops.relations.gen_schemas --namespace MyApp.Schemas --app MyApp
 
       # Generate schemas for specific tables only
       mix drops.relations.gen_schemas --tables users,posts --app MyApp
@@ -35,8 +34,10 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
 
   use Igniter.Mix.Task
 
-  alias Igniter.Project.Module
   alias Drops.Relation.Schema.Generator
+  alias Igniter.Project.Module
+
+  require Sourceror.Zipper
 
   @impl Igniter.Mix.Task
   def info(_argv, _composing_task) do
@@ -46,7 +47,6 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
       positional: [],
       schema: [
         namespace: :string,
-        dir: :string,
         repo: :string,
         app: :string,
         sync: :boolean,
@@ -55,7 +55,6 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
       ],
       aliases: [
         n: :namespace,
-        d: :dir,
         r: :repo,
         a: :app,
         s: :sync,
@@ -66,8 +65,14 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
   end
 
   @impl Igniter.Mix.Task
-  def igniter(igniter, argv) do
-    options = validate_and_parse_options(argv)
+  def igniter(igniter) do
+    options = validate_and_parse_options(igniter.args.argv)
+
+    # Make Igniter non-interactive for testing
+    igniter =
+      igniter
+      |> Igniter.assign(:prompt_on_git_changes?, false)
+      |> Igniter.assign(:quiet_on_no_changes?, true)
 
     # Ensure the application is started before proceeding
     ensure_application_started(options[:app])
@@ -95,7 +100,6 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
       OptionParser.parse(argv,
         strict: [
           namespace: :string,
-          dir: :string,
           repo: :string,
           app: :string,
           sync: :boolean,
@@ -125,15 +129,6 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
     |> Map.put(:namespace, namespace)
     |> Map.put_new(:repo, "#{app_name}.Repo")
     |> Map.put_new(:sync, true)
-    |> Map.put_new(:dir, namespace_to_dir(namespace))
-  end
-
-  defp namespace_to_dir(namespace) do
-    namespace
-    |> String.split(".")
-    |> Enum.map(&Macro.underscore/1)
-    |> Path.join()
-    |> then(&Path.join("lib", &1))
   end
 
   defp get_tables_to_process(options) do
@@ -200,60 +195,70 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
   end
 
   defp generate_schema_file(igniter, table, options) do
-    module_name = build_module_name(table, options[:namespace])
-    file_path = build_file_path(table, options[:dir])
+    # Build module name
+    module_name_string = build_module_name_string(table, options[:namespace])
+    module_name = Module.parse(module_name_string)
 
     try do
-      # Generate the schema content using the new Generator module
-      schema_content = Generator.generate_schema_module_string(table, module_name, options)
+      # Generate the schema body content (without defmodule wrapper) for Igniter
+      schema_content = Generator.generate_schema_module_body(table, module_name_string, options)
 
-      if options[:sync] and File.exists?(file_path) do
-        # Sync/update existing file
-        sync_existing_schema(igniter, file_path, schema_content, module_name)
-      else
-        # Create new file or overwrite
-        create_new_schema(igniter, file_path, schema_content, module_name)
-      end
+      Mix.shell().info("Creating or updating schema: #{module_name_string}")
+
+      Module.find_and_update_or_create_module(
+        igniter,
+        module_name,
+        schema_content,
+        fn zipper ->
+          if options[:sync] do
+            # Sync mode: preserve custom code and only update schema-related parts
+            update_schema_preserving_custom_code(zipper, table, module_name_string, options)
+          else
+            # Non-sync mode: replace entire module content
+            replace_entire_module_content(zipper, schema_content)
+          end
+        end
+      )
     rescue
       error ->
         Mix.shell().error("Failed to generate schema for table '#{table}': #{inspect(error)}")
-
         igniter
     end
   end
 
-  defp build_module_name(table, namespace) do
+  defp build_module_name_string(table, namespace) do
     table_module = table |> Macro.camelize()
-    module_name_string = "#{namespace}.#{table_module}"
-    String.to_atom("Elixir.#{module_name_string}")
+    "#{namespace}.#{table_module}"
   end
 
-  defp build_file_path(table, dir) do
-    filename = "#{Macro.underscore(table)}.ex"
-    Path.join(dir, filename)
-  end
+  # Helper function for non-sync mode: replace entire module content
+  defp replace_entire_module_content(zipper, schema_content) do
+    case Code.string_to_quoted(schema_content) do
+      {:ok, new_ast} ->
+        {:ok, Sourceror.Zipper.replace(zipper, new_ast)}
 
-  defp sync_existing_schema(igniter, file_path, schema_content, module_name) do
-    # For sync mode, we need to update the existing file
-    Mix.shell().info("Syncing existing schema: #{module_name}")
-
-    try do
-      # For now, use the same approach as create_new_schema
-      # A more sophisticated sync would preserve custom code and only update fields
-      create_new_schema(igniter, file_path, schema_content, module_name)
-    rescue
-      error ->
-        Mix.shell().error("Failed to sync schema #{module_name}: #{inspect(error)}")
-        # Fallback to creating new file
-        create_new_schema(igniter, file_path, schema_content, module_name)
+      {:error, _} ->
+        :error
     end
   end
 
-  defp create_new_schema(igniter, file_path, schema_content, module_name) do
-    Mix.shell().info("Creating new schema: #{module_name}")
+  # Helper function for sync mode: preserve custom code and only update schema-related parts
+  defp update_schema_preserving_custom_code(zipper, table_name, _module_name_string, options) do
+    repo_name = options[:repo]
+    repo = ensure_repo_started(repo_name)
 
-    # Create the module using Igniter
-    Module.create_module(igniter, module_name, schema_content, path: file_path)
+    # Get fresh schema data
+    drops_relation_schema =
+      case Drops.SQL.Database.table(table_name, repo) do
+        {:ok, table_struct} ->
+          Drops.Relation.Compilers.SchemaCompiler.visit(table_struct, [])
+
+        {:error, reason} ->
+          raise "Failed to introspect table #{table_name}: #{inspect(reason)}"
+      end
+
+    # Use Generator for schema patching
+    Generator.update_schema_with_zipper(zipper, table_name, drops_relation_schema)
   end
 
   # Ensures the application is started before running the task
@@ -268,6 +273,57 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
       {:error, {failed_app, reason}} ->
         Mix.shell().error("Failed to start application #{failed_app}: #{inspect(reason)}")
         Mix.raise("Cannot proceed without starting the application")
+    end
+  end
+
+  # Ensures the repository module is loaded and started.
+  # Returns the repository module atom.
+  # Raises RuntimeError if the repository cannot be started.
+  @spec ensure_repo_started(String.t()) :: module()
+  defp ensure_repo_started(repo_name) do
+    repo_module = String.to_atom("Elixir.#{repo_name}")
+
+    # Ensure the module is loaded
+    case Code.ensure_loaded(repo_module) do
+      {:module, ^repo_module} ->
+        # Try to start the repo if it's not already started
+        case repo_module.__adapter__() do
+          adapter when is_atom(adapter) ->
+            # Ensure the application is started
+            case Application.ensure_all_started(:ecto_sql) do
+              {:ok, _} ->
+                # Check if repo is started, if not try to start it
+                case GenServer.whereis(repo_module) do
+                  nil ->
+                    # Try to start the repo
+                    case repo_module.start_link() do
+                      {:ok, _pid} ->
+                        repo_module
+
+                      {:error, {:already_started, _pid}} ->
+                        repo_module
+
+                      {:error, reason} ->
+                        raise RuntimeError,
+                              "Failed to start repository #{repo_name}: #{inspect(reason)}"
+                    end
+
+                  _pid ->
+                    repo_module
+                end
+
+              {:error, reason} ->
+                raise RuntimeError,
+                      "Failed to start :ecto_sql application: #{inspect(reason)}"
+            end
+
+          _ ->
+            raise RuntimeError, "Repository #{repo_name} does not have a valid adapter"
+        end
+
+      {:error, reason} ->
+        raise RuntimeError,
+              "could not lookup Ecto repo #{repo_name} because it was not started or it does not exist: #{inspect(reason)}"
     end
   end
 end

@@ -65,7 +65,6 @@ defmodule Drops.Relation.Compilers.CodeCompilerTest do
       quote do
         defmodule unquote(module_name) do
           use Ecto.Schema
-          import Ecto.Schema
           (unquote_splicing(final_attributes))
           unquote(schema_ast)
         end
@@ -120,19 +119,19 @@ defmodule Drops.Relation.Compilers.CodeCompilerTest do
     end
 
     test "skips auto_increment default values" do
-      field = Field.new(:id, :integer, %{source: :id, default: :auto_increment})
+      field = Field.new(:counter, :integer, %{source: :counter, default: :auto_increment})
       schema = Schema.new("users", nil, [], [field], [])
 
       module = compile_test_schema(schema, TestSchema4)
 
       # Verify the schema was compiled correctly without the invalid default
       assert module.__schema__(:source) == "users"
-      assert :id in module.__schema__(:fields)
-      assert module.__schema__(:type, :id) == :integer
+      assert :counter in module.__schema__(:fields)
+      assert module.__schema__(:type, :counter) == :integer
 
       # Verify no default value was set (should be nil)
       struct = struct(module)
-      assert struct.id == nil
+      assert struct.counter == nil
     end
   end
 
@@ -353,6 +352,89 @@ defmodule Drops.Relation.Compilers.CodeCompilerTest do
       # Verify enum validation works
       changeset = Ecto.Changeset.cast(struct, %{status: :published}, [:status])
       assert changeset.valid?
+    end
+  end
+
+  describe "CodeCompiler.visit/2 with grouped output" do
+    test "returns structured output when grouped: true" do
+      # Create a schema with various components
+      name_field = Field.new(:name, :string, %{source: :name})
+      id_field = Field.new(:id, Ecto.UUID, %{source: :id, primary_key: true})
+      user_id_field = Field.new(:user_id, :binary_id, %{foreign_key: true})
+
+      primary_key = PrimaryKey.new([id_field])
+      schema = Schema.new("posts", primary_key, [], [name_field, id_field, user_id_field], [])
+
+      # Get grouped output
+      result = CodeCompiler.visit(schema, grouped: true)
+
+      # Verify structure
+      assert is_map(result)
+      assert Map.has_key?(result, :attributes)
+      assert Map.has_key?(result, :field_definitions)
+      assert Map.has_key?(result, :schema_options)
+
+      # Verify attributes are categorized
+      attributes = result.attributes
+      assert is_map(attributes)
+      assert Map.has_key?(attributes, :primary_key)
+      assert Map.has_key?(attributes, :foreign_key_type)
+      assert Map.has_key?(attributes, :other)
+
+      # Verify we have some primary key attributes (UUID type should generate @primary_key)
+      assert length(attributes.primary_key) > 0
+
+      # Verify we have field definitions (non-primary key fields)
+      assert length(result.field_definitions) > 0
+
+      # Verify schema_options is present (even if empty)
+      assert is_list(result.schema_options)
+    end
+
+    test "maintains backward compatibility when grouped: false" do
+      name_field = Field.new(:name, :string, %{source: :name})
+      schema = Schema.new("users", nil, nil, [name_field], [])
+
+      # Get flat output (default behavior)
+      flat_result = CodeCompiler.visit(schema, [])
+      explicit_flat_result = CodeCompiler.visit(schema, grouped: false)
+
+      # Both should return the same flat list
+      assert flat_result == explicit_flat_result
+      assert is_list(flat_result)
+
+      # Should contain field definitions
+      assert length(flat_result) > 0
+    end
+
+    test "categorizes different attribute types correctly" do
+      # Create schema with different attribute types
+      id_field = Field.new(:id, Ecto.UUID, %{source: :id, primary_key: true})
+      user_id_field = Field.new(:user_id, :binary_id, %{foreign_key: true})
+
+      primary_key = PrimaryKey.new([id_field])
+      schema = Schema.new("posts", primary_key, [], [id_field, user_id_field], [])
+
+      result = CodeCompiler.visit(schema, grouped: true)
+      attributes = result.attributes
+
+      # Should have primary_key attributes (from UUID primary key)
+      primary_key_attrs = attributes.primary_key
+      assert length(primary_key_attrs) > 0
+
+      # Check that primary key attributes have the right structure
+      Enum.each(primary_key_attrs, fn attr ->
+        assert match?({:@, _, [{:primary_key, _, _}]}, attr)
+      end)
+
+      # Should have foreign_key_type attributes (from binary_id foreign key)
+      foreign_key_attrs = attributes.foreign_key_type
+      assert length(foreign_key_attrs) > 0
+
+      # Check that foreign key attributes have the right structure
+      Enum.each(foreign_key_attrs, fn attr ->
+        assert match?({:@, _, [{:foreign_key_type, _, _}]}, attr)
+      end)
     end
   end
 end

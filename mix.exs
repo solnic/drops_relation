@@ -24,7 +24,8 @@ defmodule Drops.Relation.MixProject do
       consolidate_protocols: Mix.env() == :prod,
       elixir_paths: elixir_paths(Mix.env()),
       preferred_cli_env: [
-        "test.group": :test
+        "test.group": :test,
+        "test.integration": :test
       ],
       aliases: aliases()
     ]
@@ -108,7 +109,6 @@ defmodule Drops.Relation.MixProject do
   end
 
   # Mix aliases for common tasks
-  # Mix aliases for common tasks
   defp aliases do
     [
       "ecto.create": ["drops.relation.dev_setup", "ecto.create"],
@@ -118,7 +118,8 @@ defmodule Drops.Relation.MixProject do
       "ecto.migrate": ["drops.relation.dev_setup", "ecto.migrate"],
       "ecto.migrations": ["drops.relation.dev_setup", "ecto.migrations"],
       "ecto.dump": ["drops.relation.dev_setup", "ecto.dump"],
-      "ecto.load": ["drops.relation.dev_setup", "ecto.load"]
+      "ecto.load": ["drops.relation.dev_setup", "ecto.load"],
+      "test.integration": ["cmd cd test/sample_app && mix test"]
     ]
   end
 end
