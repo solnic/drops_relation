@@ -2,16 +2,22 @@ defmodule Drops.SQL.Database do
   alias Drops.SQL.{Postgres, Sqlite}
   alias Drops.SQL.Database.Table
 
-  @callback introspect_table(module(), String.t()) :: {:ok, Table.t()} | {:error, term()}
+  @type name :: {:identifier, String.t()}
 
-  @callback introspect_table_columns(module(), String.t()) ::
-              {:ok, [Column.t()]} | {:error, term()}
+  @type db_type :: {:type, term()}
 
-  @callback introspect_table_foreign_keys(module(), String.t()) ::
-              {:ok, [ForeignKey.t()]} | {:error, term()}
+  @type meta :: {:meta, map()}
 
-  @callback introspect_table_indices(module(), String.t()) ::
-              {:ok, [Index.t()]} | {:error, term()}
+  @type column :: {:column, {name(), db_type(), meta()}}
+
+  @type foreign_key ::
+          {:foreign_key, {name(), [name()], name(), [name()], meta()}}
+
+  @type index :: {:index, {name(), [name()], meta()}}
+
+  @type table :: {:table, {name(), [column()], [foreign_key()], [index()]}}
+
+  @callback introspect_table(String.t(), module()) :: {:ok, table()} | {:error, term()}
 
   defmacro __using__(opts) do
     quote location: :keep do
@@ -34,6 +40,7 @@ defmodule Drops.SQL.Database do
     end
   end
 
+  @spec table(String.t(), module()) :: {:ok, Table.t()} | {:error, term()}
   def table(name, repo) do
     case get_database_adapter(repo) do
       {:ok, adapter} ->
@@ -44,6 +51,7 @@ defmodule Drops.SQL.Database do
     end
   end
 
+  @spec compile_table(module(), table(), keyword()) :: {:ok, Table.t()} | {:error, term()}
   def compile_table(compiler, ast, opts) do
     case compiler.process(ast, opts) do
       %Table{} = table -> {:ok, table}
@@ -51,6 +59,8 @@ defmodule Drops.SQL.Database do
     end
   end
 
+  @spec get_database_adapter(module()) ::
+          {:ok, module()} | {:error, {:unsupported_adapter, module()}}
   defp get_database_adapter(repo) do
     case repo.__adapter__() do
       Ecto.Adapters.SQLite3 ->

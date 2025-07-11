@@ -54,7 +54,7 @@ defmodule Drops.SQL.Database.PrimaryKey do
   ## Examples
 
       iex> alias Drops.SQL.Database.Column
-      iex> col = Column.new("id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col = Column.new("id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
       iex> pk = Drops.SQL.Database.PrimaryKey.new([col])
       iex> length(pk.columns)
       1
@@ -62,8 +62,8 @@ defmodule Drops.SQL.Database.PrimaryKey do
       false
 
       iex> alias Drops.SQL.Database.Column
-      iex> col1 = Column.new("user_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
-      iex> col2 = Column.new("role_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col1 = Column.new("user_id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col2 = Column.new("role_id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
       iex> pk = Drops.SQL.Database.PrimaryKey.new([col1, col2])
       iex> length(pk.columns)
       2
@@ -92,7 +92,7 @@ defmodule Drops.SQL.Database.PrimaryKey do
 
       iex> alias Drops.SQL.Database.Column
       iex> columns = [
-      ...>   Column.new("id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []}),
+      ...>   Column.new("id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []}),
       ...>   Column.new("name", "varchar(255)", %{nullable: true, default: nil, primary_key: false, check_constraints: []})
       ...> ]
       iex> pk = Drops.SQL.Database.PrimaryKey.from_columns(columns)
@@ -113,14 +113,14 @@ defmodule Drops.SQL.Database.PrimaryKey do
   ## Examples
 
       iex> alias Drops.SQL.Database.Column
-      iex> col = Column.new("id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col = Column.new("id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
       iex> pk = Drops.SQL.Database.PrimaryKey.new([col])
       iex> Drops.SQL.Database.PrimaryKey.composite?(pk)
       false
 
       iex> alias Drops.SQL.Database.Column
-      iex> col1 = Column.new("user_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
-      iex> col2 = Column.new("role_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col1 = Column.new("user_id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col2 = Column.new("role_id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
       iex> pk = Drops.SQL.Database.PrimaryKey.new([col1, col2])
       iex> Drops.SQL.Database.PrimaryKey.composite?(pk)
       true
@@ -158,8 +158,8 @@ defmodule Drops.SQL.Database.PrimaryKey do
   ## Examples
 
       iex> alias Drops.SQL.Database.Column
-      iex> col1 = Column.new("user_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
-      iex> col2 = Column.new("role_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col1 = Column.new("user_id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col2 = Column.new("role_id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
       iex> pk = Drops.SQL.Database.PrimaryKey.new([col1, col2])
       iex> Drops.SQL.Database.PrimaryKey.column_names(pk)
       ["user_id", "role_id"]
@@ -179,15 +179,15 @@ defmodule Drops.SQL.Database.PrimaryKey do
   ## Examples
 
       iex> alias Drops.SQL.Database.Column
-      iex> col1 = Column.new("user_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
-      iex> col2 = Column.new("role_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col1 = Column.new("user_id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col2 = Column.new("role_id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
       iex> pk = Drops.SQL.Database.PrimaryKey.new([col1, col2])
       iex> Drops.SQL.Database.PrimaryKey.includes_column?(pk, "user_id")
       true
 
       iex> alias Drops.SQL.Database.Column
-      iex> col1 = Column.new("user_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
-      iex> col2 = Column.new("role_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col1 = Column.new("user_id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col2 = Column.new("role_id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
       iex> pk = Drops.SQL.Database.PrimaryKey.new([col1, col2])
       iex> Drops.SQL.Database.PrimaryKey.includes_column?(pk, "name")
       false
@@ -204,8 +204,8 @@ defmodule Drops.SQL.Database.PrimaryKey do
   ## Examples
 
       iex> alias Drops.SQL.Database.Column
-      iex> col1 = Column.new("user_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
-      iex> col2 = Column.new("role_id", "integer", %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col1 = Column.new("user_id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
+      iex> col2 = Column.new("role_id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []})
       iex> pk = Drops.SQL.Database.PrimaryKey.new([col1, col2])
       iex> Drops.SQL.Database.PrimaryKey.column_count(pk)
       2

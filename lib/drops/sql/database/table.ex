@@ -12,7 +12,7 @@ defmodule Drops.SQL.Database.Table do
       %Drops.SQL.Database.Table{
         name: "users",
         columns: [
-          %Drops.SQL.Database.Column{name: "id", type: "integer", primary_key: true, ...},
+          %Drops.SQL.Database.Column{name: "id", type: :integer, primary_key: true, ...},
           %Drops.SQL.Database.Column{name: "email", type: "varchar(255)", primary_key: false, ...}
         ],
         primary_key: %Drops.SQL.Database.PrimaryKey{columns: ["id"]},
@@ -75,7 +75,7 @@ defmodule Drops.SQL.Database.Table do
   ## Examples
 
       iex> alias Drops.SQL.Database.{Column, PrimaryKey, ForeignKey, Index}
-      iex> columns = [Column.new("id", "integer", false, nil, true)]
+      iex> columns = [Column.new("id", :integer, false, nil, true)]
       iex> pk = PrimaryKey.new(["id"])
       iex> fks = []
       iex> indices = []
@@ -89,11 +89,11 @@ defmodule Drops.SQL.Database.Table do
         indices: []
       }
   """
-  @spec new(String.t(), adapter(), PrimaryKey.t(), [Column.t()], [ForeignKey.t()], [
+  @spec new(String.t(), adapter(), [Column.t()], PrimaryKey.t(), [ForeignKey.t()], [
           Index.t()
         ]) ::
           t()
-  def new(name, adapter, primary_key, columns, foreign_keys, indices) do
+  def new(name, adapter, columns, primary_key, foreign_keys, indices) do
     %__MODULE__{
       name: name,
       adapter: adapter,
@@ -121,7 +121,7 @@ defmodule Drops.SQL.Database.Table do
   ## Examples
 
       iex> alias Drops.SQL.Database.Column
-      iex> columns = [Column.new("id", "integer", false, nil, true)]
+      iex> columns = [Column.new("id", :integer, false, nil, true)]
       iex> Drops.SQL.Database.Table.from_introspection("users", :postgres, columns)
       %Drops.SQL.Database.Table{
         name: "users",
@@ -148,7 +148,7 @@ defmodule Drops.SQL.Database.Table do
 
       iex> alias Drops.SQL.Database.{Column, Table}
       iex> columns = [
-      ...>   Column.new("id", "integer", false, nil, true),
+      ...>   Column.new("id", :integer, false, nil, true),
       ...>   Column.new("email", "varchar(255)", true, nil, false)
       ...> ]
       iex> table = Table.from_introspection("users", columns)
@@ -157,7 +157,7 @@ defmodule Drops.SQL.Database.Table do
       "email"
 
       iex> alias Drops.SQL.Database.{Column, Table}
-      iex> columns = [Column.new("id", "integer", false, nil, true)]
+      iex> columns = [Column.new("id", :integer, false, nil, true)]
       iex> table = Table.from_introspection("users", columns)
       iex> Table.get_column(table, "nonexistent")
       nil
@@ -175,7 +175,7 @@ defmodule Drops.SQL.Database.Table do
 
       iex> alias Drops.SQL.Database.{Column, Table}
       iex> columns = [
-      ...>   Column.new("id", "integer", false, nil, true),
+      ...>   Column.new("id", :integer, false, nil, true),
       ...>   Column.new("email", "varchar(255)", true, nil, false)
       ...> ]
       iex> table = Table.from_introspection("users", columns)
@@ -194,7 +194,7 @@ defmodule Drops.SQL.Database.Table do
 
       iex> alias Drops.SQL.Database.{Column, Table}
       iex> columns = [
-      ...>   Column.new("id", "integer", false, nil, true),
+      ...>   Column.new("id", :integer, false, nil, true),
       ...>   Column.new("email", "varchar(255)", true, nil, false)
       ...> ]
       iex> table = Table.from_introspection("users", columns)
@@ -213,8 +213,8 @@ defmodule Drops.SQL.Database.Table do
 
       iex> alias Drops.SQL.Database.{Column, ForeignKey, Table}
       iex> columns = [
-      ...>   Column.new("id", "integer", false, nil, true),
-      ...>   Column.new("user_id", "integer", false, nil, false)
+      ...>   Column.new("id", :integer, false, nil, true),
+      ...>   Column.new("user_id", :integer, false, nil, false)
       ...> ]
       iex> fks = [ForeignKey.simple("user_id", "users")]
       iex> table = Table.from_introspection("posts", columns, fks)
@@ -234,13 +234,13 @@ defmodule Drops.SQL.Database.Table do
   ## Examples
 
       iex> alias Drops.SQL.Database.{Column, Table}
-      iex> columns = [Column.new("id", "integer", false, nil, true)]
+      iex> columns = [Column.new("id", :integer, false, nil, true)]
       iex> table = Table.from_introspection("users", columns)
       iex> Table.primary_key_column?(table, "id")
       true
 
       iex> alias Drops.SQL.Database.{Column, Table}
-      iex> columns = [Column.new("id", "integer", false, nil, true)]
+      iex> columns = [Column.new("id", :integer, false, nil, true)]
       iex> table = Table.from_introspection("users", columns)
       iex> Table.primary_key_column?(table, "email")
       false
@@ -256,7 +256,7 @@ defmodule Drops.SQL.Database.Table do
   ## Examples
 
       iex> alias Drops.SQL.Database.{Column, ForeignKey, Table}
-      iex> columns = [Column.new("user_id", "integer", false, nil, false)]
+      iex> columns = [Column.new("user_id", :integer, false, nil, false)]
       iex> fks = [ForeignKey.simple("user_id", "users")]
       iex> table = Table.from_introspection("posts", columns, fks)
       iex> Table.foreign_key_column?(table, "user_id")
@@ -279,7 +279,7 @@ defmodule Drops.SQL.Database.Table do
   ## Examples
 
       iex> alias Drops.SQL.Database.{Column, ForeignKey, Table}
-      iex> columns = [Column.new("user_id", "integer", false, nil, false)]
+      iex> columns = [Column.new("user_id", :integer, false, nil, false)]
       iex> fks = [ForeignKey.simple("user_id", "users")]
       iex> table = Table.from_introspection("posts", columns, fks)
       iex> fk = Table.get_foreign_key_for_column(table, "user_id")
@@ -300,16 +300,10 @@ defmodule Drops.SQL.Database.Table do
   defimpl Drops.SQL.Types.Conversion do
     alias Drops.SQL.Types
 
-    def to_atom(_table, :id), do: :integer
-    def to_atom(_table, :binary_id), do: :binary
-    def to_atom(_table, Ecto.UUID), do: :binary
-    def to_atom(table, {:array, type}), do: {:array, to_atom(table, type)}
-    def to_atom(_table, other) when is_atom(other), do: other
-
-    def to_ecto_type(%{adapter: adapter} = table, column) do
+    def to_ecto_type(%{adapter: adapter}, column) do
       case adapter do
-        :sqlite -> Types.Sqlite.to_ecto_type(column, table)
-        :postgres -> Types.Postgres.to_ecto_type(column, table)
+        :sqlite -> Types.Sqlite.to_ecto_type(column)
+        :postgres -> Types.Postgres.to_ecto_type(column)
       end
     end
   end

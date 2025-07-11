@@ -19,7 +19,7 @@ defmodule Drops.SQL.Database.Column do
       # Primary key column
       %Drops.SQL.Database.Column{
         name: "id",
-        type: "integer",
+        type: :integer,
         nullable: false,
         default: nil,
         primary_key: true
@@ -40,6 +40,7 @@ defmodule Drops.SQL.Database.Column do
           nullable: boolean(),
           default: term(),
           primary_key: boolean(),
+          foreign_key: boolean(),
           check_constraints: [String.t()]
         }
 
@@ -92,7 +93,7 @@ defmodule Drops.SQL.Database.Column do
 
   ## Examples
 
-      iex> column = Drops.SQL.Database.Column.new("id", "integer", false, nil, true)
+      iex> column = Drops.SQL.Database.Column.new("id", :integer, false, nil, true)
       iex> Drops.SQL.Database.Column.primary_key?(column)
       true
 
@@ -112,7 +113,7 @@ defmodule Drops.SQL.Database.Column do
       iex> Drops.SQL.Database.Column.nullable?(column)
       true
 
-      iex> column = Drops.SQL.Database.Column.new("id", "integer", false, nil, true)
+      iex> column = Drops.SQL.Database.Column.new("id", :integer, false, nil, true)
       iex> Drops.SQL.Database.Column.nullable?(column)
       false
   """

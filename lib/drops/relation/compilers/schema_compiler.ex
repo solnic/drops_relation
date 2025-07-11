@@ -70,10 +70,9 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
     table = opts[:table]
 
     ecto_type = Types.Conversion.to_ecto_type(table, column)
-    atom_type = Types.Conversion.to_atom(table, ecto_type)
 
     meta = %{
-      type: atom_type,
+      type: column.type,
       source: column.name,
       primary_key: column.meta.primary_key,
       foreign_key: Database.Table.foreign_key_column?(table, column.name),

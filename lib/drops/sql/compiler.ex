@@ -25,7 +25,7 @@ defmodule Drops.SQL.Compiler do
 
         primary_key = PrimaryKey.from_columns(columns)
 
-        Table.new(name, opts[:adapter], primary_key, columns, foreign_keys, indices)
+        Table.new(name, opts[:adapter], columns, primary_key, foreign_keys, indices)
       end
 
       def visit({:identifier, name}, _opts), do: String.to_atom(name)
@@ -56,6 +56,8 @@ defmodule Drops.SQL.Compiler do
       def visit(components, opts) when is_list(components) do
         Enum.map(components, &visit(&1, opts))
       end
+
+      def visit(value, opts) when is_tuple(value), do: visit(Tuple.to_list(value), opts)
 
       # Catch-all
       def visit(value, _opts), do: value

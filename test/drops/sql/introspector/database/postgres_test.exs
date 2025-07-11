@@ -22,18 +22,18 @@ defmodule Drops.SQL.PostgresTest do
       id_column = Enum.find(table.columns, &(&1.name == :id))
       assert id_column
       # PostgreSQL SERIAL PRIMARY KEY is bigint
-      assert id_column.type == "bigint"
+      assert id_column.type == :integer
       assert id_column.meta.primary_key == true
       assert id_column.meta.nullable == false
 
       # Check PostgreSQL-specific types
       uuid_column = Enum.find(table.columns, &(&1.name == :uuid_type))
       assert uuid_column
-      assert uuid_column.type == "uuid"
+      assert uuid_column.type == :uuid
 
       jsonb_column = Enum.find(table.columns, &(&1.name == :jsonb_type))
       assert jsonb_column
-      assert jsonb_column.type == "jsonb"
+      assert jsonb_column.type == :map
 
       # Verify primary key
       assert %Database.PrimaryKey{} = table.primary_key
@@ -85,18 +85,18 @@ defmodule Drops.SQL.PostgresTest do
       id_column = Enum.find(table.columns, &(&1.name == :id))
       assert id_column
       # PostgreSQL SERIAL PRIMARY KEY is bigint
-      assert id_column.type == "bigint"
+      assert id_column.type == :integer
       assert id_column.meta.primary_key == true
       assert id_column.meta.nullable == false
 
       integer_type_column = Enum.find(table.columns, &(&1.name == :integer_type))
       assert integer_type_column
-      assert integer_type_column.type == "integer"
+      assert integer_type_column.type == :integer
       assert integer_type_column.meta.primary_key == false
 
       text_type_column = Enum.find(table.columns, &(&1.name == :text_type))
       assert text_type_column
-      assert text_type_column.type == "text"
+      assert text_type_column.type == :string
 
       # Verify primary key
       assert %Database.PrimaryKey{} = table.primary_key
@@ -146,12 +146,12 @@ defmodule Drops.SQL.PostgresTest do
       user_id_column = Enum.find(table.columns, &(&1.name == :user_id))
       assert user_id_column
       # PostgreSQL references are bigint
-      assert user_id_column.type == "bigint"
+      assert user_id_column.type == :integer
 
       parent_id_column = Enum.find(table.columns, &(&1.name == :parent_id))
       assert parent_id_column
       # PostgreSQL references are bigint
-      assert parent_id_column.type == "bigint"
+      assert parent_id_column.type == :integer
 
       # Verify foreign keys are detected
       assert is_list(table.foreign_keys)
@@ -194,38 +194,38 @@ defmodule Drops.SQL.PostgresTest do
       # Check status column with default value
       status_column = Enum.find(table.columns, &(&1.name == :status))
       assert status_column
-      assert status_column.type == "character varying"
+      assert status_column.type == :string
       assert status_column.meta.nullable == false
       assert status_column.meta.default == "active"
 
       # Check nullable description column
       description_column = Enum.find(table.columns, &(&1.name == :description))
       assert description_column
-      assert description_column.type == "text"
+      assert description_column.type == :string
       assert description_column.meta.nullable == true
 
       # Check non-nullable name column
       name_column = Enum.find(table.columns, &(&1.name == :name))
       assert name_column
-      assert name_column.type == "character varying"
+      assert name_column.type == :string
       assert name_column.meta.nullable == false
 
       # Check priority column with numeric default
       priority_column = Enum.find(table.columns, &(&1.name == :priority))
       assert priority_column
-      assert priority_column.type == "integer"
+      assert priority_column.type == :integer
       assert priority_column.meta.default == 1
 
       # Check boolean column with default
       is_enabled_column = Enum.find(table.columns, &(&1.name == :is_enabled))
       assert is_enabled_column
-      assert is_enabled_column.type == "boolean"
+      assert is_enabled_column.type == :boolean
       assert is_enabled_column.meta.default == true
 
       # Check score column with check constraints
       score_column = Enum.find(table.columns, &(&1.name == :score))
       assert score_column
-      assert score_column.type == "integer"
+      assert score_column.type == :integer
       assert score_column.meta.nullable == false
       # Check constraints should be detected
       assert is_list(score_column.meta.check_constraints)
@@ -261,6 +261,49 @@ defmodule Drops.SQL.PostgresTest do
       assert table.foreign_keys == []
     end
 
+    @tag relations: [:user_groups], adapter: :postgres
+    test "returns table with foreign key and index metadata in columns for user_groups", %{
+      repo: repo
+    } do
+      {:ok, table} = Database.table("user_groups", repo)
+
+      # Verify table structure
+      assert %Database.Table{} = table
+      assert table.name == :user_groups
+      assert table.adapter == :postgres
+
+      # Check user_id column - should have foreign_key: true and index: true
+      user_id_column = Enum.find(table.columns, &(&1.name == :user_id))
+      assert user_id_column
+      assert user_id_column.type == :integer
+      assert user_id_column.meta.foreign_key == true
+      assert user_id_column.meta.index == true
+      assert is_binary(user_id_column.meta.index_name)
+
+      # Check group_id column - should have foreign_key: true and index: true
+      group_id_column = Enum.find(table.columns, &(&1.name == :group_id))
+      assert group_id_column
+      assert group_id_column.type == :integer
+      assert group_id_column.meta.foreign_key == true
+      assert group_id_column.meta.index == true
+      assert is_binary(group_id_column.meta.index_name)
+
+      # Check id column - should have foreign_key: false and index: false
+      id_column = Enum.find(table.columns, &(&1.name == :id))
+      assert id_column
+      assert id_column.meta.primary_key == true
+      assert id_column.meta.foreign_key == false
+      assert id_column.meta.index == false
+      assert id_column.meta.index_name == nil
+
+      # Check timestamp columns - should have foreign_key: false and index: false
+      inserted_at_column = Enum.find(table.columns, &(&1.name == :inserted_at))
+      assert inserted_at_column
+      assert inserted_at_column.meta.foreign_key == false
+      assert inserted_at_column.meta.index == false
+      assert inserted_at_column.meta.index_name == nil
+    end
+
     @tag relations: [:custom_pk], adapter: :postgres
     test "correctly handles UUID primary key" do
       {:ok, table} = Database.table("custom_pk", Drops.Relation.Repos.Postgres)
@@ -270,7 +313,7 @@ defmodule Drops.SQL.PostgresTest do
 
       primary_key_column_names = Enum.map(primary_key.columns, & &1.name)
       assert primary_key_column_names == [:uuid]
-      assert id_column.type == "uuid"
+      assert id_column.type == :uuid
     end
   end
 end

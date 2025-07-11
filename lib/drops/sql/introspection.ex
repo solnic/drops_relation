@@ -8,7 +8,6 @@ defmodule Drops.SQL.Introspection do
   Uses a behavior-based approach to support multiple database adapters.
   """
 
-  alias Drops.Relation.Schema.Indices
   alias Drops.SQL
   alias Drops.SQL.Database.Table
 
@@ -32,7 +31,7 @@ defmodule Drops.SQL.Introspection do
       iex> Drops.SQL.Introspection.introspect_table(MyRepo, "users")
       {:ok, %Drops.SQL.Database.Table{name: "users", columns: [...], ...}}
   """
-  @spec introspect_table(module(), String.t()) :: {:ok, Table.t()} | {:error, term()}
+  @spec introspect_table(String.t(), module()) :: {:ok, Table.t()} | {:error, term()}
   def introspect_table(table_name, repo) when is_binary(table_name) do
     case get_database_adapter(repo) do
       {:ok, adapter_module} ->
@@ -42,37 +41,6 @@ defmodule Drops.SQL.Introspection do
         {:error, reason}
     end
   end
-
-  @doc """
-  Extracts index information for a table from the database.
-
-  ## Parameters
-
-  - `repo` - The Ecto repository module
-  - `table_name` - The name of the table to introspect
-
-  ## Returns
-
-  Returns `{:ok, %Indices{}}` on success or `{:error, reason}` on failure.
-
-  ## Examples
-
-      iex> Drops.SQL.Introspection.get_table_indices(MyRepo, "users")
-      {:ok, %Drops.Relation.Schema.Indices{indices: [...]}}
-  """
-  @spec get_table_indices(module(), String.t()) :: {:ok, Indices.t()} | {:error, term()}
-  def get_table_indices(repo, table_name) when is_binary(table_name) do
-    # Get the appropriate database adapter and delegate
-    case get_database_adapter(repo) do
-      {:ok, adapter_module} ->
-        adapter_module.introspect_table_indices(repo, table_name)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  # Private helper functions
 
   defp get_database_adapter(repo) do
     case repo.__adapter__() do

@@ -25,7 +25,7 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       pk_field = hd(drops_relation_schema.primary_key.fields)
       assert pk_field.name == :id
       assert pk_field.type == :binary_id
-      assert pk_field.meta.type == :binary
+      assert pk_field.meta.type == :uuid
 
       # Verify the module was generated with @primary_key attribute
       # We can't directly inspect module attributes, but we can check the behavior
@@ -175,7 +175,7 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       pk_field = hd(drops_relation_schema.primary_key.fields)
       assert pk_field.name == :id
       assert pk_field.type == :binary_id
-      assert pk_field.meta.type == :binary
+      assert pk_field.meta.type == :uuid
     end
 
     @tag relations: [:uuid_users], adapter: :postgres

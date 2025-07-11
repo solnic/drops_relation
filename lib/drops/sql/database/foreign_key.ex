@@ -171,7 +171,7 @@ defmodule Drops.SQL.Database.ForeignKey do
       iex> Drops.SQL.Database.ForeignKey.includes_column?(fk, "role_id")
       false
   """
-  @spec includes_column?(t(), String.t()) :: boolean()
+  @spec includes_column?(t(), atom()) :: boolean()
   def includes_column?(%__MODULE__{columns: columns}, column_name) when is_atom(column_name) do
     column_name in columns
   end

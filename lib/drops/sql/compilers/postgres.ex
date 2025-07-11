@@ -1,6 +1,87 @@
 defmodule Drops.SQL.Compilers.Postgres do
   use Drops.SQL.Compiler
 
+  @integer_types [
+    "integer",
+    "int",
+    "int4",
+    "bigint",
+    "int8",
+    "smallint",
+    "int2",
+    "serial",
+    "serial4",
+    "bigserial",
+    "serial8",
+    "smallserial",
+    "serial2"
+  ]
+
+  def visit({:type, type}, _opts) do
+    case type do
+      type when type in @integer_types ->
+        :integer
+
+      "uuid" ->
+        :uuid
+
+      # Floating point types
+      type when type in ["real", "float4", "double precision", "float8"] ->
+        :float
+
+      # Decimal types
+      type when type in ["numeric", "decimal", "money"] ->
+        :decimal
+
+      # String types
+      type
+      when type in ["text", "character varying", "varchar", "char", "character", "name"] ->
+        :string
+
+      # Boolean type
+      "boolean" ->
+        :boolean
+
+      # Binary types
+      "bytea" ->
+        :binary
+
+      # Date/time types
+      "date" ->
+        :date
+
+      type
+      when type in ["time", "time without time zone", "time with time zone", "timetz"] ->
+        :time
+
+      type when type in ["timestamp without time zone", "timestamp"] ->
+        :naive_datetime
+
+      type when type in ["timestamp with time zone", "timestamptz"] ->
+        :utc_datetime
+
+      # JSON types
+      type when type in ["json", "jsonb"] ->
+        :map
+
+      type
+      when type in [
+             "xml",
+             "inet",
+             "cidr",
+             "macaddr",
+             "point",
+             "line",
+             "lseg",
+             "box",
+             "path",
+             "polygon",
+             "circle"
+           ] ->
+        :string
+    end
+  end
+
   def visit({:default, nil}, _opts), do: nil
   def visit({:default, ""}, _opts), do: ""
 

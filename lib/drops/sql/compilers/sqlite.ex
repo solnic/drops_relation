@@ -1,6 +1,48 @@
 defmodule Drops.SQL.Compilers.Sqlite do
   use Drops.SQL.Compiler
 
+  def visit({:type, type}, _opts) do
+    normalized_type = String.upcase(type)
+
+    case normalized_type do
+      "INTEGER" ->
+        :integer
+
+      "FLOAT" ->
+        :float
+
+      "TEXT" ->
+        :string
+
+      "REAL" ->
+        :float
+
+      "BLOB" ->
+        :binary
+
+      "UUID" ->
+        :uuid
+
+      type when type in ["NUMERIC", "DECIMAL"] ->
+        :decimal
+
+      type when type in ["BOOLEAN", "BOOL"] ->
+        :boolean
+
+      type when type in ["DATETIME", "TIMESTAMP"] ->
+        :naive_datetime
+
+      "DATE" ->
+        :date
+
+      "TIME" ->
+        :time
+
+      "JSON" ->
+        :map
+    end
+  end
+
   def visit({:default, nil}, _opts), do: nil
   def visit({:default, ""}, _opts), do: nil
 
