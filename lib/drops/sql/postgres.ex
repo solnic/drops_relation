@@ -13,7 +13,7 @@ defmodule Drops.SQL.Postgres do
   - Support for various PostgreSQL index types (btree, hash, gin, gist, brin)
   """
 
-  use Drops.SQL.Database, adapter: :postgres
+  use Drops.SQL.Database, adapter: :postgres, compiler: Drops.SQL.Compilers.Postgres
 
   @impl true
   def introspect_table(table_name, repo) do

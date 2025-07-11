@@ -1,5 +1,5 @@
 defmodule Drops.SQL.Database do
-  alias Drops.SQL.{Compiler, Postgres, Sqlite}
+  alias Drops.SQL.{Postgres, Sqlite}
   alias Drops.SQL.Database.Table
 
   @callback introspect_table(module(), String.t()) :: {:ok, Table.t()} | {:error, term()}
@@ -27,7 +27,7 @@ defmodule Drops.SQL.Database do
 
       def table(name, repo) do
         case introspect_table(name, repo) do
-          {:ok, ast} -> Database.compile_table(ast, opts())
+          {:ok, ast} -> Database.compile_table(unquote(opts[:compiler]), ast, opts())
           error -> error
         end
       end
@@ -44,8 +44,8 @@ defmodule Drops.SQL.Database do
     end
   end
 
-  def compile_table(ast, opts) do
-    case Compiler.visit(ast, opts) do
+  def compile_table(compiler, ast, opts) do
+    case compiler.visit(ast, opts) do
       %Table{} = table -> {:ok, table}
       error -> error
     end

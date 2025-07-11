@@ -13,7 +13,7 @@ defmodule Drops.SQL.Sqlite do
   - Support for unique and composite indices
   """
 
-  use Drops.SQL.Database, adapter: :sqlite
+  use Drops.SQL.Database, adapter: :sqlite, compiler: Drops.SQL.Compilers.Sqlite
 
   @impl true
   def introspect_table(table_name, repo) do

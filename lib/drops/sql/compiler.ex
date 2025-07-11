@@ -1,6 +1,16 @@
 defmodule Drops.SQL.Compiler do
   alias Drops.SQL.Database.{Table, Column, PrimaryKey, ForeignKey, Index}
 
+  defmacro __using__(_opts) do
+    quote location: :keep do
+      alias Drops.SQL.Database.{Table, Column, PrimaryKey, ForeignKey, Index}
+
+      import Drops.SQL.Compiler
+
+      def visit(node, opts), do: Drops.SQL.Compiler.visit(node, opts)
+    end
+  end
+
   def visit({:table, components}, opts) do
     [name, columns, foreign_keys, indices] = visit(components, opts)
 
