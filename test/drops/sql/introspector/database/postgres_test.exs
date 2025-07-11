@@ -315,5 +315,64 @@ defmodule Drops.SQL.PostgresTest do
       assert primary_key_column_names == [:uuid]
       assert id_column.type == :uuid
     end
+
+    @tag relations: [:postgres_array_types], adapter: :postgres
+    test "correctly handles PostgreSQL array types including character varying[]" do
+      {:ok, table} = Database.table("postgres_array_types", Drops.Relation.Repos.Postgres)
+
+      # Verify table structure
+      assert %Database.Table{} = table
+      assert table.name == :postgres_array_types
+      assert table.adapter == :postgres
+
+      # Verify columns are present and properly structured
+      assert is_list(table.columns)
+
+      # Check specific array columns exist with proper types
+      integer_array_column = Enum.find(table.columns, &(&1.name == :integer_array))
+      assert integer_array_column
+      assert integer_array_column.type == {:array, :integer}
+
+      text_array_column = Enum.find(table.columns, &(&1.name == :text_array))
+      assert text_array_column
+      # This should be converted from "character varying[]" to {:array, :string}
+      assert text_array_column.type == {:array, :string}
+
+      boolean_array_column = Enum.find(table.columns, &(&1.name == :boolean_array))
+      assert boolean_array_column
+      assert boolean_array_column.type == {:array, :boolean}
+
+      uuid_array_column = Enum.find(table.columns, &(&1.name == :uuid_array))
+      assert uuid_array_column
+      assert uuid_array_column.type == {:array, :uuid}
+
+      # Verify primary key
+      assert %Database.PrimaryKey{} = table.primary_key
+      primary_key_column_names = Enum.map(table.primary_key.columns, & &1.name)
+      assert primary_key_column_names == [:id]
+
+      # Verify indices and foreign keys (should be empty for this table)
+      assert is_list(table.indices)
+      assert is_list(table.foreign_keys)
+      assert table.foreign_keys == []
+    end
+
+    @tag relations: [:postgres_array_types], adapter: :postgres
+    test "correctly converts character varying[] to {:array, :string}" do
+      {:ok, table} = Database.table("postgres_array_types", Drops.Relation.Repos.Postgres)
+
+      # Find the text_array column which should be created as {:array, :string} in migration
+      # but stored as "character varying[]" in PostgreSQL
+      text_array_column = Enum.find(table.columns, &(&1.name == :text_array))
+      assert text_array_column
+
+      # Verify that the PostgreSQL "character varying[]" type is correctly converted to {:array, :string}
+      assert text_array_column.type == {:array, :string}
+
+      # Verify the column metadata
+      assert text_array_column.meta.nullable == true
+      assert text_array_column.meta.primary_key == false
+      assert text_array_column.meta.foreign_key == false
+    end
   end
 end

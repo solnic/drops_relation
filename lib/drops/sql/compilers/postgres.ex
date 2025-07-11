@@ -17,7 +17,7 @@ defmodule Drops.SQL.Compilers.Postgres do
     "serial2"
   ]
 
-  def visit({:type, type}, _opts) do
+  def visit({:type, type}, opts) do
     case type do
       type when type in @integer_types ->
         :integer
@@ -79,6 +79,19 @@ defmodule Drops.SQL.Compilers.Postgres do
              "circle"
            ] ->
         :string
+
+      # Array types - handle PostgreSQL array syntax
+      type when is_binary(type) ->
+        if String.ends_with?(type, "[]") do
+          # Extract the base type by removing the "[]" suffix
+          base_type = String.slice(type, 0, String.length(type) - 2)
+          # Recursively process the base type
+          base_ecto_type = visit({:type, base_type}, opts)
+          {:array, base_ecto_type}
+        else
+          # Unknown type, return as-is
+          type
+        end
     end
   end
 
