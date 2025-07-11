@@ -1,4 +1,68 @@
 defmodule Drops.SQL.Sqlite do
+  @moduledoc """
+  SQLite database adapter for introspecting table metadata.
+
+  This module implements the `Drops.SQL.Database` behavior to provide SQLite-specific
+  database introspection capabilities. It uses SQLite's PRAGMA statements to extract
+  comprehensive table metadata including columns, constraints, indices, and foreign keys.
+
+  ## SQLite-Specific Features
+
+  SQLite has several unique characteristics that this adapter handles:
+
+  - **Dynamic typing** - SQLite uses type affinity rather than strict types
+  - **PRAGMA statements** - Used for introspection instead of information schema
+  - **Foreign key constraints** - Must be explicitly enabled and queried
+  - **Check constraints** - Extracted from table creation SQL
+  - **Autoincrement** - Special handling for INTEGER PRIMARY KEY columns
+
+  ## PRAGMA Statements Used
+
+  The adapter uses several SQLite PRAGMA statements for introspection:
+
+  - `PRAGMA table_info(table_name)` - Column information
+  - `PRAGMA index_list(table_name)` - Index information
+  - `PRAGMA index_info(index_name)` - Index column details
+  - `PRAGMA foreign_key_list(table_name)` - Foreign key constraints
+  - `sqlite_master` table queries - Check constraints and table SQL
+
+  ## Type Mapping
+
+  SQLite types are mapped to Ecto types through the `Drops.SQL.Compilers.Sqlite`
+  compiler. Common mappings include:
+
+  - `INTEGER` → `:integer`
+  - `TEXT` → `:string`
+  - `REAL` → `:float`
+  - `BLOB` → `:binary`
+  - `NUMERIC` → `:decimal`
+
+  ## Usage
+
+      # Direct usage (typically not needed)
+      {:ok, table} = Drops.SQL.Sqlite.table("users", MyApp.Repo)
+
+      # Preferred usage through main interface
+      {:ok, table} = Drops.SQL.Database.table("users", MyApp.Repo)
+
+  ## Implementation Notes
+
+  - Foreign key information is cross-referenced with column data
+  - Index information is merged with column metadata
+  - Check constraints are parsed from table creation SQL
+  - Primary key detection handles both explicit and implicit cases
+  - Supports composite primary keys and foreign keys
+
+  ## Error Handling
+
+  The adapter handles various SQLite-specific error conditions:
+
+  - Table not found
+  - Invalid PRAGMA statements
+  - Foreign key constraint parsing errors
+  - SQL parsing errors for check constraints
+  """
+
   use Drops.SQL.Database, adapter: :sqlite, compiler: Drops.SQL.Compilers.Sqlite
 
   @introspect_columns "PRAGMA table_info(~s)"
@@ -14,6 +78,43 @@ defmodule Drops.SQL.Sqlite do
     WHERE type = 'table' AND name = ?
   """
 
+  @doc """
+  Introspects a SQLite table and returns its complete metadata as an AST.
+
+  This function implements the `Drops.SQL.Database` behavior for SQLite databases.
+  It uses SQLite's PRAGMA statements to extract comprehensive table information
+  including columns, foreign keys, and indices.
+
+  ## Process
+
+  1. Introspects foreign keys using `PRAGMA foreign_key_list`
+  2. Introspects indices using `PRAGMA index_list` and `PRAGMA index_info`
+  3. Introspects columns using `PRAGMA table_info` with cross-referenced FK/index data
+  4. Combines all metadata into a table AST structure
+
+  ## Parameters
+
+  - `table_name` - The name of the SQLite table to introspect
+  - `repo` - The Ecto repository configured for SQLite
+
+  ## Returns
+
+  - `{:ok, Database.table()}` - Successfully introspected table AST
+  - `{:error, term()}` - Error during introspection (table not found, etc.)
+
+  ## AST Structure
+
+  Returns a table AST in the format:
+  `{:table, {{:identifier, table_name}, columns, foreign_keys, indices}}`
+
+  ## SQLite-Specific Behavior
+
+  - Handles SQLite's dynamic typing system
+  - Processes composite primary keys correctly
+  - Cross-references foreign key and index information with columns
+  - Extracts check constraints from table creation SQL
+  - Handles autoincrement detection for INTEGER PRIMARY KEY columns
+  """
   @impl true
   @spec introspect_table(String.t(), module()) :: {:ok, Database.table()} | {:error, term()}
   def introspect_table(table_name, repo) do
@@ -27,6 +128,10 @@ defmodule Drops.SQL.Sqlite do
     end
   end
 
+  # Introspects column information using PRAGMA table_info and cross-references with FK/index data.
+  # Returns {:ok, columns} or {:error, reason}.
+  @spec introspect_columns(module(), String.t(), list(), list()) ::
+          {:ok, list()} | {:error, term()}
   defp introspect_columns(repo, table_name, foreign_keys, indices) do
     # Extract foreign key column names from all foreign keys
     foreign_key_column_names =
@@ -85,6 +190,9 @@ defmodule Drops.SQL.Sqlite do
     end
   end
 
+  # Introspects index information using PRAGMA index_list and PRAGMA index_info.
+  # Returns {:ok, indices} or {:error, reason}.
+  @spec introspect_indices(module(), String.t()) :: {:ok, list()} | {:error, term()}
   defp introspect_indices(repo, table_name) do
     case repo.query(table_query(@introspect_indices, table_name)) do
       {:ok, %{rows: rows}} ->
@@ -134,6 +242,9 @@ defmodule Drops.SQL.Sqlite do
     end
   end
 
+  # Introspects foreign key constraints using PRAGMA foreign_key_list.
+  # Returns {:ok, foreign_keys} or {:error, reason}.
+  @spec introspect_foreign_keys(module(), String.t()) :: {:ok, list()} | {:error, term()}
   defp introspect_foreign_keys(repo, table_name) do
     case repo.query(table_query(@introspect_foreign_keys, table_name)) do
       {:ok, %{rows: rows}} ->
@@ -184,6 +295,9 @@ defmodule Drops.SQL.Sqlite do
     end
   end
 
+  # Parses SQLite foreign key action strings into atoms.
+  # Returns action atom or nil for unknown actions.
+  @spec parse_foreign_key_action(String.t() | term()) :: atom() | nil
   defp parse_foreign_key_action(action) when is_binary(action) do
     case String.upcase(action) do
       "RESTRICT" -> :restrict
@@ -197,6 +311,9 @@ defmodule Drops.SQL.Sqlite do
 
   defp parse_foreign_key_action(_), do: nil
 
+  # Extracts check constraints for a specific column from table creation SQL.
+  # Returns list of check constraint expressions.
+  @spec get_column_check_constraints(module(), String.t(), String.t()) :: [String.t()]
   defp get_column_check_constraints(repo, table_name, column_name) do
     case repo.query(@introspect_check_constraints, [table_name]) do
       {:ok, %{rows: [[sql]]}} when is_binary(sql) ->
@@ -212,6 +329,9 @@ defmodule Drops.SQL.Sqlite do
     end
   end
 
+  # Extracts CHECK constraint expressions from table creation SQL using regex.
+  # Returns list of constraint expressions.
+  @spec extract_check_constraints_from_sql(String.t()) :: [String.t()]
   defp extract_check_constraints_from_sql(sql) do
     # Simple regex to extract CHECK constraints
     # This is a basic implementation - could be enhanced for more complex cases
@@ -221,6 +341,8 @@ defmodule Drops.SQL.Sqlite do
     |> Enum.map(&String.trim/1)
   end
 
+  # Formats a query template with table name for SQLite PRAGMA statements.
+  @spec table_query(String.t(), String.t()) :: String.t()
   defp table_query(query, table_name),
     do: :io_lib.format(query, [table_name]) |> IO.iodata_to_binary()
 end

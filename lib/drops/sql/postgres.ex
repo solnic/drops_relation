@@ -1,4 +1,74 @@
 defmodule Drops.SQL.Postgres do
+  @moduledoc """
+  PostgreSQL database adapter for introspecting table metadata.
+
+  This module implements the `Drops.SQL.Database` behavior to provide PostgreSQL-specific
+  database introspection capabilities. It uses PostgreSQL's system catalogs and information
+  schema to extract comprehensive table metadata including columns, constraints, indices,
+  and foreign keys.
+
+  ## PostgreSQL-Specific Features
+
+  PostgreSQL has rich metadata capabilities that this adapter leverages:
+
+  - **System catalogs** - Direct access to `pg_*` tables for detailed metadata
+  - **Array types** - Full support for PostgreSQL array types
+  - **Custom types** - Handles user-defined types and enums
+  - **Advanced constraints** - Check constraints, exclusion constraints
+  - **Inheritance** - Table inheritance relationships
+  - **Partitioning** - Partitioned table metadata
+
+  ## System Catalogs Used
+
+  The adapter queries several PostgreSQL system catalogs:
+
+  - `pg_attribute` - Column information
+  - `pg_type` - Type information including arrays
+  - `pg_class` - Table and index information
+  - `pg_constraint` - Constraint information
+  - `pg_index` - Index details
+  - `pg_namespace` - Schema information
+  - `pg_attrdef` - Default value expressions
+
+  ## Type Mapping
+
+  PostgreSQL types are mapped to Ecto types through the `Drops.SQL.Compilers.Postgres`
+  compiler. The adapter handles:
+
+  - **Standard types** - `integer`, `text`, `boolean`, etc.
+  - **Array types** - `integer[]`, `text[]`, etc. → `{:array, base_type}`
+  - **Timestamp types** - With and without timezone
+  - **JSON types** - `json` and `jsonb` → `:map`
+  - **UUID type** - Native UUID support
+  - **Geometric types** - `point`, `polygon`, etc.
+
+  ## Usage
+
+      # Direct usage (typically not needed)
+      {:ok, table} = Drops.SQL.Postgres.table("users", MyApp.Repo)
+
+      # Preferred usage through main interface
+      {:ok, table} = Drops.SQL.Database.table("users", MyApp.Repo)
+
+  ## Implementation Notes
+
+  - Uses complex SQL queries to extract complete metadata
+  - Handles PostgreSQL's internal type names (e.g., `int4` → `integer`)
+  - Supports array type detection and mapping
+  - Processes default value expressions correctly
+  - Handles composite primary keys and foreign keys
+  - Extracts check constraints from system catalogs
+
+  ## Error Handling
+
+  The adapter handles various PostgreSQL-specific error conditions:
+
+  - Table not found in specified schema
+  - Permission denied on system catalogs
+  - Invalid type mappings
+  - Constraint parsing errors
+  """
+
   use Drops.SQL.Database, adapter: :postgres, compiler: Drops.SQL.Compilers.Postgres
 
   @introspect_columns """
@@ -118,7 +188,46 @@ defmodule Drops.SQL.Postgres do
   GROUP BY con.conname, con.oid
   """
 
+  @doc """
+  Introspects a PostgreSQL table and returns its complete metadata as an AST.
+
+  This function implements the `Drops.SQL.Database` behavior for PostgreSQL databases.
+  It uses PostgreSQL's system catalogs to extract comprehensive table information
+  including columns, foreign keys, and indices.
+
+  ## Process
+
+  1. Introspects foreign keys using system catalog queries
+  2. Introspects indices using `pg_index` and related catalogs
+  3. Introspects columns using `pg_attribute` with cross-referenced FK/index data
+  4. Combines all metadata into a table AST structure
+
+  ## Parameters
+
+  - `table_name` - The name of the PostgreSQL table to introspect
+  - `repo` - The Ecto repository configured for PostgreSQL
+
+  ## Returns
+
+  - `{:ok, Database.table()}` - Successfully introspected table AST
+  - `{:error, term()}` - Error during introspection (table not found, etc.)
+
+  ## AST Structure
+
+  Returns a table AST in the format:
+  `{:table, {{:identifier, table_name}, columns, foreign_keys, indices}}`
+
+  ## PostgreSQL-Specific Behavior
+
+  - Handles PostgreSQL's rich type system including arrays
+  - Processes complex default value expressions
+  - Extracts check constraints from system catalogs
+  - Handles composite primary keys and foreign keys
+  - Supports PostgreSQL-specific constraint types
+  - Maps internal type names to standard PostgreSQL types
+  """
   @impl true
+  @spec introspect_table(String.t(), module()) :: {:ok, Database.table()} | {:error, term()}
   def introspect_table(table_name, repo) do
     with {:ok, foreign_keys} <- introspect_foreign_keys(repo, table_name),
          {:ok, indices} <- introspect_indices(repo, table_name),
@@ -130,6 +239,9 @@ defmodule Drops.SQL.Postgres do
     end
   end
 
+  # Introspects foreign key constraints using PostgreSQL system catalogs.
+  # Returns {:ok, foreign_keys} or {:error, reason}.
+  @spec introspect_foreign_keys(module(), String.t()) :: {:ok, list()} | {:error, term()}
   defp introspect_foreign_keys(repo, table_name) do
     case repo.query(@introspect_foreign_keys, [table_name]) do
       {:ok, %{rows: rows}} ->
@@ -173,6 +285,9 @@ defmodule Drops.SQL.Postgres do
     end
   end
 
+  # Introspects index information using PostgreSQL system catalogs.
+  # Returns {:ok, indices} or {:error, reason}.
+  @spec introspect_indices(module(), String.t()) :: {:ok, list()} | {:error, term()}
   defp introspect_indices(repo, table_name) do
     case repo.query(@introspect_indices, [table_name]) do
       {:ok, %{rows: rows}} ->
@@ -196,6 +311,10 @@ defmodule Drops.SQL.Postgres do
     end
   end
 
+  # Introspects column information using PostgreSQL system catalogs and cross-references with FK/index data.
+  # Returns {:ok, columns} or {:error, reason}.
+  @spec introspect_columns(module(), String.t(), list(), list()) ::
+          {:ok, list()} | {:error, term()}
   defp introspect_columns(repo, table_name, foreign_keys, indices) do
     # Extract foreign key column names from all foreign keys
     foreign_key_column_names =
@@ -263,6 +382,9 @@ defmodule Drops.SQL.Postgres do
     end
   end
 
+  # Parses PostgreSQL foreign key action strings into atoms.
+  # Returns action atom or nil for unknown actions.
+  @spec parse_foreign_key_action(String.t() | term()) :: atom() | nil
   defp parse_foreign_key_action(action) when is_binary(action) do
     case String.upcase(action) do
       "RESTRICT" -> :restrict
@@ -276,6 +398,9 @@ defmodule Drops.SQL.Postgres do
 
   defp parse_foreign_key_action(_), do: nil
 
+  # Enhances column metadata with check constraint information from PostgreSQL system catalogs.
+  # Returns enhanced columns list.
+  @spec enhance_with_check_constraints(module(), String.t(), list()) :: list()
   defp enhance_with_check_constraints(repo, table_name, columns) do
     case repo.query(@check_constraints, [table_name]) do
       {:ok, %{rows: rows}} ->
