@@ -32,18 +32,18 @@ defmodule Drops.SQL.Sqlite do
 
     case repo.query(query) do
       {:ok, %{rows: rows, columns: _columns}} ->
-        # PRAGMA table_info returns: [cid, name, type, notnull, dflt_value, pk]
+        # PRAGMA table_info returns: [cid, name, type, notnull, column_default, pk]
         # pk is 0 for non-primary key columns, and 1, 2, 3, etc. for primary key columns
         # indicating their position in a composite primary key
         columns =
-          Enum.map(rows, fn [_cid, name, type, notnull, dflt_value, pk] ->
+          Enum.map(rows, fn [_cid, name, type, notnull, column_default, pk] ->
             # Get check constraints for this column
             check_constraints = get_column_check_constraints(repo, table_name, name)
 
             meta = %{
               primary_key: pk > 0,
               nullable: notnull != 1,
-              default: parse_default_value(dflt_value),
+              default: {:default, column_default},
               check_constraints: check_constraints
             }
 
@@ -197,47 +197,6 @@ defmodule Drops.SQL.Sqlite do
   end
 
   defp parse_foreign_key_action(_), do: nil
-
-  defp parse_default_value(nil), do: nil
-  defp parse_default_value(""), do: nil
-
-  defp parse_default_value(value) when is_binary(value) do
-    # Remove quotes if present - handle both single and double quotes properly
-    trimmed =
-      value
-      |> String.trim()
-      |> String.trim("'")
-      |> String.trim("\"")
-
-    # Try to parse as different types
-    cond do
-      trimmed == "NULL" ->
-        nil
-
-      trimmed == "CURRENT_TIMESTAMP" ->
-        :current_timestamp
-
-      trimmed == "CURRENT_DATE" ->
-        :current_date
-
-      trimmed == "CURRENT_TIME" ->
-        :current_time
-
-      String.match?(trimmed, ~r/^\d+$/) ->
-        String.to_integer(trimmed)
-
-      String.match?(trimmed, ~r/^\d+\.\d+$/) ->
-        String.to_float(trimmed)
-
-      String.downcase(trimmed) in ["true", "false"] ->
-        String.to_existing_atom(String.downcase(trimmed))
-
-      true ->
-        trimmed
-    end
-  end
-
-  defp parse_default_value(value), do: value
 
   defp extract_check_constraints_from_sql(sql) do
     # Simple regex to extract CHECK constraints

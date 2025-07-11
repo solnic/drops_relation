@@ -214,7 +214,7 @@ defmodule Drops.SQL.Postgres do
               meta: %{
                 nullable: nullable == "YES",
                 primary_key: is_primary_key,
-                default: parse_default_value(column_default),
+                default: {:default, column_default},
                 check_constraints: []
               }
             }
@@ -246,57 +246,6 @@ defmodule Drops.SQL.Postgres do
   end
 
   defp parse_foreign_key_action(_), do: nil
-
-  defp parse_default_value(nil), do: nil
-  defp parse_default_value(""), do: nil
-
-  defp parse_default_value(value) when is_binary(value) do
-    # PostgreSQL default values can be complex expressions
-    trimmed = String.trim(value)
-
-    cond do
-      trimmed == "NULL" ->
-        nil
-
-      String.starts_with?(trimmed, "nextval(") ->
-        :auto_increment
-
-      String.starts_with?(trimmed, "now()") ->
-        :current_timestamp
-
-      String.starts_with?(trimmed, "CURRENT_TIMESTAMP") ->
-        :current_timestamp
-
-      String.starts_with?(trimmed, "CURRENT_DATE") ->
-        :current_date
-
-      String.starts_with?(trimmed, "CURRENT_TIME") ->
-        :current_time
-
-      # Handle PostgreSQL type casting syntax like 'value'::type
-      String.match?(trimmed, ~r/^'.*'::\w+/) ->
-        # Extract the quoted value before the :: type cast
-        [quoted_part | _] = String.split(trimmed, "::")
-        String.trim(quoted_part, "'")
-
-      String.match?(trimmed, ~r/^'.*'$/) ->
-        String.trim(trimmed, "'")
-
-      String.match?(trimmed, ~r/^\d+$/) ->
-        String.to_integer(trimmed)
-
-      String.match?(trimmed, ~r/^\d+\.\d+$/) ->
-        String.to_float(trimmed)
-
-      String.downcase(trimmed) in ["true", "false"] ->
-        String.to_existing_atom(String.downcase(trimmed))
-
-      true ->
-        trimmed
-    end
-  end
-
-  defp parse_default_value(value), do: value
 
   defp enhance_with_check_constraints(repo, table_name, columns) do
     # Query PostgreSQL system catalogs for check constraints

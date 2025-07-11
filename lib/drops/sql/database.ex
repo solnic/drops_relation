@@ -45,7 +45,7 @@ defmodule Drops.SQL.Database do
   end
 
   def compile_table(compiler, ast, opts) do
-    case compiler.visit(ast, opts) do
+    case compiler.process(ast, opts) do
       %Table{} = table -> {:ok, table}
       error -> error
     end
