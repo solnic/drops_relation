@@ -106,20 +106,6 @@ defmodule Drops.Relation.Schema.Index do
     Enum.map(fields, & &1.name)
   end
 
-  defimpl Inspect do
-    def inspect(%Drops.Relation.Schema.Index{} = index, _opts) do
-      field_names =
-        index.fields
-        |> Enum.map(& &1.name)
-        |> Enum.join(", ")
-
-      unique_marker = if index.unique, do: " (unique)", else: ""
-      type_info = if index.type, do: " #{index.type}", else: ""
-
-      "#Index<#{index.name}: [#{field_names}]#{unique_marker}#{type_info}>"
-    end
-  end
-
   @doc """
   Checks if the index covers a specific field.
 

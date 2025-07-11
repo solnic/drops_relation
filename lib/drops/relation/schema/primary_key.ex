@@ -63,23 +63,6 @@ defmodule Drops.Relation.Schema.PrimaryKey do
     %__MODULE__{fields: fields, meta: %{composite: composite}}
   end
 
-  defimpl Inspect do
-    def inspect(%Drops.Relation.Schema.PrimaryKey{} = pk, _opts) do
-      case pk.fields do
-        [] ->
-          "#PrimaryKey<[]>"
-
-        fields ->
-          field_names =
-            fields
-            |> Enum.map(& &1.name)
-            |> Enum.join(", ")
-
-          "#PrimaryKey<[#{field_names}]>"
-      end
-    end
-  end
-
   @doc """
   Checks if the primary key is composite (has multiple fields).
 

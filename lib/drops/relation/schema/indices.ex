@@ -131,15 +131,6 @@ defmodule Drops.Relation.Schema.Indices do
     indices == []
   end
 
-  defimpl Inspect do
-    def inspect(%Drops.Relation.Schema.Indices{} = indices, _opts) do
-      count = length(indices.indices)
-      unique_count = indices.indices |> Enum.count(& &1.unique)
-
-      "#Indices<#{count} total, #{unique_count} unique>"
-    end
-  end
-
   @doc """
   Returns the number of indices in the collection.
 

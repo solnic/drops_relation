@@ -58,12 +58,6 @@ defmodule Drops.Relation.Schema.ForeignKey do
     }
   end
 
-  defimpl Inspect do
-    def inspect(%Drops.Relation.Schema.ForeignKey{} = fk, _opts) do
-      "#ForeignKey<#{fk.field} -> #{fk.references_table}.#{fk.references_field}>"
-    end
-  end
-
   @doc """
   Extracts foreign key information from an Ecto schema module.
 

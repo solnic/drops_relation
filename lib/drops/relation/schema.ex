@@ -232,69 +232,6 @@ defmodule Drops.Relation.Schema do
     end
   end
 
-  defimpl Inspect do
-    def inspect(%Drops.Relation.Schema{} = schema, _opts) do
-      fields_summary =
-        schema.fields
-        |> Enum.map(fn field -> "#{field.name}: #{inspect(field.type)}" end)
-        |> Enum.join(", ")
-
-      pk_summary =
-        case schema.primary_key do
-          nil ->
-            "[]"
-
-          %{fields: []} ->
-            "[]"
-
-          %{fields: fields} ->
-            field_names =
-              fields
-              |> Enum.map(& &1.name)
-              |> Enum.join(", ")
-
-            "[#{field_names}]"
-        end
-
-      fk_summary =
-        case schema.foreign_keys do
-          [] ->
-            "[]"
-
-          fks ->
-            fk_list =
-              fks
-              |> Enum.map(fn fk ->
-                "#{fk.field} -> #{fk.references_table}.#{fk.references_field}"
-              end)
-              |> Enum.join(", ")
-
-            "[#{fk_list}]"
-        end
-
-      indices_summary =
-        case schema.indices.indices do
-          [] ->
-            "[]"
-
-          indices ->
-            indices_list =
-              indices
-              |> Enum.map(&inspect/1)
-              |> Enum.join(", ")
-
-            "[#{indices_list}]"
-        end
-
-      "#Drops.Relation.Schema<" <>
-        "source: #{inspect(schema.source)}, " <>
-        "fields: [#{fields_summary}], " <>
-        "primary_key: #{pk_summary}, " <>
-        "foreign_keys: #{fk_summary}, " <>
-        "indices: #{indices_summary}>"
-    end
-  end
-
   @doc """
   Finds a field by name in the schema.
 
