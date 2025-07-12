@@ -50,10 +50,10 @@ defmodule Drops.Relation.Compilers.SqliteSchemaCompiler do
 
       # Automatic usage through database introspection
       {:ok, table} = Drops.SQL.Database.table("users", MyRepo)
-      schema = Drops.Relation.Compilers.SqliteSchemaCompiler.process(table, [])
+      schema = Drops.Relation.Compilers.SqliteSchemaCompiler.process(table, %{})
 
       # Direct usage (advanced)
-      schema = Drops.Relation.Compilers.SqliteSchemaCompiler.visit(table, [])
+      schema = Drops.Relation.Compilers.SqliteSchemaCompiler.visit(table, %{})
 
   ## Implementation Notes
 

@@ -131,14 +131,14 @@ defmodule Drops.SQL.Compiler do
 
       # Main entry point for processing database AST nodes.
       # Merges provided options with compiler defaults and delegates to visitor pattern.
-      @spec process(tuple(), keyword()) :: Table.t() | term()
+      @spec process(tuple(), map()) :: Table.t() | term()
       def process(node, opts) do
-        visit(node, Keyword.merge(opts, unquote(opts)))
+        visit(node, Map.merge(opts, Map.new(unquote(opts))))
       end
 
       # Visits a table AST node and constructs a Table struct.
       # Processes table components and creates a complete Table struct with inferred primary key.
-      @spec visit({:table, list()}, keyword()) :: Table.t()
+      @spec visit({:table, list()}, map()) :: Table.t()
       def visit({:table, components}, opts) do
         [name, columns, foreign_keys, indices] = visit(components, opts)
 
@@ -148,11 +148,11 @@ defmodule Drops.SQL.Compiler do
       end
 
       # Visits an identifier AST node and converts it to an atom.
-      @spec visit({:identifier, String.t()}, keyword()) :: atom()
+      @spec visit({:identifier, String.t()}, map()) :: atom()
       def visit({:identifier, name}, _opts), do: String.to_atom(name)
 
       # Visits a column AST node and constructs a Column struct.
-      @spec visit({:column, list()}, keyword()) :: Column.t()
+      @spec visit({:column, list()}, map()) :: Column.t()
       def visit({:column, components}, opts) do
         [name, type, meta] = visit(components, opts)
         Column.new(name, type, meta)
@@ -160,11 +160,11 @@ defmodule Drops.SQL.Compiler do
 
       # Visits a type AST node. Default implementation returns type as-is.
       # Adapter-specific compilers should override this for type mapping.
-      @spec visit({:type, term()}, keyword()) :: term()
+      @spec visit({:type, term()}, map()) :: term()
       def visit({:type, type}, _opts), do: type
 
       # Visits a metadata AST node and processes nested values recursively.
-      @spec visit({:meta, map()}, keyword()) :: map()
+      @spec visit({:meta, map()}, map()) :: map()
       def visit({:meta, meta}, opts) when is_map(meta) do
         Enum.reduce(meta, %{}, fn {key, value}, acc ->
           Map.put(acc, key, visit(value, opts))
@@ -172,14 +172,14 @@ defmodule Drops.SQL.Compiler do
       end
 
       # Visits an index AST node and constructs an Index struct.
-      @spec visit({:index, list()}, keyword()) :: Index.t()
+      @spec visit({:index, list()}, map()) :: Index.t()
       def visit({:index, components}, opts) do
         [name, columns, meta] = visit(components, opts)
         Index.new(name, columns, meta)
       end
 
       # Visits a foreign key AST node and constructs a ForeignKey struct.
-      @spec visit({:foreign_key, list()}, keyword()) :: ForeignKey.t()
+      @spec visit({:foreign_key, list()}, map()) :: ForeignKey.t()
       def visit({:foreign_key, components}, opts) do
         [name, columns, referenced_table, referenced_columns, meta] = visit(components, opts)
         ForeignKey.new(name, columns, referenced_table, referenced_columns, meta)
@@ -188,17 +188,17 @@ defmodule Drops.SQL.Compiler do
       def visit({:default, value}) when value in [true, false], do: value
 
       # Visits a list of AST components, processing each recursively.
-      @spec visit(list(), keyword()) :: list()
+      @spec visit(list(), map()) :: list()
       def visit(components, opts) when is_list(components) do
         Enum.map(components, &visit(&1, opts))
       end
 
       # Visits a tuple by converting it to a list and processing.
-      @spec visit(tuple(), keyword()) :: term()
+      @spec visit(tuple(), map()) :: term()
       def visit(value, opts) when is_tuple(value), do: visit(Tuple.to_list(value), opts)
 
       # Catch-all visitor for unrecognized AST nodes. Returns value unchanged.
-      @spec visit(term(), keyword()) :: term()
+      @spec visit(term(), map()) :: term()
       def visit(value, _opts), do: value
     end
   end

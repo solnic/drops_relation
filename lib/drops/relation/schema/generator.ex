@@ -41,7 +41,7 @@ defmodule Drops.Relation.Schema.Generator do
     drops_relation_schema =
       case Drops.SQL.Database.table(table_name, repo) do
         {:ok, table} ->
-          Drops.Relation.Compilers.SchemaCompiler.visit(table, [])
+          Drops.Relation.Compilers.SchemaCompiler.visit(table, %{})
 
         {:error, reason} ->
           raise "Failed to introspect table #{table_name}: #{inspect(reason)}"
@@ -81,7 +81,7 @@ defmodule Drops.Relation.Schema.Generator do
       end
 
     # Use CodeCompiler to generate field definitions and attributes
-    compiled_asts = CodeCompiler.visit(schema, [])
+    compiled_asts = CodeCompiler.visit(schema, %{})
 
     # Separate attributes from field definitions
     {attributes, field_definitions} =
@@ -168,7 +168,7 @@ defmodule Drops.Relation.Schema.Generator do
     drops_relation_schema =
       case Drops.SQL.Database.table(table_name, repo) do
         {:ok, table} ->
-          Drops.Relation.Compilers.SchemaCompiler.visit(table, [])
+          Drops.Relation.Compilers.SchemaCompiler.visit(table, %{})
 
         {:error, reason} ->
           raise "Failed to introspect table #{table_name}: #{inspect(reason)}"
@@ -332,7 +332,7 @@ defmodule Drops.Relation.Schema.Generator do
   @spec generate_schema_parts(String.t(), Schema.t()) :: map()
   def generate_schema_parts(table_name, schema) do
     # Use enhanced CodeCompiler with grouped output
-    compiled_parts = CodeCompiler.visit(schema, grouped: true)
+    compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
 
     # Extract categorized attributes and field definitions
     attributes = compiled_parts.attributes
@@ -363,7 +363,7 @@ defmodule Drops.Relation.Schema.Generator do
   @spec generate_schema_ast_from_schema(String.t(), Schema.t()) :: Macro.t()
   def generate_schema_ast_from_schema(table_name, schema) do
     # Use enhanced CodeCompiler with grouped output
-    compiled_parts = CodeCompiler.visit(schema, grouped: true)
+    compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
 
     # Extract field definitions and attributes
     attributes = compiled_parts.attributes

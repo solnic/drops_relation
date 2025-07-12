@@ -13,12 +13,12 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
 
       # Convert a Relation Schema to field AST
       schema = %Drops.Relation.Schema{...}
-      field_asts = Drops.Relation.Compilers.CodeCompiler.visit(schema, [])
+      field_asts = Drops.Relation.Compilers.CodeCompiler.visit(schema, %{})
 
   ## Examples
 
       iex> schema = %Drops.Relation.Schema{fields: [...], primary_key: ...}
-      iex> asts = Drops.Relation.Compilers.CodeCompiler.visit(schema, [])
+      iex> asts = Drops.Relation.Compilers.CodeCompiler.visit(schema, %{})
       iex> is_list(asts)
       true
   """
@@ -54,18 +54,18 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
   ## Examples
 
       iex> schema = %Drops.Relation.Schema{fields: [...], ...}
-      iex> asts = Drops.Relation.Compilers.CodeCompiler.visit(schema, [])
+      iex> asts = Drops.Relation.Compilers.CodeCompiler.visit(schema, %{})
       iex> is_list(asts)
       true
 
-      iex> grouped = Drops.Relation.Compilers.CodeCompiler.visit(schema, grouped: true)
+      iex> grouped = Drops.Relation.Compilers.CodeCompiler.visit(schema, %{grouped: true})
       iex> is_map(grouped) and Map.has_key?(grouped, :attributes)
       true
   """
   def visit(%Schema{} = schema, opts) do
     # Process schema using Enumerable protocol to get tuple representation
     # but keep the original schema in opts for field processing
-    new_opts = Keyword.put(opts, :schema, schema)
+    new_opts = Map.put(opts, :schema, schema)
 
     schema_tuple =
       schema

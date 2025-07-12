@@ -44,7 +44,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       schema = Schema.new("users", primary_key, [], [name_field, age_field, id_field], [])
 
       # Compile the schema to get the parts
-      compiled_parts = CodeCompiler.visit(schema, grouped: true)
+      compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
 
       # Patch the schema module
       {:ok, patched_zipper} = Patcher.patch_schema_module(zipper, compiled_parts, "users")
@@ -88,7 +88,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       schema = Schema.new("users", nil, [], [name_field], [])
 
       # Compile the schema to get the parts
-      compiled_parts = CodeCompiler.visit(schema, grouped: true)
+      compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
 
       # Patch the schema module
       {:ok, patched_zipper} = Patcher.patch_schema_module(zipper, compiled_parts, "users")
@@ -134,7 +134,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       schema = Schema.new("users", primary_key, [], [name_field, id_field], [])
 
       # Compile the schema to get the parts
-      compiled_parts = CodeCompiler.visit(schema, grouped: true)
+      compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
 
       # Patch the schema module
       {:ok, patched_zipper} = Patcher.patch_schema_module(zipper, compiled_parts, "users")
@@ -181,7 +181,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       schema = Schema.new("posts", nil, [], [title_field, body_field, slug_field], [])
 
       # Compile the schema to get the parts
-      compiled_parts = CodeCompiler.visit(schema, grouped: true)
+      compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
 
       # Patch the schema module
       {:ok, patched_zipper} = Patcher.patch_schema_module(zipper, compiled_parts, "posts")
@@ -261,7 +261,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       schema = Schema.new("users", nil, [], fields, [])
 
       # Compile the schema to get the parts
-      compiled_parts = CodeCompiler.visit(schema, grouped: true)
+      compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
 
       # Patch the schema module
       {:ok, patched_zipper} = Patcher.patch_schema_module(zipper, compiled_parts, "users")
@@ -340,7 +340,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       schema = Schema.new("users", nil, [], fields, [])
 
       # Compile the schema to get the parts
-      compiled_parts = CodeCompiler.visit(schema, grouped: true)
+      compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
 
       # Patch the schema module - use atom like the mix task does
       {:ok, patched_zipper} = Patcher.patch_schema_module(zipper, compiled_parts, :users)
@@ -392,7 +392,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       schema = Schema.new("posts", nil, [], fields, [])
 
       # Compile the schema to get the parts
-      compiled_parts = CodeCompiler.visit(schema, grouped: true)
+      compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
 
       # Patch the schema module - pass string while original has atom
       {:ok, patched_zipper} = Patcher.patch_schema_module(zipper, compiled_parts, "posts")

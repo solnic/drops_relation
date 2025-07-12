@@ -208,7 +208,7 @@ defmodule Drops.SQL.Database do
       @spec table(String.t(), module()) :: {:ok, Table.t()} | {:error, term()}
       def table(name, repo) do
         case introspect_table(name, repo) do
-          {:ok, ast} -> Database.compile_table(unquote(opts[:compiler]), ast, opts())
+          {:ok, ast} -> Database.compile_table(unquote(opts[:compiler]), ast, Map.new(opts()))
           error -> error
         end
       end
@@ -286,7 +286,7 @@ defmodule Drops.SQL.Database do
         adapter: :postgres
       )
   """
-  @spec compile_table(module(), table(), keyword()) :: {:ok, Table.t()} | {:error, term()}
+  @spec compile_table(module(), table(), map()) :: {:ok, Table.t()} | {:error, term()}
   def compile_table(compiler, ast, opts) do
     case compiler.process(ast, opts) do
       %Table{} = table -> {:ok, table}

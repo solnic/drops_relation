@@ -14,7 +14,7 @@ defmodule Drops.Relation.Compilers.CodeCompilerTest do
 
   # Helper function to compile a schema module from CodeCompiler output
   defp compile_test_schema(schema, module_name) do
-    field_asts = CodeCompiler.visit(schema, [])
+    field_asts = CodeCompiler.visit(schema, %{})
 
     # Separate attributes from field definitions
     {attributes, field_definitions} =
@@ -366,7 +366,7 @@ defmodule Drops.Relation.Compilers.CodeCompilerTest do
       schema = Schema.new("posts", primary_key, [], [name_field, id_field, user_id_field], [])
 
       # Get grouped output
-      result = CodeCompiler.visit(schema, grouped: true)
+      result = CodeCompiler.visit(schema, %{grouped: true})
 
       # Verify structure
       assert is_map(result)
@@ -396,8 +396,8 @@ defmodule Drops.Relation.Compilers.CodeCompilerTest do
       schema = Schema.new("users", nil, nil, [name_field], [])
 
       # Get flat output (default behavior)
-      flat_result = CodeCompiler.visit(schema, [])
-      explicit_flat_result = CodeCompiler.visit(schema, grouped: false)
+      flat_result = CodeCompiler.visit(schema, %{})
+      explicit_flat_result = CodeCompiler.visit(schema, %{grouped: false})
 
       # Both should return the same flat list
       assert flat_result == explicit_flat_result
@@ -415,7 +415,7 @@ defmodule Drops.Relation.Compilers.CodeCompilerTest do
       primary_key = PrimaryKey.new([id_field])
       schema = Schema.new("posts", primary_key, [], [id_field, user_id_field], [])
 
-      result = CodeCompiler.visit(schema, grouped: true)
+      result = CodeCompiler.visit(schema, %{grouped: true})
       attributes = result.attributes
 
       # Should have primary_key attributes (from UUID primary key)

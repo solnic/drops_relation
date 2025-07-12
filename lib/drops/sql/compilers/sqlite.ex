@@ -90,7 +90,7 @@ defmodule Drops.SQL.Compilers.Sqlite do
       iex> Drops.SQL.Compilers.Sqlite.visit({:type, "BLOB"}, [])
       :binary
   """
-  @spec visit({:type, String.t()}, keyword()) :: atom() | String.t()
+  @spec visit({:type, String.t()}, map()) :: atom() | String.t()
   def visit({:type, type}, _opts) do
     normalized_type = String.upcase(type)
 

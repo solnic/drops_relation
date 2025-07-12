@@ -39,10 +39,10 @@ defmodule Drops.Relation.Compilers.PostgresSchemaCompiler do
 
       # Automatic usage through database introspection
       {:ok, table} = Drops.SQL.Database.table("users", MyRepo)
-      schema = Drops.Relation.Compilers.PostgresSchemaCompiler.process(table, [])
+      schema = Drops.Relation.Compilers.PostgresSchemaCompiler.process(table, %{})
 
       # Direct usage (advanced)
-      schema = Drops.Relation.Compilers.PostgresSchemaCompiler.visit(table, [])
+      schema = Drops.Relation.Compilers.PostgresSchemaCompiler.visit(table, %{})
 
   ## Implementation Notes
 

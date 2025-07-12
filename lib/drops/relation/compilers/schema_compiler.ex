@@ -92,10 +92,10 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
   ## Examples
 
       iex> {:ok, table} = Database.table("users", MyApp.Repo)
-      iex> schema = SchemaCompiler.visit(table, [])
+      iex> schema = SchemaCompiler.visit(table, %{})
       iex> %Drops.Relation.Schema{} = schema
   """
-  @spec visit(Database.Table.t(), keyword()) :: Schema.t()
+  @spec visit(Database.Table.t(), map()) :: Schema.t()
   def visit(%Database.Table{adapter: adapter} = table, opts) do
     case adapter do
       :postgres ->
@@ -158,9 +158,9 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
 
       # Main entry point for processing database components.
       # Merges provided options with compiler defaults and delegates to visitor pattern.
-      @spec process(Database.Table.t(), keyword()) :: Schema.t()
+      @spec process(Database.Table.t(), map()) :: Schema.t()
       def process(table, opts) do
-        visit(table, Keyword.merge(opts, unquote(opts)))
+        visit(table, Map.merge(opts, Map.new(unquote(opts))))
       end
 
       # Define components mapping at module level
@@ -168,7 +168,7 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
 
       # Visits a table struct and constructs a Schema struct.
       # Processes table components and creates a complete Schema struct.
-      @spec visit(Database.Table.t(), keyword()) :: Schema.t()
+      @spec visit(Database.Table.t(), map()) :: Schema.t()
       def visit(%Database.Table{} = table, opts) do
         attributes =
           Enum.reduce(@components, %{}, fn spec, acc ->
@@ -178,15 +178,15 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
                 name -> [name, name]
               end
 
-            new_opts = Keyword.merge(opts, Enum.to_list(acc))
-            component = visit(Map.get(table, source_key), Keyword.put(new_opts, :table, table))
+            new_opts = Map.merge(opts, acc)
+            component = visit(Map.get(table, source_key), Map.put(new_opts, :table, table))
             Map.put(acc, target_key, component)
           end)
 
         Schema.new(attributes)
       end
 
-      @spec visit(Database.Column.t(), keyword()) :: Field.t()
+      @spec visit(Database.Column.t(), map()) :: Field.t()
       def visit(%Database.Column{} = column, _opts) do
         components = [:name, :type, :meta]
 
@@ -205,7 +205,7 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
       end
 
       # Visits a primary key struct and constructs a PrimaryKey struct.
-      @spec visit(Database.PrimaryKey.t(), keyword()) :: PrimaryKey.t()
+      @spec visit(Database.PrimaryKey.t(), map()) :: PrimaryKey.t()
       def visit(%Database.PrimaryKey{} = primary_key, opts) do
         names = Enum.map(primary_key.columns, & &1.name)
         fields = Enum.filter(opts[:fields], &(&1.name in names))
@@ -214,7 +214,7 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
       end
 
       # Visits a foreign key struct and constructs a ForeignKey struct.
-      @spec visit(Database.ForeignKey.t(), keyword()) :: ForeignKey.t()
+      @spec visit(Database.ForeignKey.t(), map()) :: ForeignKey.t()
       def visit(%Database.ForeignKey{} = foreign_key, _opts) do
         field_name = List.first(foreign_key.columns)
         referenced_field = List.first(foreign_key.referenced_columns)
@@ -235,7 +235,7 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
       end
 
       # Visits an index struct and constructs an Index struct.
-      @spec visit(Database.Index.t(), keyword()) :: Index.t()
+      @spec visit(Database.Index.t(), map()) :: Index.t()
       def visit(%Database.Index{} = index, opts) do
         fields = opts[:fields] |> Enum.filter(&(&1.name in index.columns))
 
@@ -243,17 +243,17 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
       end
 
       # Visits a list of components and processes each one.
-      @spec visit(list(), keyword()) :: list()
+      @spec visit(list(), map()) :: list()
       def visit(node, opts) when is_list(node) do
         Enum.map(node, &visit(&1, opts))
       end
 
       # Catch-all for nodes
-      @spec visit({atom(), term()}, keyword()) :: term()
+      @spec visit({atom(), term()}, map()) :: term()
       def visit({type, value}, _opts), do: value
 
       # Visits any other value and returns it as-is.
-      @spec visit(term(), keyword()) :: term()
+      @spec visit(term(), map()) :: term()
       def visit(value, _opts), do: value
 
       # Allow overriding of visit functions

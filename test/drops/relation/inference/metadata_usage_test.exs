@@ -20,7 +20,7 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
 
       schema = Schema.new("test_table", pk, [], [field], [])
 
-      result = CodeCompiler.visit(schema, [])
+      result = CodeCompiler.visit(schema, %{})
 
       # Should generate @primary_key attribute based on metadata, not field name
       assert [attr_ast] = result
@@ -35,7 +35,7 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
 
       schema = Schema.new("test_table", nil, [], [field], [])
 
-      result = CodeCompiler.visit(schema, [])
+      result = CodeCompiler.visit(schema, %{})
 
       # Should generate @foreign_key_type attribute based on metadata, not field name
       assert [attr_ast, _field_ast] = result
@@ -49,7 +49,7 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
 
       schema = Schema.new("test_table", nil, [], [field], [])
 
-      result = CodeCompiler.visit(schema, [])
+      result = CodeCompiler.visit(schema, %{})
 
       # Should NOT generate @primary_key attribute since metadata says it's not a primary key
       # Should only generate field definition
@@ -65,7 +65,7 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
 
       schema = Schema.new("test_table", nil, [], [field], [])
 
-      result = CodeCompiler.visit(schema, [])
+      result = CodeCompiler.visit(schema, %{})
 
       # Should NOT generate @foreign_key_type attribute since metadata says it's not a foreign key
       # Should only generate field definition
@@ -82,7 +82,7 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
 
       schema = Schema.new("test_table", pk, [], [field], [])
 
-      result = CodeCompiler.visit(schema, [])
+      result = CodeCompiler.visit(schema, %{})
 
       # Should generate @primary_key attribute for UUID type
       assert [attr_ast] = result
@@ -99,7 +99,7 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
 
       schema = Schema.new("test_table", nil, [], [field], [])
 
-      result = CodeCompiler.visit(schema, [])
+      result = CodeCompiler.visit(schema, %{})
 
       # Should generate @foreign_key_type attribute for UUID foreign key
       assert [attr_ast, _field_ast] = result
@@ -113,7 +113,7 @@ defmodule Drops.Relation.Inference.MetadataUsageTest do
 
       schema = Schema.new("test_table", nil, [], [field], [])
 
-      result = CodeCompiler.visit(schema, [])
+      result = CodeCompiler.visit(schema, %{})
 
       # Should not generate any attribute since it's just a regular field
       # Should only generate field definition

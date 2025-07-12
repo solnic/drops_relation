@@ -127,7 +127,7 @@ defmodule Drops.SQL.Compilers.Postgres do
       iex> Drops.SQL.Compilers.Postgres.visit({:type, "uuid"}, [])
       :uuid
   """
-  @spec visit({:type, String.t()}, keyword()) :: atom() | tuple() | String.t()
+  @spec visit({:type, String.t()}, map()) :: atom() | tuple() | String.t()
   def visit({:type, type}, opts) do
     case type do
       type when type in @integer_types ->
@@ -207,16 +207,16 @@ defmodule Drops.SQL.Compilers.Postgres do
   end
 
   # Visits a default value AST node for nil values. Returns nil.
-  @spec visit({:default, nil}, keyword()) :: nil
+  @spec visit({:default, nil}, map()) :: nil
   def visit({:default, nil}, _opts), do: nil
 
   # Visits a default value AST node for empty string values. Returns empty string.
-  @spec visit({:default, String.t()}, keyword()) :: String.t()
+  @spec visit({:default, String.t()}, map()) :: String.t()
   def visit({:default, ""}, _opts), do: ""
 
   # Visits a default value AST node and processes PostgreSQL default expressions.
   # Handles NULL, sequences (nextval), timestamps, quoted literals, and numeric values.
-  @spec visit({:default, String.t()}, keyword()) :: term()
+  @spec visit({:default, String.t()}, map()) :: term()
   def visit({:default, value}, _opts) when is_binary(value) do
     trimmed = String.trim(value)
 
