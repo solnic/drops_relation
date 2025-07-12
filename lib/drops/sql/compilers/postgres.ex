@@ -100,6 +100,38 @@ defmodule Drops.SQL.Compilers.Postgres do
     "serial2"
   ]
 
+  @float_types ["real", "float4", "double precision", "float8"]
+
+  @decimal_types ["numeric", "decimal", "money"]
+
+  @time_types ["time", "time without time zone", "time with time zone", "timetz"]
+
+  @naive_datetime_types ["timestamp without time zone", "timestamp"]
+
+  @utc_datetime_types ["timestamp with time zone", "timestamptz"]
+
+  @json_types ["json", "jsonb"]
+
+  @string_types [
+    "text",
+    "character",
+    "character varying",
+    "varchar",
+    "char",
+    "name",
+    "xml",
+    "inet",
+    "cidr",
+    "macaddr",
+    "point",
+    "line",
+    "lseg",
+    "box",
+    "path",
+    "polygon",
+    "circle"
+  ]
+
   @doc """
   Visits a type AST node and maps PostgreSQL types to Ecto types.
 
@@ -128,81 +160,27 @@ defmodule Drops.SQL.Compilers.Postgres do
       :uuid
   """
   @spec visit({:type, String.t()}, map()) :: atom() | tuple() | String.t()
-  def visit({:type, type}, opts) do
-    case type do
-      type when type in @integer_types ->
-        :integer
+  def visit({:type, type}, _opts) when type in @string_types, do: :string
+  def visit({:type, type}, _opts) when type in @integer_types, do: :integer
+  def visit({:type, type}, _opts) when type in @float_types, do: :float
+  def visit({:type, type}, _opts) when type in @decimal_types, do: :decimal
+  def visit({:type, type}, _opts) when type in @time_types, do: :time
+  def visit({:type, type}, _opts) when type in @naive_datetime_types, do: :naive_datetime
+  def visit({:type, type}, _opts) when type in @utc_datetime_types, do: :utc_datetime
+  def visit({:type, type}, _opts) when type in @json_types, do: :map
 
-      "uuid" ->
-        :uuid
+  def visit({:type, "uuid"}, _opts), do: :uuid
+  def visit({:type, "boolean"}, _opts), do: :boolean
+  def visit({:type, "date"}, _opts), do: :date
+  def visit({:type, "bytea"}, _opts), do: :binary
 
-      # Floating point types
-      type when type in ["real", "float4", "double precision", "float8"] ->
-        :float
-
-      # Decimal types
-      type when type in ["numeric", "decimal", "money"] ->
-        :decimal
-
-      # String types
+  def visit({:type, type}, opts) when is_binary(type) do
+    if String.ends_with?(type, "[]") do
+      base_type = String.slice(type, 0, String.length(type) - 2)
+      base_ecto_type = visit({:type, base_type}, opts)
+      {:array, base_ecto_type}
+    else
       type
-      when type in ["text", "character varying", "varchar", "char", "character", "name"] ->
-        :string
-
-      # Boolean type
-      "boolean" ->
-        :boolean
-
-      # Binary types
-      "bytea" ->
-        :binary
-
-      # Date/time types
-      "date" ->
-        :date
-
-      type
-      when type in ["time", "time without time zone", "time with time zone", "timetz"] ->
-        :time
-
-      type when type in ["timestamp without time zone", "timestamp"] ->
-        :naive_datetime
-
-      type when type in ["timestamp with time zone", "timestamptz"] ->
-        :utc_datetime
-
-      # JSON types
-      type when type in ["json", "jsonb"] ->
-        :map
-
-      type
-      when type in [
-             "xml",
-             "inet",
-             "cidr",
-             "macaddr",
-             "point",
-             "line",
-             "lseg",
-             "box",
-             "path",
-             "polygon",
-             "circle"
-           ] ->
-        :string
-
-      # Array types - handle PostgreSQL array syntax
-      type when is_binary(type) ->
-        if String.ends_with?(type, "[]") do
-          # Extract the base type by removing the "[]" suffix
-          base_type = String.slice(type, 0, String.length(type) - 2)
-          # Recursively process the base type
-          base_ecto_type = visit({:type, base_type}, opts)
-          {:array, base_ecto_type}
-        else
-          # Unknown type, return as-is
-          type
-        end
     end
   end
 

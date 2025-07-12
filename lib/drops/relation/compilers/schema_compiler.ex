@@ -206,9 +206,9 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
 
       # Visits a primary key struct and constructs a PrimaryKey struct.
       @spec visit(Database.PrimaryKey.t(), map()) :: PrimaryKey.t()
-      def visit(%Database.PrimaryKey{} = primary_key, opts) do
-        names = Enum.map(primary_key.columns, & &1.name)
-        fields = Enum.filter(opts[:fields], &(&1.name in names))
+      def visit(%Database.PrimaryKey{columns: columns} = primary_key, %{fields: fields}) do
+        names = Enum.map(columns, & &1.name)
+        fields = Enum.filter(fields, &(&1.name in names))
 
         PrimaryKey.new(fields)
       end
@@ -224,8 +224,8 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
 
       # Visits an index struct and constructs an Index struct.
       @spec visit(Database.Index.t(), map()) :: Index.t()
-      def visit(%Database.Index{} = index, opts) do
-        fields = opts[:fields] |> Enum.filter(&(&1.name in index.columns))
+      def visit(%Database.Index{} = index, %{fields: fields}) do
+        fields = Enum.filter(fields, &(&1.name in index.columns))
 
         Index.new(index.name, fields, index.meta.unique, index.meta.type)
       end
@@ -243,9 +243,6 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
       # Visits any other value and returns it as-is.
       @spec visit(term(), map()) :: term()
       def visit(value, _opts), do: value
-
-      # Allow overriding of visit functions
-      # defoverridable visit: 2
     end
   end
 end
