@@ -75,7 +75,7 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
       type: column.type,
       source: column.name,
       primary_key: column.meta.primary_key,
-      foreign_key: Database.Table.foreign_key_column?(table, column.name),
+      foreign_key: column.meta.foreign_key,
       nullable: column.meta.nullable,
       default: column.meta.default,
       check_constraints: column.meta.check_constraints
