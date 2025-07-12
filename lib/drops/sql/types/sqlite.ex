@@ -1,6 +1,6 @@
 defmodule Drops.SQL.Types.Sqlite do
-  def to_ecto_type(%{type: :integer, meta: %{default: default}}) do
-    if default in [true, false], do: :boolean, else: :integer
+  def to_ecto_type(%{type: :integer, meta: %{default: default}}) when default in [true, false] do
+    :boolean
   end
 
   def to_ecto_type(%{type: :uuid}), do: :binary_id

@@ -73,7 +73,7 @@ defmodule Drops.SQL.Compilers.Sqlite do
   ## Parameters
 
   - `{:type, type}` - Type AST node with SQLite type name
-  - `_opts` - Processing options (unused)
+  - `opts` - Processing options including column metadata for enhanced type detection
 
   ## Returns
 
@@ -101,11 +101,11 @@ defmodule Drops.SQL.Compilers.Sqlite do
       "FLOAT" ->
         :float
 
-      "TEXT" ->
-        :string
-
       "REAL" ->
         :float
+
+      "TEXT" ->
+        :string
 
       "BLOB" ->
         :binary
@@ -115,21 +115,6 @@ defmodule Drops.SQL.Compilers.Sqlite do
 
       type when type in ["NUMERIC", "DECIMAL"] ->
         :decimal
-
-      type when type in ["BOOLEAN", "BOOL"] ->
-        :boolean
-
-      type when type in ["DATETIME", "TIMESTAMP"] ->
-        :naive_datetime
-
-      "DATE" ->
-        :date
-
-      "TIME" ->
-        :time
-
-      "JSON" ->
-        :map
     end
   end
 
