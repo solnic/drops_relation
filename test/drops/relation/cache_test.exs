@@ -253,8 +253,7 @@ defmodule Drops.Relation.CacheTest do
       fk = %ForeignKey{
         field: :user_id,
         references_table: "users",
-        references_field: :id,
-        association_name: :user
+        references_field: :id
       }
 
       dumped = JSON.encode!(fk) |> JSON.decode!()
@@ -262,21 +261,7 @@ defmodule Drops.Relation.CacheTest do
       assert dumped["attributes"]["field"] == ["atom", "user_id"]
       assert dumped["attributes"]["references_table"] == "users"
       assert dumped["attributes"]["references_field"] == ["atom", "id"]
-      assert dumped["attributes"]["association_name"] == ["atom", "user"]
 
-      loaded = Drops.Relation.Schema.ForeignKey.load(dumped)
-      assert loaded == fk
-    end
-
-    test "handles ForeignKey with nil association_name" do
-      fk = %ForeignKey{
-        field: :user_id,
-        references_table: "users",
-        references_field: :id,
-        association_name: nil
-      }
-
-      dumped = JSON.encode!(fk) |> JSON.decode!()
       loaded = Drops.Relation.Schema.ForeignKey.load(dumped)
       assert loaded == fk
     end
@@ -327,8 +312,7 @@ defmodule Drops.Relation.CacheTest do
       fk = %ForeignKey{
         field: :user_id,
         references_table: "users",
-        references_field: :id,
-        association_name: :user
+        references_field: :id
       }
 
       index = %Index{name: "test_index", fields: [field], unique: false, type: :btree}

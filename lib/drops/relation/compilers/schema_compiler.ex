@@ -219,19 +219,7 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
         field_name = List.first(foreign_key.columns)
         referenced_field = List.first(foreign_key.referenced_columns)
 
-        # Generate association name from field name (remove _id suffix if present)
-        association_name =
-          field_name
-          |> Atom.to_string()
-          |> String.replace(~r/_id$/, "")
-          |> String.to_atom()
-
-        ForeignKey.new(
-          field_name,
-          foreign_key.referenced_table,
-          referenced_field,
-          association_name
-        )
+        ForeignKey.new(field_name, foreign_key.referenced_table, referenced_field)
       end
 
       # Visits an index struct and constructs an Index struct.

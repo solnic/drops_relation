@@ -163,8 +163,6 @@ defmodule Drops.Relations.SchemaSpec do
       assert fk.field == :parent_id
       assert fk.references_table == :association_parents
       assert fk.references_field == :id
-
-      assert fk.association_name == :parent
     end
 
     @tag relations: [:composite_pk]
