@@ -32,6 +32,12 @@ defmodule Drops.SQL.SqliteTest do
       assert integer_type_column.type == :integer
       assert integer_type_column.meta.primary_key == false
 
+      boolean_type_column = Enum.find(table.columns, &(&1.name == :boolean_type))
+      assert boolean_type_column
+      assert boolean_type_column.type == :integer
+      assert boolean_type_column.meta.primary_key == false
+      assert boolean_type_column.meta.default == true
+
       text_type_column = Enum.find(table.columns, &(&1.name == :text_type))
       assert text_type_column
       assert text_type_column.type == :string

@@ -185,6 +185,8 @@ defmodule Drops.SQL.Compiler do
         ForeignKey.new(name, columns, referenced_table, referenced_columns, meta)
       end
 
+      def visit({:default, value}) when value in [true, false], do: value
+
       # Visits a list of AST components, processing each recursively.
       @spec visit(list(), keyword()) :: list()
       def visit(components, opts) when is_list(components) do
