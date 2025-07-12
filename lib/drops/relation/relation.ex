@@ -194,13 +194,9 @@ defmodule Drops.Relation do
 
       # Helper function to check if a module is a relation module
       defp is_relation_module?(module) do
-        try do
-          function_exported?(module, :restrict, 2) and
-            function_exported?(module, :ecto_schema, 1) and
-            function_exported?(module, :associations, 0)
-        rescue
-          _ -> false
-        end
+        function_exported?(module, :restrict, 2) and
+          function_exported?(module, :ecto_schema, 1) and
+          function_exported?(module, :associations, 0)
       end
 
       def ecto_schema(group), do: __MODULE__.Struct.__schema__(group)

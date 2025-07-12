@@ -69,27 +69,23 @@ defmodule Drops.Relation.Composite do
   """
   @spec infer_association(module(), module()) :: atom() | nil
   def infer_association(left_module, right_module) do
-    try do
-      left_associations = left_module.associations()
-      right_source = right_module.ecto_schema(:source)
+    left_associations = left_module.associations()
+    right_source = right_module.ecto_schema(:source)
 
-      # Find association that matches the right relation's table
-      Enum.find_value(left_associations, fn assoc_name ->
-        association = left_module.association(assoc_name)
+    # Find association that matches the right relation's table
+    Enum.find_value(left_associations, fn assoc_name ->
+      association = left_module.association(assoc_name)
 
-        case association do
-          %{queryable: queryable} when is_atom(queryable) ->
-            if queryable.__schema__(:source) == right_source do
-              assoc_name
-            end
+      case association do
+        %{queryable: queryable} when is_atom(queryable) ->
+          if queryable.__schema__(:source) == right_source do
+            assoc_name
+          end
 
-          _ ->
-            nil
-        end
-      end)
-    rescue
-      _ -> nil
-    end
+        _ ->
+          nil
+      end
+    end)
   end
 end
 

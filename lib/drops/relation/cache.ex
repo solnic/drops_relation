@@ -145,32 +145,22 @@ defmodule Drops.Relation.Cache do
   """
   @spec cache_schema(module(), String.t(), any()) :: :ok | {:error, term()}
   def cache_schema(repo, table_name, schema) do
-    try do
-      digest = calculate_current_migrations_digest(repo)
-      cache_file = get_cache_file_path(repo, table_name)
+    digest = calculate_current_migrations_digest(repo)
+    cache_file = get_cache_file_path(repo, table_name)
 
-      cache_data = %{
-        "schema" => schema,
-        "digest" => digest
-      }
+    cache_data = %{
+      "schema" => schema,
+      "digest" => digest
+    }
 
-      log_cache_event(
-        "Caching schema for #{repo}.#{table_name} with digest #{digest} to #{cache_file}",
-        :debug
-      )
+    log_cache_event(
+      "Caching schema for #{repo}.#{table_name} with digest #{digest} to #{cache_file}",
+      :debug
+    )
 
-      :ok = write_cache_file(cache_file, cache_data)
-      digest_file = get_digest_file_path(repo)
-      :ok = write_stored_digest(digest_file, digest)
-    rescue
-      error ->
-        log_cache_event(
-          "Failed to cache schema for #{repo}.#{table_name}: #{inspect(error)}",
-          :error
-        )
-
-        {:error, {:cache_operation_failed, error}}
-    end
+    :ok = write_cache_file(cache_file, cache_data)
+    digest_file = get_digest_file_path(repo)
+    :ok = write_stored_digest(digest_file, digest)
   end
 
   @doc """

@@ -296,15 +296,4 @@ defmodule Drops.SQL.Database.Table do
   def get_foreign_key_for_column(%__MODULE__{foreign_keys: foreign_keys}, column_name) do
     Enum.find(foreign_keys, &ForeignKey.includes_column?(&1, column_name))
   end
-
-  defimpl Drops.SQL.Types.Conversion do
-    alias Drops.SQL.Types
-
-    def to_ecto_type(%{adapter: adapter}, column) do
-      case adapter do
-        :sqlite -> Types.Sqlite.to_ecto_type(column)
-        :postgres -> Types.Postgres.to_ecto_type(column)
-      end
-    end
-  end
 end
