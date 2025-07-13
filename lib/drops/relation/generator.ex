@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Schema.Generator do
+defmodule Drops.Relation.Generator do
   @moduledoc """
   Generates Ecto schema module content from database table introspection.
 

@@ -1,7 +1,7 @@
 defmodule Drops.Relation.Schema.GeneratorTest do
   use Drops.RelationCase, async: false
 
-  alias Drops.Relation.Schema.Generator
+  alias Drops.Relation.Generator
   alias Drops.Relation.Schema
   alias Drops.Relation.Schema.{Field, PrimaryKey}
 

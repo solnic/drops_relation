@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
 
   use Igniter.Mix.Task
 
-  alias Drops.Relation.Schema.Generator
+  alias Drops.Relation.Generator
   alias Igniter.Project.Module
 
   require Sourceror.Zipper

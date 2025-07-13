@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Drops.Relation.GenSchemasTest do
   use Drops.RelationCase, async: false
 
-  alias Drops.Relation.Schema.Generator
+  alias Drops.Relation.Generator
 
   describe "GenSchemas fix verification" do
     test "generated schema content has no duplicated defmodule statements" do

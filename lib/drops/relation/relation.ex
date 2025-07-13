@@ -28,7 +28,7 @@ defmodule Drops.Relation do
 
   alias Drops.Relation.Schema
   alias Drops.Relation.Query
-  alias Drops.Relation.Schema.Generator
+  alias Drops.Relation.Generator
 
   defmacro __using__(opts) do
     quote do
