@@ -49,7 +49,7 @@ defmodule Drops.Relation.Compilers.EctoCompiler do
     end
 
     # Extract information using Ecto's reflection functions
-    source = schema_module.__schema__(:source)
+    source = String.to_atom(schema_module.__schema__(:source))
     fields = extract_fields_from_schema(schema_module)
     primary_key = extract_primary_key_from_schema(schema_module)
 

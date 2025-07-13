@@ -29,7 +29,7 @@ defmodule Drops.Relation.MetadataIntegrationTest do
     @describetag adapter: :sqlite
 
     relation(:metadata_test) do
-      schema(:metadata_test) do
+      schema("metadata_test") do
         field(:status, Ecto.Enum, values: [:active, :inactive, :pending])
         field(:priority, :integer, default: 10)
       end

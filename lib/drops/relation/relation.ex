@@ -26,6 +26,7 @@ defmodule Drops.Relation do
   but can be overridden by passing a `:repo` option to any function call.
   """
 
+  alias Drops.Relation.Schema
   alias Drops.Relation.Query
   alias Drops.Relation.Schema.Generator
 
@@ -33,7 +34,7 @@ defmodule Drops.Relation do
     quote do
       import Drops.Relation
 
-      Module.register_attribute(__MODULE__, :custom_schema_definitions, accumulate: true)
+      Module.register_attribute(__MODULE__, :custom_schema_block, accumulate: true)
 
       @before_compile Drops.Relation
       @after_compile Drops.Relation
@@ -44,15 +45,9 @@ defmodule Drops.Relation do
     end
   end
 
-  defmacro associations(do: block) do
-    quote do
-      @associations unquote(Macro.escape(block))
-    end
-  end
-
   defmacro schema(table_name, do: block) do
     quote do
-      @custom_schema_definitions unquote(Macro.escape({table_name, block}))
+      @custom_schema_block unquote(Macro.escape({table_name, block}))
     end
   end
 
@@ -68,8 +63,8 @@ defmodule Drops.Relation do
     Module.put_attribute(relation, :external_resource, cache_file)
 
     case Drops.Relation.Cache.get_cached_schema(repo, name) do
-      %Drops.Relation.Schema{} = drops_relation_schema ->
-        __define_relation__(env, drops_relation_schema)
+      %Drops.Relation.Schema{} = inferred_schema ->
+        __define_relation__(env, inferred_schema)
 
       {:error, error} ->
         raise error
@@ -80,55 +75,44 @@ defmodule Drops.Relation do
     end
   end
 
-  def __define_relation__(env, drops_relation_schema) do
+  def __define_relation__(env, inferred_schema) do
     relation = env.module
 
     opts = Module.get_attribute(relation, :opts)
-    repo = opts[:repo]
-    name = opts[:name]
+    custom_schema_block = Module.get_attribute(relation, :custom_schema_block, [])
 
-    association_definitions = Module.get_attribute(relation, :associations, [])
-    custom_schema_definitions = Module.get_attribute(relation, :custom_schema_definitions, [])
+    # Merge customized schema that was defined via regular `schema(name) do ... end` block
+    # with the inferred schema, so that it's possible to override default fields settings.
+    final_schema =
+      if custom_schema_block != [] do
+        custom_schema = Generator.schema_from_block(custom_schema_block)
+        Schema.merge(inferred_schema, custom_schema)
+      else
+        inferred_schema
+      end
 
     # Generate Ecto schema AST
-    ecto_schema_ast =
-      if custom_schema_definitions != [] do
-        # Use Generator to merge schemas directly without temporary modules
-        final_schema =
-          Generator.merge_schemas_directly(
-            drops_relation_schema,
-            custom_schema_definitions,
-            name
-          )
-
-        # Generate schema AST from the merged Drops.Relation.Schema
-        generate_inferred_schema_ast(final_schema, association_definitions, name)
-      else
-        # Generate from inferred schema
-        generate_inferred_schema_ast(drops_relation_schema, association_definitions, name)
-      end
+    ecto_schema_ast = Generator.generate_schema_ast_from_schema(final_schema)
 
     # Generate the nested Schema module
     schema_module_ast = generate_schema_module(relation, ecto_schema_ast)
 
     # Generate query API functions
-    query_api_ast = generate_query_api(opts, drops_relation_schema)
+    query_api_ast = generate_query_api(opts, final_schema)
 
     quote location: :keep do
-      require unquote(repo)
-
       # Define the nested Schema module
       unquote(schema_module_ast)
 
       # Store configuration as module attributes
       @opts unquote(Macro.escape(opts))
-      @schema unquote(Macro.escape(drops_relation_schema))
+      @schema unquote(Macro.escape(inferred_schema))
 
       def new(queryable, struct, opts) do
         Kernel.struct(__MODULE__, %{
           queryable: queryable,
           struct: struct,
-          repo: unquote(repo),
+          repo: unquote(opts[:repo]),
           opts: opts,
           preloads: []
         })
@@ -180,7 +164,7 @@ defmodule Drops.Relation do
                 other_relation,
                 right_relation,
                 association,
-                unquote(repo)
+                unquote(opts[:repo])
               )
           end
         else
@@ -335,11 +319,5 @@ defmodule Drops.Relation do
   # Generates query API functions that delegate to module-level functions
   defp generate_query_api(opts, drops_relation_schema) do
     Query.generate_functions(opts, drops_relation_schema)
-  end
-
-  # Generate Ecto schema AST from inferred schema using Generator
-  defp generate_inferred_schema_ast(schema, _association_definitions, table_name) do
-    # Just use Generator to create the complete schema AST - it handles timestamps correctly
-    Generator.generate_schema_ast_from_schema(table_name, schema)
   end
 end

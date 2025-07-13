@@ -187,7 +187,7 @@ defmodule Drops.Relations.SchemaSpec do
 
   describe "customizing fields" do
     relation(:users) do
-      schema(:users) do
+      schema("users") do
         field(:tags, Ecto.Enum, values: [:red, :green, :blue])
         field(:status, :string, default: "active")
       end
@@ -224,7 +224,7 @@ defmodule Drops.Relations.SchemaSpec do
 
   describe "overriding inferred fields" do
     relation(:users) do
-      schema(:users) do
+      schema("users") do
         field(:name, :binary)
       end
     end

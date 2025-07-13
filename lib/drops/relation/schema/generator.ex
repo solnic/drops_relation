@@ -9,6 +9,7 @@ defmodule Drops.Relation.Schema.Generator do
 
   alias Drops.Relation.Schema
   alias Drops.Relation.Compilers.CodeCompiler
+  alias Drops.Relation.Compilers.EctoCompiler
 
   require Logger
 
@@ -264,48 +265,6 @@ defmodule Drops.Relation.Schema.Generator do
   end
 
   @doc """
-  Generates a temporary Ecto schema module from a Drops.Relation.Schema struct.
-
-  This function creates a temporary module that can be used for schema merging
-  or other operations that require an actual Ecto.Schema module.
-
-  ## Parameters
-
-  - `module_name` - The module name (atom) for the temporary schema
-  - `table_name` - The database table name
-  - `schema` - The Drops.Relation.Schema struct
-
-  ## Returns
-
-  The module atom of the created temporary schema.
-
-  ## Examples
-
-      iex> schema = %Drops.Relation.Schema{...}
-      iex> Generator.generate_temporary_schema_module(TempSchema, "users", schema)
-      TempSchema
-  """
-  @spec generate_temporary_schema_module(atom(), String.t(), Schema.t()) :: atom()
-  def generate_temporary_schema_module(module_name, table_name, schema) do
-    # Generate the schema AST without defmodule wrapper
-    schema_ast = generate_schema_ast_from_schema(table_name, schema)
-
-    # Create the complete module AST
-    module_ast =
-      quote do
-        defmodule unquote(module_name) do
-          use Ecto.Schema
-          unquote(schema_ast)
-        end
-      end
-
-    # Compile and load the module
-    Code.eval_quoted(module_ast)
-
-    module_name
-  end
-
-  @doc """
   Generates schema parts (attributes and field definitions) from a Drops.Relation.Schema struct.
 
   This function provides access to the individual components of a schema
@@ -360,9 +319,9 @@ defmodule Drops.Relation.Schema.Generator do
 
   The schema block AST.
   """
-  @spec generate_schema_ast_from_schema(String.t(), Schema.t()) :: Macro.t()
-  def generate_schema_ast_from_schema(table_name, schema) do
-    # Use enhanced CodeCompiler with grouped output
+  @spec generate_schema_ast_from_schema(Schema.t()) :: Macro.t()
+  def generate_schema_ast_from_schema(schema) do
+    table_name = Atom.to_string(schema.source)
     compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
 
     # Extract field definitions and attributes
@@ -390,59 +349,13 @@ defmodule Drops.Relation.Schema.Generator do
     end
   end
 
-  @doc """
-  Merges an inferred schema with custom schema definitions without creating temporary modules.
-
-  This function provides a simpler alternative to the temporary module approach by
-  directly converting custom schema definitions to a Drops.Relation.Schema struct
-  and merging it with the inferred schema.
-
-  ## Parameters
-
-  - `inferred_schema` - The Drops.Relation.Schema struct from database introspection
-  - `custom_schema_definitions` - List of custom schema definitions from the relation macro
-  - `table_name` - The database table name
-
-  ## Returns
-
-  A merged Drops.Relation.Schema struct with custom definitions taking precedence.
-
-  ## Examples
-
-      iex> inferred = %Drops.Relation.Schema{...}
-      iex> custom_defs = [{:users, quote(do: field(:status, :string))}]
-      iex> merged = Generator.merge_schemas_directly(inferred, custom_defs, "users")
-      iex> %Drops.Relation.Schema{} = merged
-  """
-  @spec merge_schemas_directly(Schema.t(), list(), String.t()) :: Schema.t()
-  def merge_schemas_directly(inferred_schema, custom_schema_definitions, table_name) do
-    # Convert custom schema definitions to a Drops.Relation.Schema struct
-    custom_schema = convert_custom_definitions_to_schema(custom_schema_definitions, table_name)
-
-    # Normalize sources to ensure they match (convert to atom)
-    normalized_inferred = %{inferred_schema | source: normalize_source(inferred_schema.source)}
-    normalized_custom = %{custom_schema | source: normalize_source(custom_schema.source)}
-
-    # Merge the schemas (custom takes precedence)
-    Schema.merge(normalized_inferred, normalized_custom)
-  end
-
-  # Helper to normalize source to atom
-  defp normalize_source(source) when is_binary(source), do: String.to_atom(source)
-  defp normalize_source(source) when is_atom(source), do: source
-
-  # Converts custom schema definitions (from relation macro) to a Drops.Relation.Schema struct
-  defp convert_custom_definitions_to_schema(custom_schema_definitions, table_name) do
-    # For now, create a temporary module and use EctoCompiler to convert it
-    # This is a simplified version that still uses temporary modules but is more contained
-    [{_table_name, schema_block}] = custom_schema_definitions
-
-    # Generate a unique temporary module name
+  # Converts custom schema block to a Drops.Relation.Schema struct
+  def schema_from_block([{table_name, schema_block}]) do
     temp_module_name =
       Module.concat([
         __MODULE__,
         TempCustomSchema,
-        String.to_atom("Table_#{System.unique_integer([:positive])}")
+        String.to_atom("Table_#{table_name}_#{System.unique_integer([:positive])}")
       ])
 
     # Create the complete module AST
@@ -461,7 +374,7 @@ defmodule Drops.Relation.Schema.Generator do
     Code.eval_quoted(module_ast)
 
     # Convert to Drops.Relation.Schema using EctoCompiler
-    custom_drops_schema = Drops.Relation.Compilers.EctoCompiler.visit(temp_module_name, [])
+    custom_drops_schema = EctoCompiler.visit(temp_module_name, [])
 
     # Clean up temporary module
     :code.purge(temp_module_name)
