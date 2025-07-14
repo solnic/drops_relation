@@ -70,7 +70,7 @@ defmodule Drops.Relation.Schema.Field do
   """
   @spec new(atom(), atom(), meta()) :: t()
   def new(name, type, meta \\ %{}) do
-    %__MODULE__{name: name, type: type, meta: meta}
+    %__MODULE__{name: name, source: name, type: type, meta: meta}
   end
 
   def new(name, db_type, ecto_type, source, meta \\ %{}) do
