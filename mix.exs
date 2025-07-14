@@ -23,16 +23,24 @@ defmodule Drops.Relation.MixProject do
       source_url: @source_url,
       consolidate_protocols: Mix.env() == :prod,
       elixir_paths: elixir_paths(Mix.env()),
-      preferred_cli_env: [
-        "test.group": :test,
-        "test.integration": :test
-      ],
+      test_coverage: [tool: ExCoveralls],
       aliases: aliases()
     ]
   end
 
   def elixir_paths(_) do
     ["lib"]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
+        "test.group": :test,
+        "test.integration": :test,
+        "coveralls.html": :test,
+        "coveralls.json": :test
+      ]
+    ]
   end
 
   # Run "mix help compile.app" to learn about applications.
@@ -99,6 +107,7 @@ defmodule Drops.Relation.MixProject do
       {:ecto_sql, "~> 3.10"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.18", only: [:dev, :test]},
       {:doctor, "~> 0.21.0", only: :dev},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:igniter, "~> 0.6", optional: true},
