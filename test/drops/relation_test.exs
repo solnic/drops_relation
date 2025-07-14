@@ -169,19 +169,10 @@ defmodule Drops.Relations.SchemaSpec do
     test "stores schema with composite primary key", %{composite_pk: composite_pk} do
       schema = composite_pk.schema()
 
-      # Should be a Drops.Relation.Schema struct
-      assert %Drops.Relation.Schema{} = schema
-      assert schema.source == :composite_pk
+      pk = schema.primary_key
 
-      # Database introspection correctly detects composite primary keys
-      # defined with @primary_key false and field-level primary_key: true
-      # Sqlite PRAGMA table_info properly shows all primary key columns.
-      assert Drops.Relation.Schema.PrimaryKey.field_names(schema.primary_key) == [
-               :part1,
-               :part2
-             ]
-
-      assert Drops.Relation.Schema.composite_primary_key?(schema)
+      assert %{meta: %{composite: true}} = pk
+      assert [%{name: :part1}, %{name: :part2}] = pk.fields
     end
   end
 
