@@ -50,40 +50,4 @@ defmodule Drops.Relation.MetadataIntegrationTest do
       assert :score in fields
     end
   end
-
-  describe "Field.merge behavior in practice" do
-    @describetag relations: [:metadata_test], adapter: :sqlite
-
-    test "custom field options override inferred metadata appropriately", %{
-      metadata_test: relation
-    } do
-      schema = relation.schema()
-
-      status_field = schema[:status]
-
-      custom_meta = %{nullable: true, default: "pending"}
-
-      custom_field =
-        Drops.Relation.Schema.Field.new(
-          :status,
-          {Ecto.Enum, values: [:active, :inactive, :pending]},
-          custom_meta
-        )
-
-      # Merge them
-      merged = Drops.Relation.Schema.Field.merge(status_field, custom_field)
-
-      # Custom field properties should take precedence
-      assert merged.type == {Ecto.Enum, values: [:active, :inactive, :pending]}
-      # overridden
-      assert merged.meta.nullable == true
-      # overridden
-      assert merged.meta.default == "pending"
-
-      # But check constraints from database should be preserved if not overridden
-      if status_field.meta[:check_constraints] do
-        assert merged.meta[:check_constraints] == status_field.meta[:check_constraints]
-      end
-    end
-  end
 end

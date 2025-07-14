@@ -68,18 +68,21 @@ defmodule Drops.Relation.Compilers.EctoCompiler do
   # Extract field information from compiled Ecto schema module
   defp extract_fields_from_schema(schema_module) do
     field_names = schema_module.__schema__(:fields)
+    # Get default values from the struct
+    default_struct = struct(schema_module)
 
     Enum.map(field_names, fn field_name ->
       field_type = schema_module.__schema__(:type, field_name)
       field_source = schema_module.__schema__(:field_source, field_name)
+      # Extract default value from the struct
+      default_value = Map.get(default_struct, field_name)
 
       meta = %{
-        type: field_type,
         source: field_source,
         # Ecto doesn't expose this information easily
         nullable: nil,
-        # Ecto doesn't expose this information easily
-        default: nil,
+        # Extract default value from struct
+        default: default_value,
         check_constraints: [],
         primary_key: field_name in schema_module.__schema__(:primary_key),
         # We'll handle this separately if needed

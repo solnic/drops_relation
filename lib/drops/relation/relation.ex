@@ -106,7 +106,7 @@ defmodule Drops.Relation do
 
       # Store configuration as module attributes
       @opts unquote(Macro.escape(opts))
-      @schema unquote(Macro.escape(inferred_schema))
+      @schema unquote(Macro.escape(final_schema))
 
       def new(queryable, struct, opts) do
         Kernel.struct(__MODULE__, %{

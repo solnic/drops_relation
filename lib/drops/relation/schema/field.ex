@@ -145,6 +145,7 @@ defmodule Drops.Relation.Schema.Field do
     %__MODULE__{
       name: right.name,
       type: right.type,
+      source: right.source,
       meta: final_meta
     }
   end
