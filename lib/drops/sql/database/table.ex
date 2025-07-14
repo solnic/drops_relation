@@ -162,43 +162,6 @@ defmodule Drops.SQL.Database.Table do
   end
 
   @doc """
-  Creates a Table struct from introspection data.
-
-  This is a convenience function for creating tables from the raw data
-  returned by database introspection.
-
-  ## Parameters
-
-  - `name` - The table name
-  - `adapter` - The database adapter (:postgres, :sqlite, etc.)
-  - `columns` - List of Column structs
-  - `foreign_keys` - List of ForeignKey structs (optional)
-  - `indices` - List of Index structs (optional)
-
-  ## Examples
-
-      iex> alias Drops.SQL.Database.Column
-      iex> columns = [Column.new("id", :integer, false, nil, true)]
-      iex> Drops.SQL.Database.Table.from_introspection("users", :postgres, columns)
-      %Drops.SQL.Database.Table{
-        name: "users",
-        adapter: :postgres,
-        columns: [%Drops.SQL.Database.Column{name: "id", ...}],
-        primary_key: %Drops.SQL.Database.PrimaryKey{columns: ["id"]},
-        foreign_keys: [],
-        indices: []
-      }
-  """
-  @spec from_introspection(String.t(), adapter(), [Column.t()], [ForeignKey.t()], [
-          Index.t()
-        ]) :: t()
-  def from_introspection(name, adapter, columns, foreign_keys \\ [], indices \\ []) do
-    primary_key = PrimaryKey.from_columns(columns)
-
-    new(name, adapter, columns, primary_key, foreign_keys, indices)
-  end
-
-  @doc """
   Gets a column by name.
 
   Note: You can also use the Access behaviour with bracket notation:
