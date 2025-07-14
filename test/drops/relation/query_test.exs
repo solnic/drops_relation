@@ -1,4 +1,4 @@
-defmodule Drops.Relations.QueryAPISpec do
+defmodule Drops.Relations.QueryTest do
   use Drops.RelationCase, async: false
 
   describe "query API functions" do
