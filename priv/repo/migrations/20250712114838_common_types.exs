@@ -9,6 +9,21 @@ defmodule Drops.Relation.Repos.CommonTypes do
       add :text_field, :text
       add :binary_field, :binary
 
+      # Arrays
+      add :array_with_string_member_field, {:array, :string}
+      add :array_with_string_member_and_default, {:array, :string}, default: []
+
+      # Maps
+      add :map_field, :map
+      add :map_with_default, :map, default: %{}
+
+      # JSONB
+      add :jsonb_field, :jsonb
+
+      # JSONB with defaults
+      add :jsonb_with_empty_map_default, :jsonb, default: "{}"
+      add :jsonb_with_empty_list_default, :jsonb, default: "[]"
+
       # Types with defaults (only truly common ones)
       add :string_with_default, :string, default: "default_value"
       add :integer_with_default, :integer, default: 42

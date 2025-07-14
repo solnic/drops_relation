@@ -421,7 +421,7 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
       end
     else
       quote do
-        field(unquote(name), unquote(field_type), unquote(all_opts))
+        field(unquote(name), unquote(field_type), unquote(Macro.escape(all_opts)))
       end
     end
   end

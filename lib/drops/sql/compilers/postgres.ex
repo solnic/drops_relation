@@ -6,80 +6,6 @@ defmodule Drops.SQL.Compilers.Postgres do
   type mapping and AST processing. It converts PostgreSQL database types to Ecto types
   and handles PostgreSQL's rich type system including arrays, custom types, and advanced
   data types.
-
-  ## PostgreSQL Type System
-
-  PostgreSQL has a sophisticated type system that this compiler maps to Ecto types:
-
-  ### Integer Types
-  - `smallint`, `int2`, `serial2`, `smallserial` → `:integer`
-  - `integer`, `int`, `int4`, `serial`, `serial4` → `:integer`
-  - `bigint`, `int8`, `bigserial`, `serial8` → `:integer`
-
-  ### Floating Point Types
-  - `real`, `float4` → `:float`
-  - `double precision`, `float8` → `:float`
-
-  ### Decimal Types
-  - `numeric`, `decimal`, `money` → `:decimal`
-
-  ### String Types
-  - `text`, `character varying`, `varchar`, `char`, `character`, `name` → `:string`
-
-  ### Boolean Type
-  - `boolean` → `:boolean`
-
-  ### Binary Types
-  - `bytea` → `:binary`
-
-  ### Date/Time Types
-  - `date` → `:date`
-  - `time`, `time without time zone`, `time with time zone`, `timetz` → `:time`
-  - `timestamp`, `timestamp without time zone` → `:naive_datetime`
-  - `timestamp with time zone`, `timestamptz` → `:utc_datetime`
-
-  ### JSON Types
-  - `json`, `jsonb` → `:map`
-
-  ### UUID Type
-  - `uuid` → `:uuid`
-
-  ### Array Types
-  - Any type with `[]` suffix → `{:array, base_type}`
-  - Examples: `integer[]` → `{:array, :integer}`, `text[]` → `{:array, :string}`
-
-  ### Geometric and Network Types
-  - `xml`, `inet`, `cidr`, `macaddr`, `point`, `line`, `lseg`, `box`, `path`, `polygon`, `circle` → `:string`
-
-  ## Default Value Processing
-
-  PostgreSQL default values are processed to handle:
-  - `NULL` values
-  - `nextval()` sequences → `:auto_increment`
-  - `now()`, `CURRENT_TIMESTAMP` → `:current_timestamp`
-  - `CURRENT_DATE` → `:current_date`
-  - `CURRENT_TIME` → `:current_time`
-  - Quoted string literals with type casting
-  - Numeric literals
-
-  ## Usage
-
-  This compiler is typically used automatically by the `Drops.SQL.Postgres` adapter:
-
-      # Automatic usage through adapter
-      {:ok, table} = Drops.SQL.Postgres.table("users", MyRepo)
-
-      # Direct usage (advanced)
-      ast = {:table, {{:identifier, "users"}, columns, [], []}}
-      table = Drops.SQL.Compilers.Postgres.process(ast, adapter: :postgres)
-
-  ## Implementation Notes
-
-  - Handles PostgreSQL's internal type names (e.g., `int4` → `integer`)
-  - Supports array type detection and recursive processing
-  - Processes complex default value expressions
-  - Maps unknown types to strings for compatibility
-  - Preserves PostgreSQL-specific type information where possible
   """
 
   use Drops.SQL.Compiler
@@ -132,33 +58,6 @@ defmodule Drops.SQL.Compilers.Postgres do
     "circle"
   ]
 
-  @doc """
-  Visits a type AST node and maps PostgreSQL types to Ecto types.
-
-  This function implements PostgreSQL-specific type mapping, handling PostgreSQL's
-  rich type system including arrays, custom types, and internal type names.
-
-  ## Parameters
-
-  - `{:type, type}` - Type AST node with PostgreSQL type name
-  - `opts` - Processing options (used for recursive array processing)
-
-  ## Returns
-
-  Ecto type atom (`:integer`, `:string`, etc.), tuple for arrays (`{:array, base_type}`),
-  or the original type if unmapped.
-
-  ## Examples
-
-      iex> Drops.SQL.Compilers.Postgres.visit({:type, "integer"}, [])
-      :integer
-
-      iex> Drops.SQL.Compilers.Postgres.visit({:type, "text[]"}, [])
-      {:array, :string}
-
-      iex> Drops.SQL.Compilers.Postgres.visit({:type, "uuid"}, [])
-      :uuid
-  """
   @spec visit({:type, String.t()}, map()) :: atom() | tuple() | String.t()
   def visit({:type, type}, _opts) when type in @string_types, do: :string
   def visit({:type, type}, _opts) when type in @integer_types, do: :integer
@@ -167,7 +66,7 @@ defmodule Drops.SQL.Compilers.Postgres do
   def visit({:type, type}, _opts) when type in @time_types, do: :time
   def visit({:type, type}, _opts) when type in @naive_datetime_types, do: :naive_datetime
   def visit({:type, type}, _opts) when type in @utc_datetime_types, do: :utc_datetime
-  def visit({:type, type}, _opts) when type in @json_types, do: :map
+  def visit({:type, type}, _opts) when type in @json_types, do: String.to_atom(type)
 
   def visit({:type, "uuid"}, _opts), do: :uuid
   def visit({:type, "boolean"}, _opts), do: :boolean
@@ -201,6 +100,15 @@ defmodule Drops.SQL.Compilers.Postgres do
     cond do
       trimmed == "NULL" ->
         nil
+
+      String.starts_with?(trimmed, "'{}'") ->
+        %{}
+
+      String.starts_with?(trimmed, "'[]'") ->
+        []
+
+      String.starts_with?(trimmed, "ARRAY[]") ->
+        []
 
       String.starts_with?(trimmed, "nextval(") ->
         :auto_increment

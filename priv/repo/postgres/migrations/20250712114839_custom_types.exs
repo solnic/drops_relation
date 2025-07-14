@@ -26,8 +26,8 @@ defmodule Drops.Relation.Repos.Postgres.Migrations.CustomTypes20250712114839 do
 
       # PostgreSQL-specific types
       add :uuid_field, :binary_id
-      add :json_field, :map
-      add :jsonb_field, :map
+      add :json_field, :json
+      add :jsonb_field, :jsonb
       add :bytea_field, :binary
 
       # PostgreSQL boolean (native boolean type)

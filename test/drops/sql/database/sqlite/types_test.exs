@@ -29,6 +29,22 @@ defmodule Drops.Database.Sqlite.TypesTest do
       assert binary_field.type == :binary
       assert binary_field.meta.nullable == true
 
+      column = table[:array_with_string_member_field]
+      assert column.type == :string
+      assert column.meta.default == nil
+
+      column = table[:array_with_string_member_and_default]
+      assert column.type == :string
+      assert column.meta.default == []
+
+      jsonb_with_empty_map_default = find_column(table, :jsonb_with_empty_map_default)
+      assert jsonb_with_empty_map_default.type == :jsonb
+      assert jsonb_with_empty_map_default.meta.default == %{}
+
+      jsonb_with_empty_list_default = find_column(table, :jsonb_with_empty_list_default)
+      assert jsonb_with_empty_list_default.type == :jsonb
+      assert jsonb_with_empty_list_default.meta.default == []
+
       # Test types with defaults
       string_with_default = find_column(table, :string_with_default)
       assert string_with_default.type == :string

@@ -29,6 +29,22 @@ defmodule Drops.Database.Postgres.TypesTest do
       assert binary_field.type == :binary
       assert binary_field.meta.nullable == true
 
+      column = table[:array_with_string_member_field]
+      assert column.type == {:array, :string}
+      assert column.meta.default == nil
+
+      column = table[:array_with_string_member_and_default]
+      assert column.type == {:array, :string}
+      assert column.meta.default == []
+
+      jsonb_with_empty_map_default = find_column(table, :jsonb_with_empty_map_default)
+      assert jsonb_with_empty_map_default.type == :jsonb
+      assert jsonb_with_empty_map_default.meta.default == %{}
+
+      jsonb_with_empty_list_default = find_column(table, :jsonb_with_empty_list_default)
+      assert jsonb_with_empty_list_default.type == :jsonb
+      assert jsonb_with_empty_list_default.meta.default == []
+
       # Test types with defaults
       string_with_default = find_column(table, :string_with_default)
       assert string_with_default.type == :string
@@ -120,10 +136,10 @@ defmodule Drops.Database.Postgres.TypesTest do
       assert uuid_field.type == :uuid
 
       json_field = find_column(table, :json_field)
-      assert json_field.type == :map
+      assert json_field.type == :json
 
       jsonb_field = find_column(table, :jsonb_field)
-      assert jsonb_field.type == :map
+      assert jsonb_field.type == :jsonb
 
       bytea_field = find_column(table, :bytea_field)
       assert bytea_field.type == :binary

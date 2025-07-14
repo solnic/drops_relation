@@ -33,7 +33,7 @@ defmodule Drops.SQL.PostgresTest do
 
       jsonb_column = Enum.find(table.columns, &(&1.name == :jsonb_type))
       assert jsonb_column
-      assert jsonb_column.type == :map
+      assert jsonb_column.type == :jsonb
 
       # Verify primary key
       assert %Database.PrimaryKey{} = table.primary_key
