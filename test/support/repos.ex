@@ -1,7 +1,12 @@
 defmodule Drops.Relation.Repos do
-  def start(repo) do
+  def start(repo, mode \\ nil)
+
+  def start(:sqlite, mode), do: start(Drops.Relation.Repos.Sqlite, mode)
+  def start(:postgres, mode), do: start(Drops.Relation.Repos.Postgres, mode)
+
+  def start(repo, mode) do
     {:ok, pid} = repo.start_link()
-    Ecto.Adapters.SQL.Sandbox.mode(repo, mode(Mix.env()))
+    Ecto.Adapters.SQL.Sandbox.mode(repo, mode || mode(Mix.env()))
     :persistent_term.put({:repos, repo}, pid)
   end
 
