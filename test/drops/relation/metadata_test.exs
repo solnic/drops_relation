@@ -1,20 +1,18 @@
 defmodule Drops.Relation.MetadataIntegrationTest do
   use Drops.RelationCase, async: false
 
-  alias Drops.Relation.Inference
-
   describe "metadata integration with field inference" do
-    @describetag adapter: :sqlite
+    @describetag relations: [:metadata_test], adapter: :sqlite
 
-    test "inferred fields include metadata from database introspection" do
-      schema = Inference.infer_schema("metadata_test", Drops.Relation.Repos.Sqlite)
+    test "inferred fields include metadata from database introspection", %{
+      metadata_test: relation
+    } do
+      schema = relation.schema()
 
-      # Find specific fields
-      status_field = Enum.find(schema.fields, &(&1.name == :status))
-      description_field = Enum.find(schema.fields, &(&1.name == :description))
-      score_field = Enum.find(schema.fields, &(&1.name == :score))
+      status_field = schema[:status]
+      description_field = schema[:description]
+      score_field = schema[:score]
 
-      # Test that metadata is properly extracted
       assert status_field.meta.nullable == false
       assert status_field.meta.default == "active"
 
@@ -26,8 +24,6 @@ defmodule Drops.Relation.MetadataIntegrationTest do
   end
 
   describe "parameterized types with metadata" do
-    @describetag adapter: :sqlite
-
     relation(:metadata_test) do
       schema("metadata_test") do
         field(:status, Ecto.Enum, values: [:active, :inactive, :pending])
@@ -56,15 +52,15 @@ defmodule Drops.Relation.MetadataIntegrationTest do
   end
 
   describe "Field.merge behavior in practice" do
-    @describetag adapter: :sqlite
+    @describetag relations: [:metadata_test], adapter: :sqlite
 
-    test "custom field options override inferred metadata appropriately" do
-      # Get an inferred field with metadata
-      schema = Inference.infer_schema("metadata_test", Drops.Relation.Repos.Sqlite)
-      status_field = Enum.find(schema.fields, &(&1.name == :status))
+    test "custom field options override inferred metadata appropriately", %{
+      metadata_test: relation
+    } do
+      schema = relation.schema()
 
-      # Create a custom field that overrides some properties
-      # Override both
+      status_field = schema[:status]
+
       custom_meta = %{nullable: true, default: "pending"}
 
       custom_field =

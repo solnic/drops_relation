@@ -137,11 +137,6 @@ defmodule Drops.Relation.Cache do
   - `repo` - The Ecto repository module
   - `table_name` - The database table name
   - `schema` - The schema tuple to cache
-
-  ## Examples
-
-      schema = Drops.Relation.Inference.infer_schema(relation, "users", MyApp.Repo)
-      Drops.Relation.Cache.cache_schema(MyApp.Repo, "users", schema)
   """
   @spec cache_schema(module(), String.t(), any()) :: :ok | {:error, term()}
   def cache_schema(repo, table_name, schema) do
