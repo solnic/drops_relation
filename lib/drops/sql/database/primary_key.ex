@@ -80,34 +80,6 @@ defmodule Drops.SQL.Database.PrimaryKey do
   end
 
   @doc """
-  Creates a PrimaryKey struct from a list of Column structs.
-
-  Extracts the columns that are marked as primary key columns.
-
-  ## Parameters
-
-  - `columns` - List of Column structs
-
-  ## Examples
-
-      iex> alias Drops.SQL.Database.Column
-      iex> columns = [
-      ...>   Column.new("id", :integer, %{nullable: false, default: nil, primary_key: true, check_constraints: []}),
-      ...>   Column.new("name", "varchar(255)", %{nullable: true, default: nil, primary_key: false, check_constraints: []})
-      ...> ]
-      iex> pk = Drops.SQL.Database.PrimaryKey.from_columns(columns)
-      iex> length(pk.columns)
-      1
-      iex> hd(pk.columns).name
-      "id"
-  """
-  @spec from_columns([Column.t()]) :: t()
-  def from_columns(columns) when is_list(columns) do
-    primary_key_columns = Enum.filter(columns, &Column.primary_key?/1)
-    new(primary_key_columns)
-  end
-
-  @doc """
   Checks if the primary key is composite (has multiple columns).
 
   ## Examples
