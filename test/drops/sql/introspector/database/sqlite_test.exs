@@ -19,7 +19,7 @@ defmodule Drops.SQL.SqliteTest do
       assert length(table.columns) > 10
 
       # Check specific columns exist with proper metadata
-      id_column = Enum.find(table.columns, &(&1.name == :id))
+      id_column = table[:id]
       assert id_column
       assert id_column.type == :integer
       assert id_column.meta.primary_key == true
@@ -27,18 +27,18 @@ defmodule Drops.SQL.SqliteTest do
       # This is a SQLite quirk - we'll just verify it's a boolean
       assert is_boolean(id_column.meta.nullable)
 
-      integer_type_column = Enum.find(table.columns, &(&1.name == :integer_type))
+      integer_type_column = table[:integer_type]
       assert integer_type_column
       assert integer_type_column.type == :integer
       assert integer_type_column.meta.primary_key == false
 
-      boolean_type_column = Enum.find(table.columns, &(&1.name == :boolean_type))
+      boolean_type_column = table[:boolean_type]
       assert boolean_type_column
       assert boolean_type_column.type == :integer
       assert boolean_type_column.meta.primary_key == false
       assert boolean_type_column.meta.default == true
 
-      text_type_column = Enum.find(table.columns, &(&1.name == :text_type))
+      text_type_column = table[:text_type]
       assert text_type_column
       assert text_type_column.type == :string
 
@@ -87,11 +87,11 @@ defmodule Drops.SQL.SqliteTest do
       assert is_list(table.columns)
 
       # Check foreign key columns exist
-      user_id_column = Enum.find(table.columns, &(&1.name == :user_id))
+      user_id_column = table[:user_id]
       assert user_id_column
       assert user_id_column.type == :integer
 
-      parent_id_column = Enum.find(table.columns, &(&1.name == :parent_id))
+      parent_id_column = table[:parent_id]
       assert parent_id_column
       assert parent_id_column.type == :integer
 
@@ -134,39 +134,39 @@ defmodule Drops.SQL.SqliteTest do
       assert is_list(table.columns)
 
       # Check status column with default value
-      status_column = Enum.find(table.columns, &(&1.name == :status))
+      status_column = table[:status]
       assert status_column
       assert status_column.type == :string
       assert status_column.meta.nullable == false
       assert status_column.meta.default == "active"
 
       # Check nullable description column
-      description_column = Enum.find(table.columns, &(&1.name == :description))
+      description_column = table[:description]
       assert description_column
       assert description_column.type == :string
       assert description_column.meta.nullable == true
 
       # Check non-nullable name column
-      name_column = Enum.find(table.columns, &(&1.name == :name))
+      name_column = table[:name]
       assert name_column
       assert name_column.type == :string
       assert name_column.meta.nullable == false
 
       # Check priority column with numeric default
-      priority_column = Enum.find(table.columns, &(&1.name == :priority))
+      priority_column = table[:priority]
       assert priority_column
       assert priority_column.type == :integer
       assert priority_column.meta.default == 1
 
       # Check boolean column with default
-      is_enabled_column = Enum.find(table.columns, &(&1.name == :is_enabled))
+      is_enabled_column = table[:is_enabled]
       assert is_enabled_column
       # SQLite stores booleans as integers
       assert is_enabled_column.type == :integer
       assert is_enabled_column.meta.default == 1
 
       # Check score column with check constraints
-      score_column = Enum.find(table.columns, &(&1.name == :score))
+      score_column = table[:score]
       assert score_column
       assert score_column.type == :integer
       assert score_column.meta.nullable == false
@@ -216,7 +216,7 @@ defmodule Drops.SQL.SqliteTest do
       assert table.adapter == :sqlite
 
       # Check user_id column - should have foreign_key: true and index: true
-      user_id_column = Enum.find(table.columns, &(&1.name == :user_id))
+      user_id_column = table[:user_id]
       assert user_id_column
       assert user_id_column.type == :integer
       assert user_id_column.meta.foreign_key == true
@@ -224,7 +224,7 @@ defmodule Drops.SQL.SqliteTest do
       assert is_binary(user_id_column.meta.index_name)
 
       # Check group_id column - should have foreign_key: true and index: true
-      group_id_column = Enum.find(table.columns, &(&1.name == :group_id))
+      group_id_column = table[:group_id]
       assert group_id_column
       assert group_id_column.type == :integer
       assert group_id_column.meta.foreign_key == true
@@ -232,7 +232,7 @@ defmodule Drops.SQL.SqliteTest do
       assert is_binary(group_id_column.meta.index_name)
 
       # Check id column - should have foreign_key: false and index: false
-      id_column = Enum.find(table.columns, &(&1.name == :id))
+      id_column = table[:id]
       assert id_column
       assert id_column.meta.primary_key == true
       assert id_column.meta.foreign_key == false
@@ -240,7 +240,7 @@ defmodule Drops.SQL.SqliteTest do
       assert id_column.meta.index_name == nil
 
       # Check timestamp columns - should have foreign_key: false and index: false
-      inserted_at_column = Enum.find(table.columns, &(&1.name == :inserted_at))
+      inserted_at_column = table[:inserted_at]
       assert inserted_at_column
       assert inserted_at_column.meta.foreign_key == false
       assert inserted_at_column.meta.index == false

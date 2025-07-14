@@ -6,6 +6,14 @@ defmodule Drops.SQL.Database.Table do
   its name, columns, primary key, foreign keys, and indices extracted from
   database introspection.
 
+  ## Access Behaviour
+
+  The Table struct implements the Access behaviour, allowing you to access columns
+  by name using bracket notation:
+
+      table[:column_name]  # Returns the Column struct or nil
+      table["column_name"] # Also works with string keys
+
   ## Examples
 
       # Simple table
@@ -21,6 +29,10 @@ defmodule Drops.SQL.Database.Table do
           %Drops.SQL.Database.Index{name: "idx_users_email", columns: ["email"], unique: true, ...}
         ]
       }
+
+      # Accessing columns
+      id_column = table[:id]
+      email_column = table["email"]
 
       # Table with foreign keys
       %Drops.SQL.Database.Table{
@@ -59,6 +71,51 @@ defmodule Drops.SQL.Database.Table do
     :foreign_keys,
     :indices
   ]
+
+  @behaviour Access
+
+  @impl Access
+  def fetch(%__MODULE__{columns: columns}, key) when is_atom(key) or is_binary(key) do
+    case Enum.find(columns, &(&1.name == key)) do
+      nil -> :error
+      column -> {:ok, column}
+    end
+  end
+
+  @impl Access
+  def get_and_update(%__MODULE__{columns: columns} = table, key, function)
+      when is_atom(key) or is_binary(key) do
+    case Enum.find_index(columns, &(&1.name == key)) do
+      nil ->
+        {nil, table}
+
+      index ->
+        current_column = Enum.at(columns, index)
+
+        case function.(current_column) do
+          {get_value, new_column} ->
+            new_columns = List.replace_at(columns, index, new_column)
+            {get_value, %{table | columns: new_columns}}
+
+          :pop ->
+            new_columns = List.delete_at(columns, index)
+            {current_column, %{table | columns: new_columns}}
+        end
+    end
+  end
+
+  @impl Access
+  def pop(%__MODULE__{columns: columns} = table, key) when is_atom(key) or is_binary(key) do
+    case Enum.find_index(columns, &(&1.name == key)) do
+      nil ->
+        {nil, table}
+
+      index ->
+        column = Enum.at(columns, index)
+        new_columns = List.delete_at(columns, index)
+        {column, %{table | columns: new_columns}}
+    end
+  end
 
   @doc """
   Creates a new Table struct.
@@ -144,6 +201,9 @@ defmodule Drops.SQL.Database.Table do
   @doc """
   Gets a column by name.
 
+  Note: You can also use the Access behaviour with bracket notation:
+  `table[:column_name]` or `table["column_name"]`
+
   ## Examples
 
       iex> alias Drops.SQL.Database.{Column, Table}
@@ -160,6 +220,15 @@ defmodule Drops.SQL.Database.Table do
       iex> columns = [Column.new("id", :integer, false, nil, true)]
       iex> table = Table.from_introspection("users", columns)
       iex> Table.get_column(table, "nonexistent")
+      nil
+
+      # Using Access behaviour (preferred)
+      iex> alias Drops.SQL.Database.{Column, Table}
+      iex> columns = [Column.new("id", :integer, false, nil, true)]
+      iex> table = Table.from_introspection("users", columns)
+      iex> table[:id].name
+      "id"
+      iex> table["nonexistent"]
       nil
   """
   @spec get_column(t(), String.t()) :: Column.t() | nil

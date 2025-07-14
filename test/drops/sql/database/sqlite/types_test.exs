@@ -183,7 +183,7 @@ defmodule Drops.Database.Sqlite.TypesTest do
   end
 
   defp find_column(table, column_name) do
-    Enum.find(table.columns, fn col -> col.name == column_name end) ||
+    table[column_name] ||
       raise "Column #{column_name} not found in table #{table.name}"
   end
 end
