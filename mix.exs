@@ -37,6 +37,7 @@ defmodule Drops.Relation.MixProject do
       preferred_envs: [
         "test.group": :test,
         "test.integration": :test,
+        "test.coverage": :test,
         "coveralls.html": :test,
         "coveralls.json": :test
       ]
@@ -128,7 +129,9 @@ defmodule Drops.Relation.MixProject do
       "ecto.migrations": ["drops.relation.dev_setup", "ecto.migrations"],
       "ecto.dump": ["drops.relation.dev_setup", "ecto.dump"],
       "ecto.load": ["drops.relation.dev_setup", "ecto.load"],
-      "test.integration": ["cmd cd test/sample_app && mix test"]
+      "drops.relation.refresh_cache": ["dev.start_repo", "drops.relation.refresh_cache"],
+      "test.integration": ["cmd cd test/sample_app && mix test"],
+      "test.coverage": ["coveralls.json", "dev.coverage.create_tasks"]
     ]
   end
 end
