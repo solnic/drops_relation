@@ -73,6 +73,9 @@ defmodule Drops.SQL.Compilers.Postgres do
   def visit({:type, "date"}, _opts), do: :date
   def visit({:type, "bytea"}, _opts), do: :binary
 
+  def visit({:array, "jsonb[]"}, _opts), do: {:array, :jsonb}
+  def visit({:array, "json[]"}, _opts), do: {:array, :json}
+
   def visit({:type, type}, opts) when is_binary(type) do
     if String.ends_with?(type, "[]") do
       base_type = String.slice(type, 0, String.length(type) - 2)

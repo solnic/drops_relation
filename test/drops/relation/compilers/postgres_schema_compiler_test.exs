@@ -28,6 +28,16 @@ defmodule Drops.Relation.Compilers.PostgresSchemaCompilerTest do
       )
 
       assert_field(schema, :array_with_string_member_and_default, {:array, :string}, default: [])
+
+      assert_field(schema, :array_with_jsonb_member_field, {:array, :map},
+        type: {:array, :jsonb},
+        default: nil
+      )
+
+      assert_field(schema, :array_with_jsonb_member_and_default, {:array, :map},
+        type: {:array, :jsonb},
+        default: []
+      )
     end
   end
 end

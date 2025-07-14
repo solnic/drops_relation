@@ -13,6 +13,9 @@ defmodule Drops.Relation.Repos.CommonTypes do
       add :array_with_string_member_field, {:array, :string}
       add :array_with_string_member_and_default, {:array, :string}, default: []
 
+      add :array_with_jsonb_member_field, {:array, :jsonb}
+      add :array_with_jsonb_member_and_default, {:array, :jsonb}, default: []
+
       # Maps
       add :map_field, :map
       add :map_with_default, :map, default: %{}

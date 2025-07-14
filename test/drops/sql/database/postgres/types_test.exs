@@ -17,8 +17,13 @@ defmodule Drops.Database.Postgres.TypesTest do
       assert_column(table, :text_field, :string, nullable: true)
 
       assert_column(table, :binary_field, :binary, nullable: true)
+
       assert_column(table, :array_with_string_member_field, {:array, :string}, default: nil)
       assert_column(table, :array_with_string_member_and_default, {:array, :string}, default: [])
+
+      assert_column(table, :array_with_jsonb_member_field, {:array, :jsonb}, default: nil)
+      assert_column(table, :array_with_jsonb_member_and_default, {:array, :jsonb}, default: [])
+
       assert_column(table, :jsonb_with_empty_map_default, :jsonb, default: %{})
       assert_column(table, :jsonb_with_empty_list_default, :jsonb, default: [])
 

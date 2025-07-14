@@ -14,6 +14,12 @@ defmodule Drops.Relation.Compilers.PostgresSchemaCompiler do
   def visit({:type, :uuid}, %{primary_key: true}), do: :binary_id
   def visit({:type, :uuid}, %{foreign_key: true}), do: :binary_id
   def visit({:type, :uuid}, _), do: :binary
+
+  def visit({:type, {:array, member}}, _opts) when member in [:json, :jsonb] do
+    # TODO: we default to :map because it's not possible to figure it out
+    {:array, :map}
+  end
+
   def visit({:type, {:array, member}}, opts), do: {:array, visit({:type, member}, opts)}
 
   def visit({:type, type}, %{default: default}) when type in [:json, :jsonb] do
