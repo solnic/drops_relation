@@ -1,7 +1,7 @@
 defmodule Drops.Relation.Repos do
   def start(repo) do
     {:ok, pid} = repo.start_link()
-    Ecto.Adapters.SQL.Sandbox.mode(repo, :manual)
+    Ecto.Adapters.SQL.Sandbox.mode(repo, mode(Mix.env()))
     :persistent_term.put({:repos, repo}, pid)
   end
 
@@ -9,6 +9,9 @@ defmodule Drops.Relation.Repos do
     pid = :persistent_term.get({:repos, repo, :owner})
     Ecto.Adapters.SQL.Sandbox.stop_owner(pid)
   end
+
+  defp mode(:dev), do: :auto
+  defp mode(:test), do: :manual
 
   def start_owner!(repo, opts \\ [])
 
