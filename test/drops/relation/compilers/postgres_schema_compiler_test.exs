@@ -7,43 +7,27 @@ defmodule Drops.Relation.Compilers.PostgresSchemaCompilerTest do
     test "jsonb columns", %{common_types: relation} do
       schema = relation.schema()
 
-      field = schema[:jsonb_field]
-      assert field.type == :map
-      assert field.meta.default == nil
-
-      field = schema[:jsonb_with_empty_map_default]
-      assert field.type == :map
-      assert field.meta.default == %{}
-
-      field = schema[:jsonb_with_empty_list_default]
-      assert field.type == {:array, :any}
-      assert field.meta.default == []
+      assert_field(schema, :jsonb_field, :map, default: nil)
+      assert_field(schema, :jsonb_with_empty_map_default, :map, default: %{})
+      assert_field(schema, :jsonb_with_empty_list_default, {:array, :any}, default: [])
     end
 
     test "map columns", %{common_types: relation} do
       schema = relation.schema()
 
-      field = schema[:map_field]
-      assert field.type == :map
-      assert field.meta.default == nil
-
-      field = schema[:map_with_default]
-      assert field.type == :map
-      assert field.meta.type == :jsonb
-      assert field.meta.default == %{}
+      assert_field(schema, :map_field, :map, default: nil)
+      assert_field(schema, :map_with_default, :map, type: :jsonb, default: %{})
     end
 
     test "array columns", %{common_types: relation} do
       schema = relation.schema()
 
-      field = schema[:array_with_string_member_field]
-      assert field.type == {:array, :string}
-      assert field.meta.type == {:array, :string}
-      assert field.meta.default == nil
+      assert_field(schema, :array_with_string_member_field, {:array, :string},
+        type: {:array, :string},
+        default: nil
+      )
 
-      field = schema[:array_with_string_member_and_default]
-      assert field.type == {:array, :string}
-      assert field.meta.default == []
+      assert_field(schema, :array_with_string_member_and_default, {:array, :string}, default: [])
     end
   end
 end

@@ -324,4 +324,52 @@ defmodule Drops.RelationCase do
   """
   def get_repo_for_adapter(:sqlite), do: Drops.Relation.Repos.Sqlite
   def get_repo_for_adapter(:postgres), do: Drops.Relation.Repos.Postgres
+
+  @doc """
+  Helper for asserting column properties in SQL Database tables.
+
+  ## Examples
+
+      assert_column(table, :id, :integer, primary_key: true)
+      assert_column(table, :email, :string, nullable: true, default: nil)
+  """
+  def assert_column(table, column_name, expected_type, opts \\ []) do
+    column = table[column_name]
+
+    assert column != nil, "Column #{column_name} not found in table"
+
+    assert column.type == expected_type,
+           "Expected column #{column_name} to have type #{inspect(expected_type)}, got #{inspect(column.type)}"
+
+    Enum.each(opts, fn {key, expected_value} ->
+      actual_value = Map.get(column.meta, key)
+
+      assert actual_value == expected_value,
+             "Expected column #{column_name} to have #{key}: #{inspect(expected_value)}, got #{inspect(actual_value)}"
+    end)
+  end
+
+  @doc """
+  Helper for asserting field properties in Relation schemas.
+
+  ## Examples
+
+      assert_field(schema, :id, :id, primary_key: true, type: :integer)
+      assert_field(schema, :email, :string, nullable: true)
+  """
+  def assert_field(schema, field_name, expected_type, opts \\ []) do
+    field = Drops.Relation.Schema.find_field(schema, field_name)
+
+    assert field != nil, "Field #{field_name} not found in schema"
+
+    assert field.type == expected_type,
+           "Expected field #{field_name} to have type #{inspect(expected_type)}, got #{inspect(field.type)}"
+
+    Enum.each(opts, fn {key, expected_value} ->
+      actual_value = Map.get(field.meta, key, Map.get(field, key))
+
+      assert actual_value == expected_value,
+             "Expected field #{field_name} to have #{key}: #{inspect(expected_value)}, got #{inspect(actual_value)}"
+    end)
+  end
 end

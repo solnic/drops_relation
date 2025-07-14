@@ -9,16 +9,12 @@ defmodule Drops.Relation.MetadataIntegrationTest do
     } do
       schema = relation.schema()
 
-      status_field = schema[:status]
-      description_field = schema[:description]
+      assert_field(schema, :status, :string, nullable: false, default: "active")
+      assert_field(schema, :description, :string, nullable: true)
+      assert_field(schema, :score, :integer, nullable: false)
+
+      # Check constraints should be detected
       score_field = schema[:score]
-
-      assert status_field.meta.nullable == false
-      assert status_field.meta.default == "active"
-
-      assert description_field.meta.nullable == true
-
-      assert score_field.meta.nullable == false
       assert is_list(score_field.meta.check_constraints)
     end
   end

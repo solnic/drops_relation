@@ -19,21 +19,12 @@ defmodule Drops.SQL.PostgresTest do
       assert length(table.columns) > 20
 
       # Check specific columns exist with proper metadata
-      id_column = table[:id]
-      assert id_column
       # PostgreSQL SERIAL PRIMARY KEY is bigint
-      assert id_column.type == :integer
-      assert id_column.meta.primary_key == true
-      assert id_column.meta.nullable == false
+      assert_column(table, :id, :integer, primary_key: true, nullable: false)
 
       # Check PostgreSQL-specific types
-      uuid_column = table[:uuid_type]
-      assert uuid_column
-      assert uuid_column.type == :uuid
-
-      jsonb_column = table[:jsonb_type]
-      assert jsonb_column
-      assert jsonb_column.type == :jsonb
+      assert_column(table, :uuid_type, :uuid)
+      assert_column(table, :jsonb_type, :jsonb)
 
       # Verify primary key
       assert %Database.PrimaryKey{} = table.primary_key
@@ -82,21 +73,10 @@ defmodule Drops.SQL.PostgresTest do
       assert length(table.columns) > 10
 
       # Check specific columns exist with proper metadata
-      id_column = table[:id]
-      assert id_column
       # PostgreSQL SERIAL PRIMARY KEY is bigint
-      assert id_column.type == :integer
-      assert id_column.meta.primary_key == true
-      assert id_column.meta.nullable == false
-
-      integer_type_column = table[:integer_type]
-      assert integer_type_column
-      assert integer_type_column.type == :integer
-      assert integer_type_column.meta.primary_key == false
-
-      text_type_column = table[:text_type]
-      assert text_type_column
-      assert text_type_column.type == :string
+      assert_column(table, :id, :integer, primary_key: true, nullable: false)
+      assert_column(table, :integer_type, :integer, primary_key: false)
+      assert_column(table, :text_type, :string)
 
       # Verify primary key
       assert %Database.PrimaryKey{} = table.primary_key
@@ -143,15 +123,9 @@ defmodule Drops.SQL.PostgresTest do
       assert is_list(table.columns)
 
       # Check foreign key columns exist
-      user_id_column = table[:user_id]
-      assert user_id_column
       # PostgreSQL references are bigint
-      assert user_id_column.type == :integer
-
-      parent_id_column = table[:parent_id]
-      assert parent_id_column
-      # PostgreSQL references are bigint
-      assert parent_id_column.type == :integer
+      assert_column(table, :user_id, :integer)
+      assert_column(table, :parent_id, :integer)
 
       # Verify foreign keys are detected
       assert is_list(table.foreign_keys)
@@ -192,42 +166,24 @@ defmodule Drops.SQL.PostgresTest do
       assert is_list(table.columns)
 
       # Check status column with default value
-      status_column = table[:status]
-      assert status_column
-      assert status_column.type == :string
-      assert status_column.meta.nullable == false
-      assert status_column.meta.default == "active"
+      assert_column(table, :status, :string, nullable: false, default: "active")
 
       # Check nullable description column
-      description_column = table[:description]
-      assert description_column
-      assert description_column.type == :string
-      assert description_column.meta.nullable == true
+      assert_column(table, :description, :string, nullable: true)
 
       # Check non-nullable name column
-      name_column = table[:name]
-      assert name_column
-      assert name_column.type == :string
-      assert name_column.meta.nullable == false
+      assert_column(table, :name, :string, nullable: false)
 
       # Check priority column with numeric default
-      priority_column = table[:priority]
-      assert priority_column
-      assert priority_column.type == :integer
-      assert priority_column.meta.default == 1
+      assert_column(table, :priority, :integer, default: 1)
 
       # Check boolean column with default
-      is_enabled_column = table[:is_enabled]
-      assert is_enabled_column
-      assert is_enabled_column.type == :boolean
-      assert is_enabled_column.meta.default == true
+      assert_column(table, :is_enabled, :boolean, default: true)
 
       # Check score column with check constraints
-      score_column = table[:score]
-      assert score_column
-      assert score_column.type == :integer
-      assert score_column.meta.nullable == false
+      assert_column(table, :score, :integer, nullable: false)
       # Check constraints should be detected
+      score_column = table[:score]
       assert is_list(score_column.meta.check_constraints)
 
       # Verify primary key
@@ -273,35 +229,29 @@ defmodule Drops.SQL.PostgresTest do
       assert table.adapter == :postgres
 
       # Check user_id column - should have foreign_key: true and index: true
+      assert_column(table, :user_id, :integer, foreign_key: true, index: true)
       user_id_column = table[:user_id]
-      assert user_id_column
-      assert user_id_column.type == :integer
-      assert user_id_column.meta.foreign_key == true
-      assert user_id_column.meta.index == true
       assert is_binary(user_id_column.meta.index_name)
 
       # Check group_id column - should have foreign_key: true and index: true
+      assert_column(table, :group_id, :integer, foreign_key: true, index: true)
       group_id_column = table[:group_id]
-      assert group_id_column
-      assert group_id_column.type == :integer
-      assert group_id_column.meta.foreign_key == true
-      assert group_id_column.meta.index == true
       assert is_binary(group_id_column.meta.index_name)
 
       # Check id column - should have foreign_key: false and index: false
-      id_column = table[:id]
-      assert id_column
-      assert id_column.meta.primary_key == true
-      assert id_column.meta.foreign_key == false
-      assert id_column.meta.index == false
-      assert id_column.meta.index_name == nil
+      assert_column(table, :id, :integer,
+        primary_key: true,
+        foreign_key: false,
+        index: false,
+        index_name: nil
+      )
 
       # Check timestamp columns - should have foreign_key: false and index: false
-      inserted_at_column = table[:inserted_at]
-      assert inserted_at_column
-      assert inserted_at_column.meta.foreign_key == false
-      assert inserted_at_column.meta.index == false
-      assert inserted_at_column.meta.index_name == nil
+      assert_column(table, :inserted_at, :naive_datetime,
+        foreign_key: false,
+        index: false,
+        index_name: nil
+      )
     end
 
     @tag relations: [:custom_pk], adapter: :postgres
@@ -309,11 +259,9 @@ defmodule Drops.SQL.PostgresTest do
       {:ok, table} = Database.table("custom_pk", Drops.Relation.Repos.Postgres)
 
       primary_key = table.primary_key
-      id_column = table[:uuid]
-
       primary_key_column_names = Enum.map(primary_key.columns, & &1.name)
       assert primary_key_column_names == [:uuid]
-      assert id_column.type == :uuid
+      assert_column(table, :uuid, :uuid)
     end
 
     @tag relations: [:postgres_array_types], adapter: :postgres
@@ -329,22 +277,11 @@ defmodule Drops.SQL.PostgresTest do
       assert is_list(table.columns)
 
       # Check specific array columns exist with proper types
-      integer_array_column = table[:integer_array]
-      assert integer_array_column
-      assert integer_array_column.type == {:array, :integer}
-
-      text_array_column = table[:text_array]
-      assert text_array_column
+      assert_column(table, :integer_array, {:array, :integer})
       # This should be converted from "character varying[]" to {:array, :string}
-      assert text_array_column.type == {:array, :string}
-
-      boolean_array_column = table[:boolean_array]
-      assert boolean_array_column
-      assert boolean_array_column.type == {:array, :boolean}
-
-      uuid_array_column = table[:uuid_array]
-      assert uuid_array_column
-      assert uuid_array_column.type == {:array, :uuid}
+      assert_column(table, :text_array, {:array, :string})
+      assert_column(table, :boolean_array, {:array, :boolean})
+      assert_column(table, :uuid_array, {:array, :uuid})
 
       # Verify primary key
       assert %Database.PrimaryKey{} = table.primary_key
@@ -363,16 +300,12 @@ defmodule Drops.SQL.PostgresTest do
 
       # Find the text_array column which should be created as {:array, :string} in migration
       # but stored as "character varying[]" in PostgreSQL
-      text_array_column = table[:text_array]
-      assert text_array_column
-
       # Verify that the PostgreSQL "character varying[]" type is correctly converted to {:array, :string}
-      assert text_array_column.type == {:array, :string}
-
-      # Verify the column metadata
-      assert text_array_column.meta.nullable == true
-      assert text_array_column.meta.primary_key == false
-      assert text_array_column.meta.foreign_key == false
+      assert_column(table, :text_array, {:array, :string},
+        nullable: true,
+        primary_key: false,
+        foreign_key: false
+      )
     end
   end
 end
