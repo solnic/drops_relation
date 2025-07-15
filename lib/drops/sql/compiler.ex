@@ -155,7 +155,14 @@ defmodule Drops.SQL.Compiler do
       @spec visit({:column, list()}, map()) :: Column.t()
       def visit({:column, components}, opts) do
         [name, type, meta] = visit(components, opts)
-        Column.new(name, type, meta)
+
+        case type do
+          {value, %{} = info} ->
+            Column.new(name, value, Map.merge(meta, info))
+
+          value ->
+            Column.new(name, type, meta)
+        end
       end
 
       # Visits a type AST node. Default implementation returns type as-is.

@@ -50,11 +50,8 @@ defmodule Drops.Database.Postgres.TypesTest do
       assert table.adapter == :postgres
 
       # PostgreSQL-specific integer types
-      # smallint maps to :integer in Ecto
       assert_column(table, :smallint_field, :integer)
-      # bigint maps to :integer in Ecto
       assert_column(table, :bigint_field, :integer)
-      # Serial fields have auto_increment
       assert_column(table, :serial_field, :integer, default: :auto_increment)
       assert_column(table, :bigserial_field, :integer, default: :auto_increment)
 
@@ -66,6 +63,7 @@ defmodule Drops.Database.Postgres.TypesTest do
       # PostgreSQL-specific string types
       assert_column(table, :varchar_field, :string)
       assert_column(table, :char_field, :string)
+      assert_column(table, :citext_field, :string, case_sensitive: false)
 
       # PostgreSQL-specific date/time types
       assert_column(table, :date_field, :date)

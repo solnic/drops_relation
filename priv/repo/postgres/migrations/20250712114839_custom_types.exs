@@ -2,6 +2,8 @@ defmodule Drops.Relation.Repos.Postgres.Migrations.CustomTypes20250712114839 do
   use Ecto.Migration
 
   def change do
+    execute "CREATE EXTENSION citext"
+
     create table(:custom_types) do
       # PostgreSQL-specific integer types
       add :smallint_field, :smallint
@@ -17,6 +19,7 @@ defmodule Drops.Relation.Repos.Postgres.Migrations.CustomTypes20250712114839 do
       # PostgreSQL-specific string types
       add :varchar_field, :string  # character varying
       add :char_field, :string     # character
+      add :citext_field, :citext
 
       # PostgreSQL-specific date/time types
       add :date_field, :date

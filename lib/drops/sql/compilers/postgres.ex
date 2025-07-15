@@ -40,6 +40,7 @@ defmodule Drops.SQL.Compilers.Postgres do
 
   @string_types [
     "text",
+    "citext",
     "character",
     "character varying",
     "varchar",
@@ -59,7 +60,7 @@ defmodule Drops.SQL.Compilers.Postgres do
   ]
 
   @spec visit({:type, String.t()}, map()) :: atom() | tuple() | String.t()
-  def visit({:type, type}, _opts) when type in @string_types, do: :string
+  def visit({:type, type}, _opts) when type in @string_types, do: map_type(type, :string)
   def visit({:type, type}, _opts) when type in @integer_types, do: :integer
   def visit({:type, type}, _opts) when type in @float_types, do: :float
   def visit({:type, type}, _opts) when type in @decimal_types, do: :decimal
@@ -67,7 +68,6 @@ defmodule Drops.SQL.Compilers.Postgres do
   def visit({:type, type}, _opts) when type in @naive_datetime_types, do: :naive_datetime
   def visit({:type, type}, _opts) when type in @utc_datetime_types, do: :utc_datetime
   def visit({:type, type}, _opts) when type in @json_types, do: String.to_atom(type)
-
   def visit({:type, "uuid"}, _opts), do: :uuid
   def visit({:type, "boolean"}, _opts), do: :boolean
   def visit({:type, "date"}, _opts), do: :date
@@ -148,4 +148,7 @@ defmodule Drops.SQL.Compilers.Postgres do
         trimmed
     end
   end
+
+  defp map_type("citext", :string), do: {:string, %{case_sensitive: false}}
+  defp map_type(_source, target), do: target
 end
