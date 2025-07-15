@@ -22,7 +22,7 @@ drops_relation-*.tar
 # Temporary files, for example, from tests.
 /tmp/
 
-priv/*.db
+priv/*.db*
 
 test/sample_app/_build
 test/sample_app/deps
