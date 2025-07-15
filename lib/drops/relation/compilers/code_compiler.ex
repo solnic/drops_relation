@@ -384,6 +384,14 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
         value -> [{:default, value} | field_opts]
       end
 
+    # Add read_after_writes option if function_default is true
+    field_opts =
+      if Map.get(meta, :function_default, false) do
+        [{:read_after_writes, true} | field_opts]
+      else
+        field_opts
+      end
+
     # Extract type and options, handling parameterized types specially
     {field_type, type_opts} =
       case type do

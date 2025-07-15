@@ -43,6 +43,9 @@ defmodule Drops.Relation.Repos.Sqlite.Migrations.CustomTypes20250712114840 do
       # SQLite with check constraints (will be added via raw SQL if needed)
       add :score_field, :integer  # Can add CHECK constraint separately
 
+      # Field with default as a function
+      add :function_default, :uuid, default: "uuid()"
+
       timestamps()
     end
 

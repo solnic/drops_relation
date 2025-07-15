@@ -86,4 +86,14 @@ defmodule Drops.Relation.BehavioralTest do
       assert schema_module.__schema__(:type, :data) == :string
     end
   end
+
+  adapters([:sqlite, :postgres]) do
+    @describetag relations: [:custom_types], adapter: :postgres
+
+    test "respects SQL functions as defaults", %{custom_types: relation} do
+      {:ok, result} = relation.insert(%{})
+
+      assert result.function_default
+    end
+  end
 end

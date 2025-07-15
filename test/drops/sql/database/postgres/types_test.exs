@@ -105,6 +105,9 @@ defmodule Drops.Database.Postgres.TypesTest do
       assert_column(table, :varchar_with_default, :string, default: "pg_default")
       assert_column(table, :boolean_false_default, :boolean, default: false)
       assert_column(table, :numeric_with_precision, :decimal)
+
+      # Default as a function
+      assert_column(table, :function_default, :uuid, default: nil, function_default: true)
     end
   end
 end

@@ -82,9 +82,7 @@ defmodule Drops.SQL.Compilers.Postgres do
 
   def visit({:type, type}, opts) when is_binary(type) do
     if String.ends_with?(type, "[]") do
-      base_type = String.slice(type, 0, String.length(type) - 2)
-      base_ecto_type = visit({:type, base_type}, opts)
-      {:array, base_ecto_type}
+      {:array, visit({:type, extract_from_suffixed(type, "[]")}, opts)}
     else
       type
     end
@@ -131,6 +129,9 @@ defmodule Drops.SQL.Compilers.Postgres do
 
       String.starts_with?(trimmed, "CURRENT_TIME") ->
         :current_time
+
+      sql_function?(trimmed) ->
+        {nil, %{function_default: true}}
 
       String.match?(trimmed, ~r/^'.*'::\w+/) ->
         [quoted_part | _] = String.split(trimmed, "::")

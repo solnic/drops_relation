@@ -64,6 +64,9 @@ defmodule Drops.Relation.Repos.Postgres.Migrations.CustomTypes20250712114839 do
       add :boolean_false_default, :boolean, default: false
       add :numeric_with_precision, :decimal, precision: 10, scale: 2
 
+      # Field with default as a function
+      add :function_default, :uuid, default: fragment("gen_random_uuid()")
+
       timestamps()
     end
   end

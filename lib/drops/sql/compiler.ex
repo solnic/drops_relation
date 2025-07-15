@@ -116,6 +116,8 @@ defmodule Drops.SQL.Compiler do
     quote location: :keep do
       alias Drops.SQL.Database.{Table, Column, PrimaryKey, ForeignKey, Index}
 
+      import unquote(__MODULE__)
+
       @before_compile unquote(__MODULE__)
       @opts unquote(opts)
     end
@@ -174,7 +176,13 @@ defmodule Drops.SQL.Compiler do
       @spec visit({:meta, map()}, map()) :: map()
       def visit({:meta, meta}, opts) when is_map(meta) do
         Enum.reduce(meta, %{}, fn {key, value}, acc ->
-          Map.put(acc, key, visit(value, opts))
+          case visit(value, opts) do
+            {result, %{} = info} ->
+              Map.merge(Map.put(acc, key, result), info)
+
+            result ->
+              Map.put(acc, key, result)
+          end
         end)
       end
 
@@ -208,5 +216,13 @@ defmodule Drops.SQL.Compiler do
       @spec visit(term(), map()) :: term()
       def visit(value, _opts), do: value
     end
+  end
+
+  def extract_from_suffixed(value, suffix) do
+    String.slice(value, 0, String.length(value) - String.length(suffix))
+  end
+
+  def sql_function?(value) do
+    String.ends_with?(value, "()")
   end
 end

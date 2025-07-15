@@ -92,6 +92,9 @@ defmodule Drops.Database.Sqlite.TypesTest do
 
       # SQLite score field (check constraint would be in table creation SQL)
       assert_column(table, :score_field, :integer)
+
+      # Default as a function
+      assert_column(table, :function_default, :string, default: nil, function_default: true)
     end
   end
 end

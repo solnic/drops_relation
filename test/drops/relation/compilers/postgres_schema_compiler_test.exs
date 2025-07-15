@@ -44,6 +44,12 @@ defmodule Drops.Relation.Compilers.PostgresSchemaCompilerTest do
   describe "custom types table" do
     @describetag relations: [:custom_types], adapter: :postgres
 
+    test "function default", %{custom_types: relation} do
+      schema = relation.schema()
+
+      assert_field(schema, :function_default, :binary, default: nil, function_default: true)
+    end
+
     test "enum columns", %{custom_types: relation} do
       schema = relation.schema()
 

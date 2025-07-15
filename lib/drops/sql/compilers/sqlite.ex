@@ -69,6 +69,9 @@ defmodule Drops.SQL.Compilers.Sqlite do
       trimmed == "CURRENT_TIME" ->
         :current_time
 
+      sql_function?(trimmed) ->
+        {nil, %{function_default: true}}
+
       String.match?(trimmed, ~r/^\d+$/) ->
         String.to_integer(trimmed)
 
