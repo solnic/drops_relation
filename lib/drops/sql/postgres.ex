@@ -112,12 +112,19 @@ defmodule Drops.SQL.Postgres do
         CASE
             WHEN pk.attname IS NOT NULL THEN true
             ELSE false
-        END as is_primary_key
+        END as is_primary_key,
+        t.typtype as type_type,
+        CASE
+            WHEN t.typtype = 'e' THEN
+                array_agg(e.enumlabel ORDER BY e.enumsortorder)
+            ELSE NULL
+        END as enum_values
     FROM pg_attribute a
     JOIN pg_type t ON a.atttypid = t.oid
     JOIN pg_class c ON a.attrelid = c.oid
     JOIN pg_namespace n ON c.relnamespace = n.oid
     LEFT JOIN pg_attrdef ad ON a.attrelid = ad.adrelid AND a.attnum = ad.adnum
+    LEFT JOIN pg_enum e ON t.oid = e.enumtypid
     LEFT JOIN (
         SELECT a.attname
         FROM pg_index i
@@ -129,6 +136,7 @@ defmodule Drops.SQL.Postgres do
         AND n.nspname = 'public'
         AND a.attnum > 0
         AND NOT a.attisdropped
+    GROUP BY a.attname, a.attnum, t.typname, t.typtype, a.attnotnull, ad.adbin, ad.adrelid, pk.attname
     ORDER BY a.attnum
   """
 
@@ -337,29 +345,38 @@ defmodule Drops.SQL.Postgres do
       {:ok, %{rows: rows}} ->
         columns =
           Enum.map(rows, fn [
-                              column_name,
+                              name,
                               data_type,
                               nullable,
-                              column_default,
-                              is_primary_key
+                              default,
+                              is_primary_key,
+                              type,
+                              enum_values
                             ] ->
-            # Check if column is part of a foreign key
-            is_foreign_key = MapSet.member?(foreign_key_column_names, column_name)
+            is_foreign_key = MapSet.member?(foreign_key_column_names, name)
 
-            # Check if column has an index
             {has_index, index_name} =
-              case Map.get(index_info, column_name) do
+              case Map.get(index_info, name) do
                 nil -> {false, nil}
                 idx_name -> {true, idx_name}
               end
 
+            final_type =
+              case type do
+                "e" when is_list(enum_values) ->
+                  {:enum, enum_values}
+
+                _ ->
+                  data_type
+              end
+
             %{
-              name: column_name,
-              type: data_type,
+              name: name,
+              type: final_type,
               meta: %{
                 nullable: nullable == "YES",
                 primary_key: is_primary_key,
-                default: {:default, column_default},
+                default: {:default, default},
                 check_constraints: [],
                 foreign_key: is_foreign_key,
                 index: has_index,

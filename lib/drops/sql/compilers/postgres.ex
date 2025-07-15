@@ -76,6 +76,10 @@ defmodule Drops.SQL.Compilers.Postgres do
   def visit({:array, "jsonb[]"}, _opts), do: {:array, :jsonb}
   def visit({:array, "json[]"}, _opts), do: {:array, :json}
 
+  # Visits an enum type AST node. Returns the enum tuple as-is for Ecto.
+  @spec visit({:type, {:enum, list(String.t())}}, map()) :: {:enum, list(String.t())}
+  def visit({:type, {:enum, values}}, _opts) when is_list(values), do: {:enum, values}
+
   def visit({:type, type}, opts) when is_binary(type) do
     if String.ends_with?(type, "[]") do
       base_type = String.slice(type, 0, String.length(type) - 2)

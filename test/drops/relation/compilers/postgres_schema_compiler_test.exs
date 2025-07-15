@@ -40,4 +40,18 @@ defmodule Drops.Relation.Compilers.PostgresSchemaCompilerTest do
       )
     end
   end
+
+  describe "custom types table" do
+    @describetag relations: [:custom_types], adapter: :postgres
+
+    test "enum columns", %{custom_types: relation} do
+      schema = relation.schema()
+
+      assert_field(schema, :enum_field, {Ecto.Enum, [values: [:red, :green, :blue]]})
+
+      assert_field(schema, :enum_with_default, {Ecto.Enum, [values: [:red, :green, :blue]]},
+        default: :blue
+      )
+    end
+  end
 end

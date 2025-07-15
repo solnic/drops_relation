@@ -22,6 +22,18 @@ defmodule Drops.Relation.Compilers.PostgresSchemaCompiler do
 
   def visit({:type, {:array, member}}, opts), do: {:array, visit({:type, member}, opts)}
 
+  def visit({:type, {:enum, values}}, %{default: default}) when is_list(values) do
+    type = {Ecto.Enum, [values: Enum.map(values, &String.to_atom/1)]}
+
+    case default do
+      nil ->
+        type
+
+      value ->
+        {type, %{default: String.to_atom(value)}}
+    end
+  end
+
   def visit({:type, type}, %{default: default}) when type in [:json, :jsonb] do
     case default do
       [] -> {:array, :any}

@@ -87,6 +87,10 @@ defmodule Drops.Database.Postgres.TypesTest do
       assert_column(table, :boolean_array, {:array, :boolean})
       assert_column(table, :uuid_array, {:array, :uuid})
 
+      # PostgreSQL enums
+      assert_column(table, :enum_field, {:enum, ["red", "green", "blue"]})
+      assert_column(table, :enum_with_default, {:enum, ["red", "green", "blue"]}, default: "blue")
+
       # PostgreSQL network types (mapped to string)
       assert_column(table, :inet_field, :string)
       assert_column(table, :cidr_field, :string)

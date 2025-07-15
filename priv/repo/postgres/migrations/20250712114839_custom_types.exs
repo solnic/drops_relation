@@ -4,6 +4,8 @@ defmodule Drops.Relation.Repos.Postgres.Migrations.CustomTypes20250712114839 do
   def change do
     execute "CREATE EXTENSION citext"
 
+    execute "CREATE TYPE colors AS ENUM ('red', 'green', 'blue')"
+
     create table(:custom_types) do
       # PostgreSQL-specific integer types
       add :smallint_field, :smallint
@@ -42,6 +44,10 @@ defmodule Drops.Relation.Repos.Postgres.Migrations.CustomTypes20250712114839 do
       add :text_array, {:array, :string}
       add :boolean_array, {:array, :boolean}
       add :uuid_array, {:array, :binary_id}
+
+      # PostgreSQL enum type
+      add :enum_field, :colors
+      add :enum_with_default, :colors, default: "blue"
 
       # PostgreSQL network types (mapped to string for compatibility)
       add :inet_field, :string

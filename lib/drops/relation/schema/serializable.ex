@@ -1,25 +1,4 @@
 defmodule Drops.Relation.Schema.Serializable do
-  defmacro __using__(_opts) do
-    quote location: :keep do
-      defimpl JSON.Encoder, for: __MODULE__ do
-        def encode(component, opts) do
-          JSON.Encoder.encode(
-            %{
-              __struct__: component.__struct__.name(),
-              attributes:
-                Drops.Relation.Schema.Serializable.Dumper.dump(Map.from_struct(component))
-            },
-            opts
-          )
-        end
-      end
-
-      def name, do: __MODULE__ |> to_string() |> String.split(".") |> List.last()
-
-      def load(json), do: Drops.Relation.Schema.Serializable.Loader.load(json, __MODULE__)
-    end
-  end
-
   defprotocol Loader do
     @fallback_to_any true
 
@@ -39,6 +18,28 @@ defmodule Drops.Relation.Schema.Serializable do
     @spec dump(atom(), any()) :: any()
     def dump(key, value)
   end
+
+  defmacro __using__(_opts) do
+    quote location: :keep do
+      defimpl JSON.Encoder, for: __MODULE__ do
+        def encode(component, opts) do
+          attributes = Dumper.dump(Map.from_struct(component))
+
+          JSON.Encoder.encode(
+            %{
+              __struct__: component.__struct__.name(),
+              attributes: attributes
+            },
+            opts
+          )
+        end
+      end
+
+      def name, do: __MODULE__ |> to_string() |> String.split(".") |> List.last()
+
+      def load(json), do: Loader.load(json, __MODULE__)
+    end
+  end
 end
 
 defimpl Drops.Relation.Schema.Serializable.Dumper, for: Map do
@@ -51,11 +52,30 @@ defimpl Drops.Relation.Schema.Serializable.Dumper, for: Map do
   def dump(_key, map), do: @protocol.dump(map)
 end
 
+defimpl Drops.Relation.Schema.Serializable.Dumper, for: List do
+  def dump(list), do: Enum.map(list, &@protocol.dump(&1))
+  def dump(list, module), do: Enum.map(list, &@protocol.dump(&1, module))
+end
+
+defimpl Drops.Relation.Schema.Serializable.Dumper, for: Tuple do
+  def dump(_key, value), do: @protocol.dump(value)
+
+  def dump(value) do
+    [:tuple, @protocol.dump(Tuple.to_list(value))]
+  end
+end
+
 defimpl Drops.Relation.Schema.Serializable.Dumper, for: Any do
   def dump(_key, value), do: @protocol.dump(value)
 
+  def dump(value) when is_tuple(value) do
+    elements = @protocol.dump(Tuple.to_list(value))
+    IO.inspect(elements)
+    [:tuple, elements]
+  end
+
   def dump(struct) when is_struct(struct) do
-    %{__struct__: struct.__struct__.name(), attributes: Map.from_struct(struct)}
+    %{__struct__: struct.__struct__.name(), attributes: @protocol.dump(Map.from_struct(struct))}
   end
 
   def dump(value) when is_atom(value) and value !== true and value !== false and value !== nil do
@@ -90,6 +110,19 @@ defimpl Drops.Relation.Schema.Serializable.Loader, for: Map do
 end
 
 defimpl Drops.Relation.Schema.Serializable.Loader, for: List do
+  def load(["tuple", values]) do
+    case @protocol.load(values) do
+      result when is_tuple(result) ->
+        result
+
+      result when is_list(result) ->
+        List.to_tuple(result)
+
+      other ->
+        other
+    end
+  end
+
   def load(["atom", value]), do: String.to_atom(value)
 
   def load([["atom", _] = left, ["atom", _] = right]),

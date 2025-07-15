@@ -195,7 +195,16 @@ defmodule Drops.Relation.Compilers.SchemaCompiler do
             Map.put(acc, key, visit({key, Map.get(column, key)}, column.meta))
           end)
 
-        Field.new(result.name, result.type, Map.put(result.meta, :type, column.type))
+        {type, meta} =
+          case result.type do
+            {value, %{} = info} ->
+              {value, Map.merge(result.meta, info)}
+
+            value ->
+              {value, result.meta}
+          end
+
+        Field.new(result.name, type, Map.put(meta, :type, column.type))
       end
 
       def visit({:meta, meta}, opts) do
