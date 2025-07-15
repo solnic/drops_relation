@@ -1,6 +1,5 @@
 defmodule Drops.Relation.Query do
-  alias Drops.Relation.Schema.Index
-  alias Drops.Relation.Schema.Indices
+  alias Drops.Relation.Query.SchemaCompiler
 
   alias __MODULE__
 
@@ -29,7 +28,7 @@ defmodule Drops.Relation.Query do
     ]
 
     # Index-based finder functions
-    index_functions = generate_index_based_finders(repo, drops_relation_schema)
+    index_functions = SchemaCompiler.visit(drops_relation_schema, %{repo: repo})
 
     basic_functions ++ index_functions
   end
@@ -675,49 +674,6 @@ defmodule Drops.Relation.Query do
           actual_queryable,
           opts |> Keyword.put(:repo, unquote(repo)) |> Keyword.put(:relation, __MODULE__)
         )
-      end
-    end
-  end
-
-  # Generates index-based finder functions
-  defp generate_index_based_finders(repo, drops_relation_schema) do
-    if Indices.empty?(drops_relation_schema.indices) do
-      []
-    else
-      indices = drops_relation_schema.indices.indices
-
-      single_field_finders =
-        indices
-        |> Enum.reject(&Index.composite?/1)
-        |> Enum.map(&generate_single_field_finder(repo, &1))
-
-      # For now, skip composite indices (can be added later)
-      single_field_finders
-    end
-  end
-
-  defp generate_single_field_finder(_repo, index) do
-    [field] = Index.field_names(index)
-    get_function_name = String.to_atom("get_by_#{field}")
-    find_function_name = String.to_atom("find_by_#{field}")
-
-    quote do
-      # get_by_* function that returns a composable relation
-      def unquote(get_function_name)(value) do
-        __MODULE__.restrict(__MODULE__, [{unquote(field), value}])
-      end
-
-      def unquote(get_function_name)(queryable, value) do
-        __MODULE__.restrict(queryable, [{unquote(field), value}])
-      end
-
-      # New find_by_* function that returns a composable relation
-      def unquote(find_function_name)(value) do
-        __MODULE__.restrict(__MODULE__, [{unquote(field), value}])
-      end
-
-      def unquote(find_function_name)(queryable, value) do
-        __MODULE__.restrict(queryable, [{unquote(field), value}])
       end
     end
   end
