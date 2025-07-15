@@ -204,11 +204,8 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasIntegrationTest do
       # Should preserve custom comment
       assert updated_content =~ "This is a custom comment"
 
-      # Sync mode currently preserves the original schema structure
-      # This is a limitation that could be improved in the future
-      # For now, we just verify that custom code is preserved
-      assert updated_content =~ "field :email, :string"
-      assert updated_content =~ "field :first_name, :string"
+      assert updated_content =~ ~r/field\s*\(?:email,\s*:string\)?/
+      assert updated_content =~ ~r/field\s*\(?:first_name,\s*:string\)?/
     end
 
     test "generated schemas are valid Ecto.Schema modules" do

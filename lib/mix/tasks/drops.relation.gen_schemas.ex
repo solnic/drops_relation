@@ -201,32 +201,23 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
     module_name = Module.parse(module_name_string)
     repo = String.to_existing_atom("Elixir.#{options[:repo]}")
 
-    try do
-      schema_content =
-        Generator.generate_module_content(Cache.get_cached_schema(repo, table))
-        |> Macro.to_string()
+    module_ast = Generator.generate_module_content(Cache.get_cached_schema(repo, table))
+    module_content = Macro.to_string(module_ast)
 
-      Mix.shell().info("Creating or updating schema: #{module_name_string}")
+    Mix.shell().info("Creating or updating schema: #{module_name_string}")
 
-      Module.find_and_update_or_create_module(
-        igniter,
-        module_name,
-        schema_content,
-        fn zipper ->
-          if options[:sync] do
-            # Sync mode: preserve custom code and only update schema-related parts
-            update_schema_preserving_custom_code(zipper, table, module_name_string, options)
-          else
-            # Non-sync mode: replace entire module content
-            replace_entire_module_content(zipper, schema_content)
-          end
+    Module.find_and_update_or_create_module(
+      igniter,
+      module_name,
+      module_content,
+      fn zipper ->
+        if options[:sync] do
+          update_schema_preserving_custom_code(zipper, table, module_name_string, options)
+        else
+          replace_entire_module_content(zipper, module_ast)
         end
-      )
-    rescue
-      error ->
-        Mix.shell().error("Failed to generate schema for table '#{table}': #{inspect(error)}")
-        igniter
-    end
+      end
+    )
   end
 
   defp build_module_name_string(table, namespace) do
@@ -254,14 +245,17 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
     drops_relation_schema =
       case Drops.SQL.Database.table(table_name, repo) do
         {:ok, table_struct} ->
-          Drops.Relation.Compilers.SchemaCompiler.visit(table_struct, [])
+          Drops.Relation.Compilers.SchemaCompiler.visit(table_struct, %{})
 
         {:error, reason} ->
           raise "Failed to introspect table #{table_name}: #{inspect(reason)}"
       end
 
     # Use Generator for schema patching
-    Generator.update_schema_with_zipper(zipper, table_name, drops_relation_schema)
+    updated_zipper =
+      Generator.update_schema_with_zipper(zipper, table_name, drops_relation_schema)
+
+    {:ok, updated_zipper}
   end
 
   # Ensures the application is started before running the task
