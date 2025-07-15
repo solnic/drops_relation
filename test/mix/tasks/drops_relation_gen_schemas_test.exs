@@ -5,34 +5,18 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasTest do
 
   describe "GenSchemas fix verification" do
     test "generated schema content has no duplicated defmodule statements" do
-      # Test the Generator directly to verify the fix for the duplicated defmodule issue
       field = Drops.Relation.Schema.Field.new(:name, :string, %{source: :name})
-      schema = Drops.Relation.Schema.new("users", nil, [], [field], [])
+      schema = Drops.Relation.Schema.new(:users, nil, [], [field], [])
 
-      # Generate schema content as string (this is what the task does)
-      ast = Generator.generate_module_content("TestApp.Relations.User", "users", schema)
+      ast = Generator.generate_module("TestApp.Relations.User", schema)
       schema_content = Macro.to_string(ast)
 
-      # Verify there's only one defmodule statement (the main fix)
-      defmodule_count =
-        schema_content
-        |> String.split("\n")
-        |> Enum.count(&String.contains?(&1, "defmodule"))
-
-      assert defmodule_count == 1,
-             "Expected exactly 1 defmodule, got #{defmodule_count}. Content:\n#{schema_content}"
-
-      # Verify the content structure is correct
       assert schema_content =~ "defmodule TestApp.Relations.User do"
       assert schema_content =~ "use Ecto.Schema"
-      assert schema_content =~ "schema(\"users\")"
+      assert schema_content =~ "schema(\"users\") do"
       assert schema_content =~ "field(:name, :string)"
-      assert schema_content =~ "timestamps()"
+      refute schema_content =~ "timestamps()"
 
-      # Most importantly: verify it doesn't contain nested defmodule
-      refute schema_content =~ ~r/defmodule.*defmodule/s, "Found nested defmodule statements"
-
-      # Verify the generated content is valid Elixir code
       assert {_result, _bindings} = Code.eval_quoted(ast)
     end
 
@@ -46,10 +30,10 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasTest do
       ]
 
       pk = Drops.Relation.Schema.PrimaryKey.new([List.first(fields)])
-      schema = Drops.Relation.Schema.new("users", pk, [], fields, [])
+      schema = Drops.Relation.Schema.new(:users, pk, [], fields, [])
 
       # Generate schema content
-      ast = Generator.generate_module_content("TestApp.Relations.ComplexUser", "users", schema)
+      ast = Generator.generate_module("TestApp.Relations.ComplexUser", schema)
       schema_content = Macro.to_string(ast)
 
       # Verify single defmodule

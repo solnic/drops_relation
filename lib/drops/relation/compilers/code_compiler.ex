@@ -25,6 +25,8 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
 
   alias Drops.Relation.Schema
 
+  def visit(node, opts \\ %{})
+
   @doc """
   Main entry point for converting Relation Schema to structured compilation output.
 
@@ -44,7 +46,7 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
       foreign_key_type: [...], # @foreign_key_type definitions
       other: [...]             # Other @ attributes
     },
-    field_definitions: [...],  # field() calls
+    fields: [...],  # field() calls
     schema_options: [...]      # Any schema-level options
   }
   ```
@@ -63,91 +65,121 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
       true
   """
   def visit(%Schema{} = schema, opts) do
-    # Process schema using Enumerable protocol to get tuple representation
-    # but keep the original schema in opts for field processing
-    new_opts = Map.put(opts, :schema, schema)
+    opts = Map.put(opts, :schema, schema)
 
-    schema_tuple =
-      schema
-      |> Enum.to_list()
-      # Get the {:schema, components} tuple
-      |> List.first()
+    result =
+      Enum.reduce(schema, %{}, fn {key, value}, acc ->
+        case visit({key, value}, opts) do
+          nil ->
+            acc
 
-    result = visit(schema_tuple, new_opts)
+          [] ->
+            acc
 
-    # Return grouped or flat result based on options
-    if opts[:grouped] do
-      group_compilation_result(result)
-    else
-      # Backward compatibility: return flat list
-      result
-      |> List.flatten()
-      |> Enum.reject(&is_nil/1)
+          result ->
+            Map.put(acc, key, result)
+        end
+      end)
+
+    %{
+      primary_key: Map.get(result, :primary_key, []),
+      foreign_key_type: Map.get(result, :foreign_keys, []),
+      fields: Map.get(result, :fields, [])
+    }
+  end
+
+  def visit({:source, _source}, _opts) do
+    nil
+  end
+
+  def visit({:primary_key, nil}, _opts) do
+    nil
+  end
+
+  def visit({:primary_key, primary_key}, _opts) do
+    case primary_key.meta.composite do
+      false ->
+        field = List.first(primary_key.fields)
+        generate_single_primary_key_attribute(field)
+
+      true ->
+        quote do
+          @primary_key false
+        end
     end
   end
 
-  # Visit schema tuple structure
-  def visit({:schema, components}, opts) do
-    # Process each component type in the schema
-    Enum.reduce(components, [], fn component, acc ->
-      component_ast = visit(component, opts)
-      [acc, component_ast]
+  def visit({:foreign_keys, _foreign_keys}, %{schema: schema}) do
+    # Check if we need @foreign_key_type attribute based on foreign key fields
+    Enum.find_value(schema.fields, fn field ->
+      is_foreign_key = Map.get(field.meta, :foreign_key, false)
+
+      if is_foreign_key and field.type in [:binary_id, Ecto.UUID] do
+        quote do
+          @foreign_key_type :binary_id
+        end
+      else
+        []
+      end
     end)
-    |> List.flatten()
+  end
+
+  def visit({:fields, fields}, %{schema: schema}) do
+    # Get primary key field names
+    pk_field_names =
+      if schema.primary_key do
+        Enum.map(schema.primary_key.fields, & &1.name)
+      else
+        []
+      end
+
+    # Generate field definitions for non-primary key fields and non-timestamp fields
+    Enum.map(fields, fn field ->
+      cond do
+        # Skip timestamp fields - they're handled by timestamps() macro
+        field.name in [:inserted_at, :updated_at] ->
+          nil
+
+        # Skip primary key fields unless composite
+        field.name in pk_field_names and
+            not (schema.primary_key && schema.primary_key.meta.composite) ->
+          nil
+
+        # Generate field definition for composite primary key
+        (field.name in pk_field_names and schema.primary_key) &&
+            schema.primary_key.meta.composite ->
+          generate_composite_primary_key_field(field)
+
+        # Generate regular field definition
+        true ->
+          generate_field_definition(field.name, field.type, field.meta)
+      end
+    end)
     |> Enum.reject(&is_nil/1)
   end
 
-  # Visit primary key tuple structure - now handles both attributes and field definitions
-  def visit({:primary_key, [_name, columns, meta]}, opts) when is_list(columns) do
-    composite = Map.get(meta, :composite, false)
-    schema = opts[:schema]
-
-    case {length(columns), composite} do
-      {0, _} ->
-        nil
-
-      {1, false} ->
-        field_name = List.first(columns)
-        field = Enum.find(schema.fields, &(&1.name == field_name))
-        generate_single_primary_key_attribute(field)
-
-      {_, true} ->
-        pk_fields = Enum.filter(schema.fields, &(&1.name in columns))
-
-        attribute =
-          quote do
-            @primary_key false
-          end
-
-        field_definitions = Enum.map(pk_fields, &generate_composite_primary_key_field/1)
-        [attribute | field_definitions]
-    end
+  def visit({:indices, _indices}, _opts) do
+    nil
   end
 
-  # Visit field tuple structure - simplified to skip primary key fields
   def visit({:field, nodes}, opts) do
     [name, type_tuple, meta_tuple] = visit(nodes, opts)
 
-    # Extract the actual type and meta from their tuples
     type = visit(type_tuple, opts)
     meta = visit(meta_tuple, opts)
 
     cond do
-      # Skip timestamp fields - they're handled by timestamps() macro
       name in [:inserted_at, :updated_at] ->
         nil
 
-      # Skip primary key fields - they're handled by primary key processing
-      Map.get(meta, :primary_key, false) ->
+      meta.primary_key ->
         nil
 
       true ->
-        # Generate regular field definition
         generate_field_definition(name, type, meta)
     end
   end
 
-  # Visit type tuple structure
   def visit({:type, type}, _opts) when is_atom(type) do
     type
   end
@@ -156,72 +188,21 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
     {type_module, type_opts}
   end
 
-  # Visit meta tuple structure
   def visit({:meta, meta}, _opts) when is_map(meta) do
     meta
   end
 
-  # Visit foreign key tuple structure
   def visit(
         {:foreign_key, [_field, _references_table, _references_field, _association_name]},
         _opts
       ) do
-    # For now, foreign keys don't generate AST directly in field definitions
-    # They would be handled by association generation in a separate phase
     nil
   end
 
-  # Visit index tuple structure
   def visit({:index, [_name, _columns, _unique, _type]}, _opts) do
-    # Indices don't generate AST in schema field definitions
-    # They would be handled by migration generation
     nil
   end
 
-  # Visit source tuple (from schema components)
-  def visit({:source, _source}, _opts) do
-    # Source is handled at the schema level, not in field definitions
-    nil
-  end
-
-  # Visit foreign key attributes tuple (from schema components)
-  def visit({:foreign_key_attributes, fields}, _opts) when is_list(fields) do
-    # Generate @foreign_key_type attribute if any field is a foreign key with special type
-    Enum.find_value(fields, fn field ->
-      is_foreign_key = Map.get(field.meta, :foreign_key, false)
-
-      if is_foreign_key and field.type in [:binary_id, Ecto.UUID] do
-        quote do
-          @foreign_key_type :binary_id
-        end
-      else
-        nil
-      end
-    end)
-  end
-
-  # Visit fields list (from schema components)
-  def visit({:fields, field_tuples}, opts) when is_list(field_tuples) do
-    field_tuples
-    |> Enum.map(&visit(&1, opts))
-    |> Enum.reject(&is_nil/1)
-  end
-
-  # Visit foreign_keys list (from schema components)
-  def visit({:foreign_keys, fk_tuples}, opts) when is_list(fk_tuples) do
-    fk_tuples
-    |> Enum.map(&visit(&1, opts))
-    |> Enum.reject(&is_nil/1)
-  end
-
-  # Visit indices list (from schema components)
-  def visit({:indices, index_tuples}, opts) when is_list(index_tuples) do
-    index_tuples
-    |> Enum.map(&visit(&1, opts))
-    |> Enum.reject(&is_nil/1)
-  end
-
-  # Visit parameterized type tuples (like {Ecto.UUID, []})
   def visit({type, type_opts}, _opts) when is_atom(type) and is_list(type_opts) do
     {type, type_opts}
   end
@@ -230,14 +211,11 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
     {type, Map.to_list(type_opts)}
   end
 
-  # Visit atomic values (field names, types, etc.)
   def visit(value, _opts) when is_atom(value), do: value
   def visit(value, _opts) when is_binary(value), do: value
   def visit(value, _opts) when is_number(value), do: value
 
-  # Visit enumerable structures recursively
   def visit(enumerable, opts) when is_map(enumerable) do
-    # Process maps by visiting each key-value pair
     Enum.reduce(enumerable, %{}, fn {key, value}, acc ->
       visited_key = visit(key, opts)
       visited_value = visit(value, opts)
@@ -246,76 +224,17 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
   end
 
   def visit(enumerable, opts) when is_list(enumerable) and not is_binary(enumerable) do
-    # Process lists by visiting each element
     Enum.map(enumerable, &visit(&1, opts))
   end
 
   def visit(nil, _opts), do: nil
 
-  # Fallback for other values
   def visit(value, _opts), do: value
 
-  # Groups the flat compilation result into structured categories.
-  # Returns a map with categorized compilation results.
-  defp group_compilation_result(result) do
-    flattened_result =
-      result
-      |> List.flatten()
-      |> Enum.reject(&is_nil/1)
-
-    # Separate attributes from field definitions
-    {attributes, field_definitions} =
-      Enum.split_with(flattened_result, fn ast ->
-        case ast do
-          {:@, _, _} -> true
-          _ -> false
-        end
-      end)
-
-    # Further categorize attributes by type
-    categorized_attributes = categorize_attributes(attributes)
-
-    %{
-      attributes: categorized_attributes,
-      field_definitions: field_definitions,
-      # Reserved for future use
-      schema_options: []
-    }
-  end
-
-  # Categorizes attribute AST nodes by their type.
-  # Returns a map with categorized attributes.
-  defp categorize_attributes(attributes) do
-    Enum.reduce(attributes, %{primary_key: [], foreign_key_type: [], other: []}, fn attr, acc ->
-      case attr do
-        {:@, _, [{:primary_key, _, _}]} ->
-          Map.update!(acc, :primary_key, &[attr | &1])
-
-        {:@, _, [{:foreign_key_type, _, _}]} ->
-          Map.update!(acc, :foreign_key_type, &[attr | &1])
-
-        _ ->
-          Map.update!(acc, :other, &[attr | &1])
-      end
-    end)
-    |> Enum.map(fn {key, value} -> {key, Enum.reverse(value)} end)
-    |> Map.new()
-  end
-
-  # Helper function to generate single primary key attributes
-  defp generate_single_primary_key_attribute(field) when is_nil(field) do
-    nil
-  end
+  defp generate_single_primary_key_attribute(nil), do: nil
 
   defp generate_single_primary_key_attribute(field) do
-    is_foreign_key = Map.get(field.meta, :foreign_key, false)
-
     cond do
-      is_foreign_key and field.type in [:binary_id, Ecto.UUID] ->
-        quote do
-          @foreign_key_type :binary_id
-        end
-
       field.type == Ecto.UUID ->
         quote do
           @primary_key {unquote(field.name), Ecto.UUID, autogenerate: true}
@@ -332,20 +251,16 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
         end
 
       true ->
-        # Default :id or :integer type - no attribute needed, Ecto will use default
-        nil
+        []
     end
   end
 
-  # Helper function to generate composite primary key field definitions
   defp generate_composite_primary_key_field(field) do
     field_opts = [{:primary_key, true}]
 
-    # Add source option if different from field name
     source = Map.get(field.meta, :source, field.name)
     field_opts = if source != field.name, do: [{:source, source} | field_opts], else: field_opts
 
-    # Add default option if present (skip auto_increment)
     field_opts =
       case Map.get(field.meta, :default) do
         nil -> field_opts
@@ -353,7 +268,6 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
         value -> [{:default, value} | field_opts]
       end
 
-    # Extract type and options
     {field_type, type_opts} =
       case field.type do
         {type_module, opts} when is_list(opts) -> {type_module, opts}
@@ -368,15 +282,12 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
     end
   end
 
-  # Helper function to generate regular field definitions
   defp generate_field_definition(name, type, meta) do
     field_opts = []
 
-    # Add source option if different from field name
     source = Map.get(meta, :source, name)
     field_opts = if source != name, do: [{:source, source} | field_opts], else: field_opts
 
-    # Add default option if present (skip auto_increment)
     field_opts =
       case Map.get(meta, :default) do
         nil -> field_opts
@@ -384,7 +295,6 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
         value -> [{:default, value} | field_opts]
       end
 
-    # Add read_after_writes option if function_default is true
     field_opts =
       if Map.get(meta, :function_default, false) do
         [{:read_after_writes, true} | field_opts]
@@ -392,31 +302,24 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
         field_opts
       end
 
-    # Extract type and options, handling parameterized types specially
     {field_type, type_opts} =
       case type do
-        # Handle runtime parameterized types (from compiled Ecto schemas)
         {:parameterized, {type_module, type_config}} when is_map(type_config) ->
-          # Extract the original type definition from the parameterized type
-          # For Ecto.Enum, we need to get the values from the config
           case type_module do
             Ecto.Enum ->
               values = Map.get(type_config, :mappings, []) |> Keyword.keys()
               {type_module, [values: values]}
 
             _ ->
-              # For other parameterized types, try to extract meaningful options
               {type_module, []}
           end
 
-        # Handle tuple types with options
         {type_module, opts} when is_list(opts) ->
           {type_module, opts}
 
         {type_module, opts} when is_map(opts) ->
           {type_module, Map.to_list(opts)}
 
-        # Handle simple types
         _ ->
           {type, []}
       end

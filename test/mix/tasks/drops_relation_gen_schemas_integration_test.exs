@@ -80,7 +80,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasIntegrationTest do
       user_content = File.read!(user_file)
       assert user_content =~ "defmodule SampleApp.Schemas.Users do"
       assert user_content =~ "use Ecto.Schema"
-      assert user_content =~ "schema(\"users\")"
+      assert user_content =~ "schema(\"users\") do"
       assert user_content =~ "field(:email, :string)"
       assert user_content =~ "field(:first_name, :string)"
       assert user_content =~ "field(:age, :integer)"
@@ -91,20 +91,20 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasIntegrationTest do
       post_content = File.read!(post_file)
       assert post_content =~ "defmodule SampleApp.Schemas.Posts do"
       assert post_content =~ "use Ecto.Schema"
-      assert post_content =~ "schema(\"posts\")"
+      assert post_content =~ "schema(\"posts\") do"
       assert post_content =~ "field(:title, :string)"
       assert post_content =~ "field(:body, :string)"
-      assert post_content =~ "field(:user_id, :integer)"
+      assert post_content =~ "field(:user_id, :id)"
       assert post_content =~ "timestamps()"
 
       # Verify comment schema content with multiple foreign keys
       comment_content = File.read!(comment_file)
       assert comment_content =~ "defmodule SampleApp.Schemas.Comments do"
       assert comment_content =~ "use Ecto.Schema"
-      assert comment_content =~ "schema(\"comments\")"
+      assert comment_content =~ "schema(\"comments\") do"
       assert comment_content =~ "field(:body, :string)"
-      assert comment_content =~ "field(:user_id, :integer)"
-      assert comment_content =~ "field(:post_id, :integer)"
+      assert comment_content =~ "field(:user_id, :id)"
+      assert comment_content =~ "field(:post_id, :id)"
       assert comment_content =~ "timestamps()"
     end
 

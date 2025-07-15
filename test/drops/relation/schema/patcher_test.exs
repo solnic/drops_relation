@@ -41,7 +41,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       id_field = Field.new(:id, Ecto.UUID, %{source: :id, primary_key: true})
 
       primary_key = PrimaryKey.new([id_field])
-      schema = Schema.new("users", primary_key, [], [name_field, age_field, id_field], [])
+      schema = Schema.new(:users, primary_key, [], [name_field, age_field, id_field], [])
 
       # Compile the schema to get the parts
       compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
@@ -85,7 +85,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
 
       # Create a new schema with fields
       name_field = Field.new(:name, :string, %{source: :name})
-      schema = Schema.new("users", nil, [], [name_field], [])
+      schema = Schema.new(:users, nil, [], [name_field], [])
 
       # Compile the schema to get the parts
       compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
@@ -131,7 +131,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       id_field = Field.new(:id, Ecto.UUID, %{source: :id, primary_key: true})
 
       primary_key = PrimaryKey.new([id_field])
-      schema = Schema.new("users", primary_key, [], [name_field, id_field], [])
+      schema = Schema.new(:users, primary_key, [], [name_field, id_field], [])
 
       # Compile the schema to get the parts
       compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
@@ -178,7 +178,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       # New field
       slug_field = Field.new(:slug, :string, %{source: :slug})
 
-      schema = Schema.new("posts", nil, [], [title_field, body_field, slug_field], [])
+      schema = Schema.new(:posts, nil, [], [title_field, body_field, slug_field], [])
 
       # Compile the schema to get the parts
       compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
@@ -258,7 +258,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
         last_login_at_field
       ]
 
-      schema = Schema.new("users", nil, [], fields, [])
+      schema = Schema.new(:users, nil, [], fields, [])
 
       # Compile the schema to get the parts
       compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
@@ -337,7 +337,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
         last_login_at_field
       ]
 
-      schema = Schema.new("users", nil, [], fields, [])
+      schema = Schema.new(:users, nil, [], fields, [])
 
       # Compile the schema to get the parts
       compiled_parts = CodeCompiler.visit(schema, %{grouped: true})
@@ -389,7 +389,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       slug_field = Field.new(:slug, :string, %{source: :slug})
 
       fields = [title_field, body_field, slug_field]
-      schema = Schema.new("posts", nil, [], fields, [])
+      schema = Schema.new(:posts, nil, [], fields, [])
 
       # Compile the schema to get the parts
       compiled_parts = CodeCompiler.visit(schema, %{grouped: true})

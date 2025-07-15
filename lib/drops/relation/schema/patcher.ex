@@ -41,7 +41,7 @@ defmodule Drops.Relation.Schema.Patcher do
   ## Examples
 
       iex> zipper = Sourceror.Zipper.zip(existing_ast)
-      iex> compiled_parts = %{attributes: %{primary_key: [...], ...}, field_definitions: [...]}
+      iex> compiled_parts = %{attributes: %{primary_key: [...], ...}, fields: [...]}
       iex> {:ok, updated_zipper} = Patcher.patch_schema_module(zipper, compiled_parts, "users")
   """
   @spec patch_schema_module(Zipper.t(), map(), String.t()) :: {:ok, Zipper.t()}
@@ -49,30 +49,11 @@ defmodule Drops.Relation.Schema.Patcher do
     # Use sophisticated Sourceror-based patching to preserve custom code
     updated_zipper =
       zipper
-      |> update_attributes(compiled_parts.attributes)
-      |> update_schema_block(compiled_parts.field_definitions, table_name)
+      |> update_primary_key_attributes(compiled_parts.primary_key)
+      |> update_foreign_key_type_attributes(compiled_parts.foreign_key_type)
+      |> update_schema_block(compiled_parts.fields, table_name)
 
     {:ok, updated_zipper}
-  end
-
-  @doc """
-  Updates module-level attributes (@primary_key, @foreign_key_type, etc.).
-
-  ## Parameters
-
-  - `zipper` - Sourceror.Zipper positioned at the module
-  - `attributes` - Map of categorized attributes from CodeCompiler
-
-  ## Returns
-
-  Updated zipper with attributes modified.
-  """
-  @spec update_attributes(Zipper.t(), map()) :: Zipper.t()
-  def update_attributes(zipper, attributes) do
-    zipper
-    |> update_primary_key_attributes(attributes.primary_key)
-    |> update_foreign_key_type_attributes(attributes.foreign_key_type)
-    |> update_other_attributes(attributes.other)
   end
 
   @doc """
@@ -81,7 +62,7 @@ defmodule Drops.Relation.Schema.Patcher do
   ## Parameters
 
   - `zipper` - Sourceror.Zipper positioned at the module
-  - `field_definitions` - List of field definition AST nodes
+  - `fields` - List of field definition AST nodes
   - `table_name` - The database table name
 
   ## Returns
@@ -89,29 +70,26 @@ defmodule Drops.Relation.Schema.Patcher do
   Updated zipper with schema block modified.
   """
   @spec update_schema_block(Zipper.t(), list(), String.t()) :: Zipper.t()
-  def update_schema_block(zipper, field_definitions, table_name) do
+  def update_schema_block(zipper, fields, table_name) do
     case find_schema_block(zipper, table_name) do
       {:ok, schema_zipper} ->
-        replace_schema_fields(schema_zipper, field_definitions)
+        replace_schema_fields(schema_zipper, fields)
 
       :error ->
         # Schema block not found, create a new one
-        create_schema_block(zipper, field_definitions, table_name)
+        create_schema_block(zipper, fields, table_name)
     end
   end
 
   # Private helper functions
 
   # Updates @primary_key attributes
-  defp update_primary_key_attributes(zipper, primary_key_attrs) do
-    if Enum.empty?(primary_key_attrs) do
-      zipper
-    else
-      # Remove existing @primary_key attributes and add new ones
-      zipper
-      |> remove_attribute_definitions(:primary_key)
-      |> add_attributes_after_imports(primary_key_attrs)
-    end
+  defp update_primary_key_attributes(zipper, []), do: zipper
+
+  defp update_primary_key_attributes(zipper, primary_key_attr) do
+    zipper
+    |> remove_attribute_definitions(:primary_key)
+    |> add_attributes_after_imports(primary_key_attr)
   end
 
   # Updates @foreign_key_type attributes
@@ -123,17 +101,6 @@ defmodule Drops.Relation.Schema.Patcher do
       zipper
       |> remove_attribute_definitions(:foreign_key_type)
       |> add_attributes_after_imports(foreign_key_attrs)
-    end
-  end
-
-  # Updates other attributes
-  defp update_other_attributes(zipper, other_attrs) do
-    if Enum.empty?(other_attrs) do
-      zipper
-    else
-      # For other attributes, just add them without removing existing ones
-      # This preserves custom attributes that users might have added
-      add_attributes_after_imports(zipper, other_attrs)
     end
   end
 
@@ -155,27 +122,19 @@ defmodule Drops.Relation.Schema.Patcher do
   end
 
   # Adds attributes after import statements
-  defp add_attributes_after_imports(zipper, attributes) when is_list(attributes) do
-    # If no attributes to add, return original zipper
-    if Enum.empty?(attributes) do
-      zipper
-    else
-      # Find the best insertion point for attributes
-      case find_attribute_insertion_point(zipper) do
-        {:ok, insertion_zipper} ->
-          # Insert attributes after the found insertion point
-          final_zipper =
-            Enum.reduce(attributes, insertion_zipper, fn attr, acc_zipper ->
-              Zipper.insert_right(acc_zipper, attr)
-            end)
+  defp add_attributes_after_imports(zipper, []), do: zipper
 
-          # Navigate back to the top of the zipper tree
-          Zipper.top(final_zipper)
+  defp add_attributes_after_imports(zipper, attribute) when is_tuple(attribute) do
+    # Find the best insertion point for attributes
+    case find_attribute_insertion_point(zipper) do
+      {:ok, insertion_zipper} ->
+        # Insert attributes after the found insertion point
+        final_zipper = Zipper.insert_right(insertion_zipper, attribute)
 
-        :error ->
-          # Fallback: add at the beginning of module body
-          add_attributes_at_module_start(zipper, attributes)
-      end
+        Zipper.top(final_zipper)
+
+      :error ->
+        add_attributes_at_module_start(zipper, attribute)
     end
   end
 
@@ -294,7 +253,7 @@ defmodule Drops.Relation.Schema.Patcher do
   end
 
   # Replaces field definitions in the schema block
-  defp replace_schema_fields(schema_zipper, field_definitions) do
+  defp replace_schema_fields(schema_zipper, fields) do
     # Use Sourceror's within function to work on the schema subtree
     Zipper.within(schema_zipper, fn schema_subtree ->
       # Remove existing field definitions but preserve timestamps() and associations
@@ -304,7 +263,7 @@ defmodule Drops.Relation.Schema.Patcher do
       insertion_point = find_field_insertion_point(cleaned_subtree)
 
       # Add new field definitions at the insertion point
-      Enum.reduce(field_definitions, insertion_point, fn field_def, acc_zipper ->
+      Enum.reduce(fields, insertion_point, fn field_def, acc_zipper ->
         Zipper.insert_left(acc_zipper, field_def)
       end)
       |> Zipper.top()
@@ -357,12 +316,12 @@ defmodule Drops.Relation.Schema.Patcher do
   end
 
   # Creates a new schema block if one doesn't exist
-  defp create_schema_block(zipper, field_definitions, table_name) do
+  defp create_schema_block(zipper, fields, table_name) do
     # Create the schema block AST
     schema_ast =
       quote do
         schema unquote(table_name) do
-          unquote_splicing(field_definitions)
+          unquote_splicing(fields)
           timestamps()
         end
       end

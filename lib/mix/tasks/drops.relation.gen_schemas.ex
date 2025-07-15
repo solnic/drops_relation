@@ -34,6 +34,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
 
   use Igniter.Mix.Task
 
+  alias Drops.Relation.Cache
   alias Drops.Relation.Generator
   alias Igniter.Project.Module
 
@@ -198,10 +199,12 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
     # Build module name
     module_name_string = build_module_name_string(table, options[:namespace])
     module_name = Module.parse(module_name_string)
+    repo = String.to_existing_atom("Elixir.#{options[:repo]}")
 
     try do
-      # Generate the schema body content (without defmodule wrapper) for Igniter
-      schema_content = Generator.generate_schema_module_body(table, module_name_string, options)
+      schema_content =
+        Generator.generate_module_content(Cache.get_cached_schema(repo, table))
+        |> Macro.to_string()
 
       Mix.shell().info("Creating or updating schema: #{module_name_string}")
 

@@ -83,7 +83,7 @@ defmodule Drops.Relation.Schema do
 
       iex> pk = Drops.Relation.Schema.PrimaryKey.new([:id])
       iex> indices = Drops.Relation.Schema.Indices.new([])
-      iex> schema = Drops.Relation.Schema.new("users", pk, [], [], indices, [])
+      iex> schema = Drops.Relation.Schema.new(:users, pk, [], [], indices, [])
       iex> schema.source
       "users"
   """
@@ -145,8 +145,8 @@ defmodule Drops.Relation.Schema do
 
   ## Examples
 
-      iex> left = Drops.Relation.Schema.new("users", pk, [], [field1], [])
-      iex> right = Drops.Relation.Schema.new("users", pk, [], [field2], [])
+      iex> left = Drops.Relation.Schema.new(:users, pk, [], [field1], [])
+      iex> right = Drops.Relation.Schema.new(:users, pk, [], [field2], [])
       iex> merged = Drops.Relation.Schema.merge(left, right)
       iex> length(merged.fields)
       2
@@ -362,9 +362,15 @@ defimpl Enumerable, for: Drops.Relation.Schema do
   end
 
   def reduce(%Drops.Relation.Schema{} = schema, acc, fun) do
-    components = build_schema_components(schema)
-    tuple_representation = {:schema, components}
-    Enumerable.reduce([tuple_representation], acc, fun)
+    components = [
+      {:source, schema.source},
+      {:primary_key, schema.primary_key},
+      {:foreign_keys, schema.foreign_keys},
+      {:fields, schema.fields},
+      {:indices, get_indices(schema)}
+    ]
+
+    Enumerable.reduce(components, acc, fun)
   end
 
   # Helper function to build schema components list

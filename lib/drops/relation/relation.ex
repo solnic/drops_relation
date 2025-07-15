@@ -58,7 +58,6 @@ defmodule Drops.Relation do
     repo = opts[:repo]
     name = opts[:name]
 
-    # Register cache file as external resource for recompilation tracking
     cache_file = Drops.Relation.Cache.get_cache_file_path(repo, name)
     Module.put_attribute(relation, :external_resource, cache_file)
 
@@ -91,20 +90,9 @@ defmodule Drops.Relation do
         inferred_schema
       end
 
-    # Generate Ecto schema AST
-    ecto_schema_ast = Generator.generate_schema_ast_from_schema(final_schema)
+    query_api_ast = Query.generate_functions(opts, final_schema)
 
-    # Generate the nested Schema module
-    schema_module_ast = generate_schema_module(relation, ecto_schema_ast)
-
-    # Generate query API functions
-    query_api_ast = generate_query_api(opts, final_schema)
-
-    quote location: :keep do
-      # Define the nested Schema module
-      unquote(schema_module_ast)
-
-      # Store configuration as module attributes
+    quote do
       @opts unquote(Macro.escape(opts))
       @schema unquote(Macro.escape(final_schema))
 
@@ -240,10 +228,16 @@ defmodule Drops.Relation do
   end
 
   defmacro __after_compile__(env, _) do
-    module = env.module
+    relation = env.module
+
+    Module.create(
+      Module.concat(relation, Struct),
+      Generator.generate_module_content(relation.schema()),
+      Macro.Env.location(__ENV__)
+    )
 
     quote location: :keep do
-      defimpl Enumerable, for: unquote(module) do
+      defimpl Enumerable, for: unquote(relation) do
         import Ecto.Query
 
         def count(relation) do
@@ -269,7 +263,7 @@ defmodule Drops.Relation do
         end
 
         defp materialize(relation) do
-          unquote(module).all(relation)
+          unquote(relation).all(relation)
         end
       end
 
@@ -308,16 +302,5 @@ defmodule Drops.Relation do
         end
       end
     end
-  end
-
-  # Generates the Struct module as a separate, standalone module
-  defp generate_schema_module(relation, ecto_schema_ast) do
-    struct_module_name = Module.concat(relation, Struct)
-    Generator.schema_module(struct_module_name, ecto_schema_ast)
-  end
-
-  # Generates query API functions that delegate to module-level functions
-  defp generate_query_api(opts, drops_relation_schema) do
-    Query.generate_functions(opts, drops_relation_schema)
   end
 end

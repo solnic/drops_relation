@@ -301,10 +301,7 @@ defmodule Drops.RelationCase do
           Module.create(
             module_name,
             quote do
-              use Drops.Relation,
-                repo: unquote(repo),
-                name: unquote(relation_name_string),
-                infer: true
+              use Drops.Relation, repo: unquote(repo), name: unquote(relation_name_string)
             end,
             Macro.Env.location(__ENV__)
           )
