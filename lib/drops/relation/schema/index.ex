@@ -36,13 +36,14 @@ defmodule Drops.Relation.Schema.Index do
           name: String.t(),
           fields: [Field.t()],
           unique: boolean(),
-          type: index_type()
+          type: index_type(),
+          composite: boolean()
         }
 
   alias Drops.Relation.Schema.Serializable
   use Serializable
 
-  defstruct [:name, :fields, :unique, :type]
+  defstruct [:name, :fields, :unique, :type, :composite]
 
   @doc """
   Creates a new Index struct.
@@ -69,26 +70,9 @@ defmodule Drops.Relation.Schema.Index do
       name: name,
       fields: fields,
       unique: unique,
-      type: type
+      type: type,
+      composite: length(fields) > 1
     }
-  end
-
-  @doc """
-  Checks if the index is composite (covers multiple fields).
-
-  ## Examples
-
-      iex> index = Drops.Relation.Schema.Index.new("single_field", [:email], true)
-      iex> Drops.Relation.Schema.Index.composite?(index)
-      false
-
-      iex> index = Drops.Relation.Schema.Index.new("multi_field", [:name, :email], false)
-      iex> Drops.Relation.Schema.Index.composite?(index)
-      true
-  """
-  @spec composite?(t()) :: boolean()
-  def composite?(%__MODULE__{fields: fields}) do
-    length(fields) > 1
   end
 
   @doc """

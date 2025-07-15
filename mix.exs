@@ -84,8 +84,7 @@ defmodule Drops.Relation.MixProject do
           Drops.Relation.Schema.Field,
           Drops.Relation.Schema.PrimaryKey,
           Drops.Relation.Schema.ForeignKey,
-          Drops.Relation.Schema.Index,
-          Drops.Relation.Schema.Indices
+          Drops.Relation.Schema.Index
         ],
         Inference: [
           Drops.Relation.Inference,

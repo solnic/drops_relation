@@ -3,7 +3,7 @@ defmodule Drops.Relation.CacheTest do
 
   alias Drops.Relation.Cache
   alias Drops.Relation.Schema
-  alias Drops.Relation.Schema.{Field, PrimaryKey, ForeignKey, Index, Indices}
+  alias Drops.Relation.Schema.{Field, PrimaryKey, ForeignKey, Index}
 
   # Mock repository for testing
   defmodule TestRepo do
@@ -289,21 +289,6 @@ defmodule Drops.Relation.CacheTest do
     end
   end
 
-  describe "Serializable protocol for Indices" do
-    test "dumps and loads Indices correctly" do
-      field = %Field{name: :email, type: :string, source: :email, meta: %{}}
-      index = %Index{name: "users_email_index", fields: [field], unique: true, type: :btree}
-      indices = %Indices{indices: [index]}
-
-      dumped = JSON.encode!(indices) |> JSON.decode!()
-      assert dumped["__struct__"] == "Indices"
-      assert is_list(dumped["attributes"]["indices"])
-
-      loaded = Drops.Relation.Schema.Indices.load(dumped)
-      assert loaded == indices
-    end
-  end
-
   describe "Serializable protocol for Schema" do
     test "dumps and loads complete Schema correctly" do
       field = %Field{name: :id, type: :id, source: :id, meta: %{}}
@@ -316,7 +301,7 @@ defmodule Drops.Relation.CacheTest do
       }
 
       index = %Index{name: "test_index", fields: [field], unique: false, type: :btree}
-      indices = %Indices{indices: [index]}
+      indices = [index]
 
       schema = %Schema{
         source: "test_table",
@@ -340,7 +325,7 @@ defmodule Drops.Relation.CacheTest do
         primary_key: nil,
         foreign_keys: [],
         fields: [],
-        indices: %Indices{indices: []}
+        indices: []
       }
 
       dumped = JSON.encode!(schema) |> JSON.decode!()
@@ -364,7 +349,7 @@ defmodule Drops.Relation.CacheTest do
         primary_key: nil,
         foreign_keys: [],
         fields: [field],
-        indices: %Indices{indices: []}
+        indices: []
       }
 
       # Cache the schema
@@ -397,7 +382,7 @@ defmodule Drops.Relation.CacheTest do
         primary_key: nil,
         foreign_keys: [],
         fields: [field],
-        indices: %Indices{indices: []}
+        indices: []
       }
 
       # Cache the schema

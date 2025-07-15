@@ -6,26 +6,9 @@ defmodule Drops.Relation.Schema do
   primary keys, foreign keys, field information, and indices. It serves as
   a central container for schema information that can be used for validation,
   documentation, and code generation.
-
-  ## Examples
-
-      # Create a schema with metadata
-      schema = %Drops.Relation.Schema{
-        source: "users",
-        primary_key: %Drops.Relation.Schema.PrimaryKey{fields: [:id]},
-        foreign_keys: [],
-        fields: [
-          %{name: :id, type: :integer, type: :id, source: :id},
-          %{name: :email, type: :string, type: :string, source: :email}
-        ],
-        indices: %Drops.Relation.Schema.Indices{indices: [...]},
-        associations: [
-          # Ecto association structs (BelongsTo, Has, ManyToMany, etc.)
-        ]
-      }
   """
 
-  alias Drops.Relation.Schema.{PrimaryKey, ForeignKey, Indices, Field}
+  alias Drops.Relation.Schema.{PrimaryKey, ForeignKey, Index, Field}
 
   @type field_metadata :: %{
           name: atom(),
@@ -39,7 +22,7 @@ defmodule Drops.Relation.Schema do
           primary_key: PrimaryKey.t(),
           foreign_keys: [ForeignKey.t()],
           fields: [Field.t()],
-          indices: Indices.t()
+          indices: [Index.t()]
         }
 
   defstruct [
@@ -78,27 +61,15 @@ defmodule Drops.Relation.Schema do
   - `foreign_keys` - List of foreign key relationships
   - `fields` - List of field metadata
   - `indices` - Index information
-
-  ## Examples
-
-      iex> pk = Drops.Relation.Schema.PrimaryKey.new([:id])
-      iex> indices = Drops.Relation.Schema.Indices.new([])
-      iex> schema = Drops.Relation.Schema.new(:users, pk, [], [], indices, [])
-      iex> schema.source
-      "users"
   """
   @spec new(
           String.t(),
           PrimaryKey.t(),
           [ForeignKey.t()],
           [Field.t()],
-          Indices.t() | []
+          [Index.t()]
         ) :: t()
-  def new(source, primary_key, foreign_keys, fields, indices) when is_list(indices) do
-    new(source, primary_key, foreign_keys, fields, Indices.new(indices))
-  end
-
-  def new(source, primary_key, foreign_keys, fields, indices) do
+  def new(source, primary_key, foreign_keys, fields, indices \\ []) do
     %__MODULE__{
       source: source,
       primary_key: primary_key,
@@ -107,9 +78,6 @@ defmodule Drops.Relation.Schema do
       indices: indices
     }
   end
-
-  def new(%{indices: indices} = attributes) when is_list(indices),
-    do: new(Map.put(attributes, :indices, Indices.new(indices)))
 
   def new(attributes) when is_map(attributes) do
     # Ensure fields only contains Field structs
@@ -213,23 +181,7 @@ defmodule Drops.Relation.Schema do
 
   # Merge indices (combine both lists for now)
   defp merge_indices(left_indices, right_indices) do
-    alias Drops.Relation.Schema.Indices
-
-    # For now, just combine the indices from both schemas
-    # In a more sophisticated implementation, we might merge by name
-    case {left_indices, right_indices} do
-      {%Indices{indices: left_list}, %Indices{indices: right_list}} ->
-        Indices.new(left_list ++ right_list)
-
-      {left_list, right_list} when is_list(left_list) and is_list(right_list) ->
-        Indices.new(left_list ++ right_list)
-
-      {%Indices{} = left_indices, _} ->
-        left_indices
-
-      {left_indices, _} ->
-        left_indices
-    end
+    left_indices ++ right_indices
   end
 
   @doc """
@@ -367,7 +319,7 @@ defimpl Enumerable, for: Drops.Relation.Schema do
       {:primary_key, schema.primary_key},
       {:foreign_keys, schema.foreign_keys},
       {:fields, schema.fields},
-      {:indices, get_indices(schema)}
+      {:indices, schema.indices}
     ]
 
     Enumerable.reduce(components, acc, fun)
@@ -389,9 +341,6 @@ defimpl Enumerable, for: Drops.Relation.Schema do
         components
       end
 
-    # Add foreign key attributes (for @foreign_key_type generation)
-    components = components ++ [{:foreign_key_attributes, schema.fields}]
-
     # Add foreign keys
     components = components ++ safe_flat_map(schema.foreign_keys)
 
@@ -399,7 +348,7 @@ defimpl Enumerable, for: Drops.Relation.Schema do
     components = components ++ safe_flat_map(schema.fields)
 
     # Add indices
-    components = components ++ safe_flat_map(get_indices(schema))
+    components = components ++ safe_flat_map(schema.indices)
 
     components
   end
@@ -428,9 +377,4 @@ defimpl Enumerable, for: Drops.Relation.Schema do
     # so we return the list as-is
     Enum.to_list(enumerable)
   end
-
-  # Helper to get indices, handling nil values
-  defp get_indices(%{indices: nil}), do: []
-  defp get_indices(%{indices: %{indices: indices}}), do: indices
-  defp get_indices(_), do: []
 end
