@@ -24,6 +24,7 @@ defmodule SampleApp.MixProject do
     [
       {:ecto, "~> 3.12"},
       {:ecto_sqlite3, "~> 0.17"},
+      {:postgrex, "~> 0.17"},
       {:drops_relation, path: "../.."},
       {:jason, "~> 1.4"},
       {:igniter, "~> 0.6", optional: true}
