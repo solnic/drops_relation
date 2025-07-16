@@ -112,8 +112,7 @@ defmodule Drops.Relation.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:igniter, "~> 0.6", optional: true},
       {:ecto_sqlite3, "~> 0.12", only: [:test, :dev], optional: true},
-      {:postgrex, "~> 0.17", only: [:test, :dev], optional: true},
-      {:logger_file_backend, "~> 0.0.13", only: [:dev, :test]}
+      {:postgrex, "~> 0.17", only: [:test, :dev], optional: true}
     ]
   end
 
@@ -128,7 +127,7 @@ defmodule Drops.Relation.MixProject do
       "ecto.migrations": ["drops.relation.dev_setup", "ecto.migrations"],
       "ecto.dump": ["drops.relation.dev_setup", "ecto.dump"],
       "ecto.load": ["drops.relation.dev_setup", "ecto.load"],
-      "drops.relation.refresh_cache": ["dev.start_repo", "drops.relation.refresh_cache"],
+      "drops.relation.refresh_cache": ["drops.relation.dev_setup", "drops.relation.refresh_cache"],
       "test.integration": ["cmd cd test/sample_app && mix test"],
       "test.coverage": ["coveralls.json", "dev.coverage.create_tasks"]
     ]

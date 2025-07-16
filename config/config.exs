@@ -10,3 +10,5 @@ config_file = "#{config_env()}.exs"
 if File.exists?(Path.join(__DIR__, config_file)) do
   import_config config_file
 end
+
+import_config Path.join(__DIR__, "runtime.exs")
