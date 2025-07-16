@@ -7,7 +7,7 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       uuid_organizations: orgs
     } do
       # Get the generated schema module
-      schema_module = Module.concat(orgs, Struct)
+      schema_module = orgs.__schema_module__()
 
       # Check that the schema has the correct primary key configuration
       primary_key = schema_module.__schema__(:primary_key)
@@ -39,7 +39,7 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       uuid_users: users
     } do
       # Get the generated schema module
-      schema_module = Module.concat(users, Struct)
+      schema_module = users.__schema_module__()
 
       org_id_type = schema_module.__schema__(:type, :organization_id)
       assert org_id_type == :binary_id
@@ -52,7 +52,7 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
     @tag relations: [:uuid_posts], adapter: :sqlite
     test "handles nested uuid foreign keys correctly", %{uuid_posts: posts} do
       # Get the generated schema module
-      schema_module = Module.concat(posts, Struct)
+      schema_module = posts.__schema_module__()
 
       # Check primary key
       primary_key = schema_module.__schema__(:primary_key)
@@ -86,7 +86,7 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
 
       # Insert should work (we're testing the schema generation, not the actual DB operation)
       # The important thing is that the schema accepts binary_id values
-      org_struct = struct(Module.concat(orgs, Struct), org_attrs)
+      org_struct = struct(orgs.__schema_module__(), org_attrs)
       assert org_struct.id == org_id
       assert org_struct.name == "Test Org"
 
@@ -100,7 +100,7 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
         organization_id: org_id
       }
 
-      user_struct = struct(Module.concat(users, Struct), user_attrs)
+      user_struct = struct(users.__schema_module__(), user_attrs)
       assert user_struct.id == user_id
       assert user_struct.organization_id == org_id
     end
@@ -113,12 +113,12 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       uuid_users: uuid_users
     } do
       # Integer PK relation
-      int_schema = Module.concat(int_users, Struct)
+      int_schema = int_users.__schema_module__()
       int_id_type = int_schema.__schema__(:type, :id)
       assert int_id_type == :id
 
       # UUID PK relation
-      uuid_schema = Module.concat(uuid_users, Struct)
+      uuid_schema = uuid_users.__schema_module__()
       uuid_id_type = uuid_schema.__schema__(:type, :id)
       assert uuid_id_type == :binary_id
 
@@ -157,7 +157,7 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       uuid_organizations: orgs
     } do
       # Get the generated schema module
-      schema_module = Module.concat(orgs, Struct)
+      schema_module = orgs.__schema_module__()
 
       # Check that the schema has the correct primary key configuration
       primary_key = schema_module.__schema__(:primary_key)
@@ -183,7 +183,7 @@ defmodule Drops.Relation.UuidDynamicRelationTest do
       uuid_users: users
     } do
       # Get the generated schema module
-      schema_module = Module.concat(users, Struct)
+      schema_module = users.__schema_module__()
 
       # Check that foreign key fields have binary_id type
       org_id_type = schema_module.__schema__(:type, :organization_id)

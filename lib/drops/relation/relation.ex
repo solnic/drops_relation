@@ -34,14 +34,51 @@ defmodule Drops.Relation do
     quote do
       import Drops.Relation
 
-      Module.register_attribute(__MODULE__, :custom_schema_block, accumulate: true)
+      Module.register_attribute(__MODULE__, :custom_schema_block, accumulate: false)
+      Module.register_attribute(__MODULE__, :associations_block, accumulate: false)
+      Module.register_attribute(__MODULE__, :views, accumulate: true)
 
       @before_compile Drops.Relation
       @after_compile Drops.Relation
 
       @opts unquote(opts)
+      def opts, do: @opts
 
-      defstruct([:struct, :repo, queryable: [], opts: [], preloads: []])
+      defstruct([:struct, :repo, schema: %{}, queryable: [], opts: [], preloads: []])
+
+      defmacro __using__(opts) do
+        quote do
+          import Drops.Relation
+
+          Module.register_attribute(__MODULE__, :schema, accumulate: false)
+          Module.register_attribute(__MODULE__, :associations_block, accumulate: false)
+          Module.register_attribute(__MODULE__, :relation, accumulate: false)
+
+          @before_compile Drops.Relation
+          @after_compile Drops.Relation
+
+          @opts unquote(opts)
+          def opts, do: @opts
+
+          @source unquote(opts[:source])
+          def source, do: @source
+
+          defstruct([
+            :struct,
+            :repo,
+            schema: %{},
+            queryable: unquote(opts[:source]),
+            opts: [],
+            preloads: []
+          ])
+        end
+      end
+    end
+  end
+
+  defmacro schema(fields) when is_list(fields) do
+    quote do
+      @schema unquote(fields)
     end
   end
 
@@ -51,34 +88,76 @@ defmodule Drops.Relation do
     end
   end
 
+  defmacro view(name, do: block) do
+    quote do
+      @views unquote(Macro.escape({name, block}))
+    end
+  end
+
+  defmacro relation(do: block) do
+    quote do
+      @relation unquote(Macro.escape(block))
+    end
+  end
+
+  defmacro associations(do: block) do
+    quote do
+      @associations_block unquote(Macro.escape(block))
+    end
+  end
+
   defmacro __before_compile__(env) do
     relation = env.module
 
     opts = Module.get_attribute(relation, :opts)
     repo = opts[:repo]
     name = opts[:name]
+    view = Keyword.get(opts, :view, false)
 
-    cache_file = Drops.Relation.Cache.get_cache_file_path(repo, name)
-    Module.put_attribute(relation, :external_resource, cache_file)
+    if not view do
+      cache_file = Drops.Relation.Cache.get_cache_file_path(repo, name)
+      Module.put_attribute(relation, :external_resource, cache_file)
 
-    case Drops.Relation.Cache.get_cached_schema(repo, name) do
-      %Drops.Relation.Schema{} = inferred_schema ->
-        __define_relation__(env, inferred_schema)
+      case Drops.Relation.Cache.get_cached_schema(repo, name) do
+        %Drops.Relation.Schema{} = inferred_schema ->
+          __define_relation__(env, inferred_schema)
 
-      {:error, error} ->
-        raise error
-        []
+        {:error, error} ->
+          raise error
+          []
 
-      nil ->
-        []
+        nil ->
+          []
+      end
+    else
+      # This is a relation view so we rely on the source relation module
+      __define_relation__(env, opts[:source].schema())
     end
+  end
+
+  defp view_module(relation, name) do
+    Module.concat(relation, Macro.camelize(Atom.to_string(name)))
   end
 
   def __define_relation__(env, inferred_schema) do
     relation = env.module
 
     opts = Module.get_attribute(relation, :opts)
+    schema = Module.get_attribute(relation, :schema, [])
+    relation_view = Module.get_attribute(relation, :relation, [])
     custom_schema_block = Module.get_attribute(relation, :custom_schema_block, [])
+
+    views = Module.get_attribute(relation, :views, [])
+    view_mods = Enum.map(views, fn {name, _block} -> {name, view_module(relation, name)} end)
+
+    view_ast =
+      Enum.map(view_mods, fn {name, mod} ->
+        mod_name = Atom.to_string(mod)
+
+        quote do
+          def unquote(name)(), do: String.to_existing_atom(unquote(mod_name)).queryable()
+        end
+      end)
 
     # Merge customized schema that was defined via regular `schema(name) do ... end` block
     # with the inferred schema, so that it's possible to override default fields settings.
@@ -90,16 +169,50 @@ defmodule Drops.Relation do
         inferred_schema
       end
 
-    query_api_ast = Query.generate_functions(opts, final_schema)
+    final_schema =
+      case schema do
+        fields when is_list(fields) and length(fields) > 0 ->
+          Schema.project(final_schema, fields)
+
+        _ ->
+          final_schema
+      end
+
+    queryable_ast =
+      if relation_view do
+        quote do
+          def queryable, do: unquote(relation_view)
+        end
+      else
+        quote do
+          def queryable, do: unquote(relation)
+        end
+      end
+
+    query_api_ast = Query.generate_functions(opts, final_schema) ++ view_ast
+
+    singular_name =
+      relation |> Atom.to_string() |> String.split(".") |> List.last() |> String.trim("s")
+
+    ecto_schema_module = Module.concat([relation, "Schemas", singular_name])
 
     quote do
-      @opts unquote(Macro.escape(opts))
       @schema unquote(Macro.escape(final_schema))
+
+      @spec schema() :: Drops.Relation.Schema.t()
+      def schema, do: @schema
+
+      unquote(queryable_ast)
+
+      def new(opts \\ []) do
+        new(queryable(), __schema_module__(), opts)
+      end
 
       def new(queryable, struct, opts) do
         Kernel.struct(__MODULE__, %{
           queryable: queryable,
           struct: struct,
+          schema: Keyword.get(opts, :schema, schema()),
           repo: unquote(opts[:repo]),
           opts: opts,
           preloads: []
@@ -109,24 +222,22 @@ defmodule Drops.Relation do
       # Make the relation module itself queryable by implementing the necessary functions
       # This allows the relation module to be used directly in Ecto queries
       def __schema__(query) do
-        Module.concat(__MODULE__, Struct).__schema__(query)
+        __schema_module__().__schema__(query)
       end
 
       def __schema__(query, field) do
-        Module.concat(__MODULE__, Struct).__schema__(query, field)
+        __schema_module__().__schema__(query, field)
       end
+
+      @ecto_schema_module unquote(ecto_schema_module)
+      def __schema_module__, do: @ecto_schema_module
 
       # Generate query API functions
       unquote_splicing(query_api_ast)
 
-      @spec schema() :: Drops.Relation.Schema.t()
-      def schema do
-        @schema
-      end
-
       # Handle when called with just options (e.g., users.restrict(name: "Jane"))
       def restrict(opts) when is_list(opts),
-        do: __MODULE__.new(__MODULE__.Struct, __MODULE__.Struct, opts)
+        do: __MODULE__.new(__schema_module__(), __schema_module__(), opts)
 
       def restrict(%__MODULE__{} = relation, opts) do
         # Preserve existing preloads when restricting a relation
@@ -142,11 +253,11 @@ defmodule Drops.Relation do
           case Drops.Relation.Composite.infer_association(other_module, __MODULE__) do
             nil ->
               # No association found, just create a regular restricted relation
-              __MODULE__.new(__MODULE__.Struct, __MODULE__.Struct, opts)
+              __MODULE__.new(__schema_module__(), __schema_module__(), opts)
 
             association ->
               # Create a composite relation with automatic preloading
-              right_relation = __MODULE__.new(__MODULE__.Struct, __MODULE__.Struct, opts)
+              right_relation = __MODULE__.new(__schema_module__(), __schema_module__(), opts)
 
               Drops.Relation.Composite.new(
                 other_relation,
@@ -157,12 +268,12 @@ defmodule Drops.Relation do
           end
         else
           # Not a relation module, treat as regular queryable
-          __MODULE__.new(other_relation, __MODULE__.Struct, opts)
+          __MODULE__.new(other_relation, __schema_module__(), opts)
         end
       end
 
       def restrict(queryable, opts),
-        do: __MODULE__.new(queryable, __MODULE__.Struct, opts)
+        do: __MODULE__.new(queryable, __schema_module__(), opts)
 
       # Helper function to check if a module is a relation module
       defp is_relation_module?(module) do
@@ -171,14 +282,14 @@ defmodule Drops.Relation do
           function_exported?(module, :associations, 0)
       end
 
-      def ecto_schema(group), do: __MODULE__.Struct.__schema__(group)
-      def ecto_schema(group, name), do: __MODULE__.Struct.__schema__(group, name)
+      def ecto_schema(group), do: __schema_module__().__schema__(group)
+      def ecto_schema(group, name), do: __schema_module__().__schema__(group, name)
 
-      def association(name), do: __MODULE__.Struct.__schema__(:association, name)
-      def associations(), do: __MODULE__.Struct.__schema__(:associations)
+      def association(name), do: __schema_module__().__schema__(:association, name)
+      def associations(), do: __schema_module__().__schema__(:associations)
 
       def struct(attributes \\ %{}) do
-        struct(__MODULE__.Struct, attributes)
+        struct(__schema_module__(), attributes)
       end
 
       @doc """
@@ -207,34 +318,56 @@ defmodule Drops.Relation do
       A new relation struct with the preload configuration applied.
       """
       def preload(associations) when is_atom(associations) or is_list(associations) do
-        preload(__MODULE__.new(__MODULE__.Struct, __MODULE__.Struct, []), associations)
+        preload(__MODULE__.new(__schema_module__(), __schema_module__(), []), associations)
       end
 
-      def preload(%__MODULE__{} = relation, associations)
-          when is_atom(associations) or is_list(associations) do
-        # Normalize associations to a list
-        normalized_associations =
-          case associations do
-            atom when is_atom(atom) -> [atom]
-            list when is_list(list) -> list
-          end
+      def preload(%__MODULE__{} = relation, association) when is_atom(association) do
+        preload(relation, [association])
+      end
 
-        # Merge with existing preloads
-        updated_preloads = relation.preloads ++ normalized_associations
-
-        %{relation | preloads: updated_preloads}
+      def preload(%__MODULE__{} = relation, associations) when is_list(associations) do
+        %{relation | preloads: relation.preloads ++ associations}
       end
     end
   end
 
   defmacro __after_compile__(env, _) do
     relation = env.module
+    schema = Module.get_attribute(relation, :schema)
 
-    Module.create(
-      Module.concat(relation, Struct),
-      Generator.generate_module_content(relation.schema()),
-      Macro.Env.location(__ENV__)
-    )
+    if schema do
+      __finalize_relation__(relation)
+    else
+      []
+    end
+  end
+
+  def __finalize_relation__(relation) do
+    opts = relation.opts()
+    repo = opts[:repo]
+
+    {_, schema_block} = Module.get_attribute(relation, :custom_schema_block, {:empty, []})
+    ecto_schema = Generator.generate_module_content(relation.schema(), schema_block)
+    Module.create(relation.__schema_module__(), ecto_schema, Macro.Env.location(__ENV__))
+
+    views = Module.get_attribute(relation, :views, [])
+
+    Enum.each(views, fn {name, block} ->
+      {:module, _view_module, _, _} =
+        Module.create(
+          view_module(relation, name),
+          quote do
+            use unquote(relation),
+              name: unquote(name),
+              source: unquote(relation),
+              repo: unquote(repo),
+              view: true
+
+            unquote(block)
+          end,
+          Macro.Env.location(__ENV__)
+        )
+    end)
 
     quote location: :keep do
       defimpl Enumerable, for: unquote(relation) do
@@ -267,7 +400,7 @@ defmodule Drops.Relation do
         end
       end
 
-      defimpl Ecto.Queryable, for: unquote(env.module) do
+      defimpl Ecto.Queryable, for: unquote(relation) do
         import Ecto.Query
 
         def to_query(relation) do

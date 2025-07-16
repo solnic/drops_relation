@@ -217,7 +217,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
               field(:first_name, :string)
               field(:last_name, :string)
               field(:age, :integer)
-              field(:is_active, :boolean, default: true)
+              field(:active, :boolean, default: true)
               field(:profile_data, :string)
               field(:tags, :string, default: "[]")
               field(:score, :decimal)
@@ -238,7 +238,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       first_name_field = Field.new(:first_name, :string, %{source: :first_name})
       last_name_field = Field.new(:last_name, :string, %{source: :last_name})
       age_field = Field.new(:age, :integer, %{source: :age})
-      is_active_field = Field.new(:is_active, :boolean, %{source: :is_active, default: true})
+      active_field = Field.new(:active, :boolean, %{source: :active, default: true})
       profile_data_field = Field.new(:profile_data, :string, %{source: :profile_data})
       tags_field = Field.new(:tags, :string, %{source: :tags, default: "[]"})
       score_field = Field.new(:score, :decimal, %{source: :score})
@@ -250,7 +250,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
         first_name_field,
         last_name_field,
         age_field,
-        is_active_field,
+        active_field,
         profile_data_field,
         tags_field,
         score_field,
@@ -296,7 +296,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
               field(:first_name, :string)
               field(:last_name, :string)
               field(:age, :integer)
-              field(:is_active, :boolean, default: true)
+              field(:active, :boolean, default: true)
               field(:profile_data, :string)
               field(:tags, :string, default: "[]")
               field(:score, :decimal)
@@ -317,7 +317,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       first_name_field = Field.new(:first_name, :string, %{source: :first_name})
       last_name_field = Field.new(:last_name, :string, %{source: :last_name})
       age_field = Field.new(:age, :integer, %{source: :age})
-      is_active_field = Field.new(:is_active, :boolean, %{source: :is_active, default: true})
+      active_field = Field.new(:active, :boolean, %{source: :active, default: true})
       profile_data_field = Field.new(:profile_data, :string, %{source: :profile_data})
       tags_field = Field.new(:tags, :string, %{source: :tags, default: "[]"})
       score_field = Field.new(:score, :decimal, %{source: :score})
@@ -329,7 +329,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
         first_name_field,
         last_name_field,
         age_field,
-        is_active_field,
+        active_field,
         profile_data_field,
         tags_field,
         score_field,

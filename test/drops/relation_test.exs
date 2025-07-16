@@ -10,6 +10,7 @@ defmodule Drops.Relations.SchemaSpec do
                :name,
                :email,
                :age,
+               :active,
                :inserted_at,
                :updated_at
              ]

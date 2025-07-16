@@ -140,6 +140,9 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
         field.name in [:inserted_at, :updated_at] ->
           nil
 
+        field.meta[:association] ->
+          nil
+
         # Skip primary key fields unless composite
         field.name in pk_field_names and
             not (schema.primary_key && schema.primary_key.meta.composite) ->

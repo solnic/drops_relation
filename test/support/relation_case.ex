@@ -1,54 +1,4 @@
 defmodule Drops.RelationCase do
-  @moduledoc """
-  Test case template for Drops.Relation tests.
-
-  This module provides a convenient way to test relation modules with automatic
-  schema cache management and relation setup.
-
-  ## Usage
-
-      defmodule MyRelationTest do
-        use Drops.RelationCase, async: true
-
-        describe "my relation tests" do
-          @tag relations: [:users], adapter: :sqlite
-          test "basic test", %{users: users} do
-            # users relation is automatically available
-          end
-
-          # Or use the relation macro directly
-          relation(:posts)
-
-          test "posts test", %{posts: posts} do
-            # posts relation is available
-          end
-        end
-      end
-
-  ## Multi-Adapter Testing
-
-      defmodule MyMultiAdapterTest do
-        use Drops.RelationCase, async: true
-
-        adapters([:sqlite, :postgres]) do
-          @tag relations: [:users]
-          test "works with both adapters", %{users: users} do
-            # This test will run for both Sqlite and PostgreSQL
-          end
-        end
-      end
-
-  ## Features
-
-  - Automatic Ecto sandbox setup
-  - Schema cache clearing for test isolation
-  - Relation macro for defining test relations
-  - Support for @tag relations: [...] and @describetag relations: [...]
-  - Multi-adapter testing with adapters/2 macro
-  - Automatic migration running for test tables
-  - Adapter selection via @tag adapter: :sqlite/:postgres (defaults to :sqlite)
-  """
-
   use ExUnit.CaseTemplate
 
   using do
@@ -63,150 +13,32 @@ defmodule Drops.RelationCase do
   end
 
   setup tags do
-    # Determine adapter from tags, environment variable, or default to :sqlite
-    adapter =
-      tags[:adapter] ||
-        (System.get_env("ADAPTER") &&
-           String.downcase(System.get_env("ADAPTER")) |> String.to_atom()) ||
-        :sqlite
+    adapter = Map.get(tags, :adapter, String.to_atom(System.get_env("ADAPTER", "sqlite")))
 
-    # Set up Ecto sandbox
     setup_sandbox(tags, adapter)
 
-    # Handle relation tags
-    {context, cleanup_modules} = handle_relation_tags(tags, adapter)
-
-    # Set up cleanup for relation modules
-    if cleanup_modules != [] do
-      on_exit(fn ->
-        Enum.each(cleanup_modules, fn module_name ->
-          # Clean up protocol implementations first
-          for protocol <- [Enumerable, Ecto.Queryable] do
-            try do
-              impl_module = Module.concat([protocol, module_name])
-
-              if Code.ensure_loaded?(impl_module) do
-                :code.purge(impl_module)
-                :code.delete(impl_module)
-              end
-            rescue
-              _ -> :ok
-            end
-          end
-
-          # Then clean up the main module
-          try do
-            :code.purge(module_name)
-            :code.delete(module_name)
-          rescue
-            _ -> :ok
-          end
-        end)
-      end)
-    end
-
-    # Add adapter and repo to context
     context =
-      Map.merge(context, %{
-        adapter: adapter,
-        repo: get_repo_for_adapter(adapter)
-      })
+      Enum.reduce(Map.get(tags, :relations, []), %{}, fn name, context ->
+        Map.put(context, name, create_relation(name, adapter: adapter))
+      end)
 
-    {:ok, context}
+    on_exit(fn -> cleanup_modules(Map.values(context)) end)
+
+    {:ok, Map.merge(context, %{adapter: adapter, repo: repo(adapter)})}
   end
 
-  @doc """
-  Defines a relation for testing.
-
-  ## Examples
-
-      relation(:users)
-      relation(:posts) do
-        # Custom relation configuration
-      end
-  """
   defmacro relation(name, opts) do
-    relation_name = name |> Atom.to_string() |> Macro.camelize()
-
     quote do
       setup context do
-        adapter = context[:adapter] || :sqlite
-        table_name = Atom.to_string(unquote(name))
+        relation_module = create_relation(unquote(name), unquote(Macro.escape(opts)))
 
-        # Define the relation module dynamically based on adapter
-        relation_module_name =
-          Module.concat([
-            Test,
-            Relations,
-            "#{unquote(relation_name)}#{String.capitalize(Atom.to_string(adapter))}"
-          ])
+        on_exit(fn -> cleanup_modules(relation_module) end)
 
-        repo_module =
-          case adapter do
-            :sqlite -> Drops.Relation.Repos.Sqlite
-            :postgres -> Drops.Relation.Repos.Postgres
-          end
-
-        {:ok, _} = Drops.Relation.Cache.warm_up(repo_module, [table_name])
-
-        block = Keyword.get(unquote(Macro.escape(opts)), :do, [])
-
-        {:module, ^relation_module_name, _bytecode, _result} =
-          Module.create(
-            relation_module_name,
-            quote do
-              use Drops.Relation,
-                repo: unquote(repo_module),
-                name: unquote(table_name),
-                infer: true
-
-              unquote(block)
-            end,
-            Macro.Env.location(__ENV__)
-          )
-
-        # Add relation to context
-        relation_context = Map.put(context, unquote(name), relation_module_name)
-
-        on_exit(fn ->
-          # Clean up the module and its nested Struct module
-          struct_module_name = Module.concat(relation_module_name, Struct)
-
-          # Clean up protocol implementations first
-          for protocol <- [Enumerable, Ecto.Queryable] do
-            for module <- [relation_module_name, struct_module_name] do
-              impl_module = Module.concat([protocol, module])
-
-              :code.purge(impl_module)
-              :code.delete(impl_module)
-            end
-          end
-
-          # Then clean up the main modules
-          :code.purge(struct_module_name)
-          :code.delete(struct_module_name)
-
-          :code.purge(relation_module_name)
-          :code.delete(relation_module_name)
-        end)
-
-        {:ok, relation_context}
+        {:ok, Map.put(context, unquote(name), relation_module)}
       end
     end
   end
 
-  @doc """
-  Runs tests for multiple adapters.
-
-  ## Examples
-
-      adapters([:sqlite, :postgres]) do
-        @tag relations: [:users]
-        test "works with both adapters", %{users: users} do
-          # This test will run for both Sqlite and PostgreSQL
-        end
-      end
-  """
   defmacro adapters(adapter_list, do: block) do
     for adapter <- adapter_list do
       quote do
@@ -221,106 +53,61 @@ defmodule Drops.RelationCase do
     end
   end
 
-  @doc """
-  Sets up the sandbox based on the test tags and adapter.
-  """
+  def create_relation(name, opts) do
+    adapter = Keyword.get(opts, :adapter, :sqlite)
+    block = Keyword.get(opts, :do, [])
+    repo = repo(adapter)
+    table_name = Atom.to_string(name)
+    relation_name = Macro.camelize(table_name)
+
+    module_name = Module.concat([Test, Relations, relation_name])
+
+    cleanup_modules(module_name)
+
+    {:ok, _} = Drops.Relation.Cache.warm_up(repo, [table_name])
+
+    {:module, relation_module, _bytecode, _result} =
+      Module.create(
+        module_name,
+        quote do
+          use Drops.Relation, repo: unquote(repo), name: unquote(table_name)
+          unquote(block)
+        end,
+        Macro.Env.location(__ENV__)
+      )
+
+    relation_module
+  end
+
+  def cleanup_modules(relation_modules) when is_list(relation_modules) do
+    Enum.each(relation_modules, &cleanup_modules/1)
+  end
+
+  def cleanup_modules(relation_module) do
+    if Code.ensure_loaded?(relation_module) do
+      Enum.each([relation_module, relation_module.__schema_module__()], fn module ->
+        for protocol <- [Enumerable, Ecto.Queryable] do
+          impl_module = Module.concat([protocol, module])
+
+          if Code.ensure_loaded?(impl_module) do
+            :code.delete(impl_module)
+            :code.purge(impl_module)
+          end
+        end
+
+        :code.delete(module)
+        :code.purge(module)
+      end)
+    end
+  end
+
   def setup_sandbox(tags, adapter) do
     Drops.Relation.Repos.start_owner!(adapter, shared: not tags[:async])
     on_exit(fn -> Drops.Relation.Repos.stop_owner(adapter) end)
   end
 
-  @doc """
-  Handles @tag relations: [...] and @describetag relations: [...] syntax.
-  Returns {context, cleanup_modules} where cleanup_modules is a list of modules to clean up.
-  """
-  def handle_relation_tags(tags, adapter) do
-    relations = tags[:relations] || []
-    repo = get_repo_for_adapter(adapter)
-
-    table_names = Enum.map(relations, &Atom.to_string/1)
-
-    # Always force refresh in tests to ensure fresh schema inference
-    case Drops.Relation.Cache.refresh(repo, table_names) do
-      :ok -> :ok
-      {:error, reason} -> raise "Failed to refresh cache: #{inspect(reason)}"
-    end
-
-    {context, cleanup_modules} =
-      Enum.reduce(relations, {%{}, []}, fn relation_name, {context, cleanup_modules} ->
-        relation_name_string = Atom.to_string(relation_name)
-        relation_module_name = relation_name_string |> Macro.camelize()
-
-        module_name =
-          Module.concat([
-            Test,
-            Relations,
-            "#{relation_module_name}#{String.capitalize(Atom.to_string(adapter))}"
-          ])
-
-        # Define the relation module dynamically
-        # We need to use Module.create/3 for runtime module creation
-        # Always purge and delete the module and its nested Struct module first to avoid redefinition warnings
-        struct_module_name = Module.concat(module_name, Struct)
-
-        # Clean up existing modules to avoid redefinition warnings
-        for mod <- [struct_module_name, module_name] do
-          :code.purge(mod)
-          :code.delete(mod)
-        end
-
-        # Also clean up any protocol implementations that might exist
-        # Protocol implementations are created with the pattern Protocol.ModuleName
-        for protocol <- [Enumerable, Ecto.Queryable] do
-          try do
-            impl_module = Module.concat([protocol, module_name])
-
-            if Code.ensure_loaded?(impl_module) do
-              :code.purge(impl_module)
-              :code.delete(impl_module)
-            end
-          rescue
-            _ -> :ok
-          end
-        end
-
-        # Also clean up protocol implementations for the Struct module
-        for protocol <- [Enumerable, Ecto.Queryable] do
-          try do
-            impl_module = Module.concat([protocol, struct_module_name])
-
-            if Code.ensure_loaded?(impl_module) do
-              :code.purge(impl_module)
-              :code.delete(impl_module)
-            end
-          rescue
-            _ -> :ok
-          end
-        end
-
-        {:module, ^module_name, _bytecode, _result} =
-          Module.create(
-            module_name,
-            quote do
-              use Drops.Relation, repo: unquote(repo), name: unquote(relation_name_string)
-            end,
-            Macro.Env.location(__ENV__)
-          )
-
-        cleanup_modules = [struct_module_name, module_name | cleanup_modules]
-
-        # Add to context
-        context = Map.put(context, relation_name, module_name)
-        {context, cleanup_modules}
-      end)
-
-    {context, cleanup_modules}
-  end
-
-  @doc """
-  Gets the appropriate repo module for the given adapter.
-  """
-  def get_repo_for_adapter(:sqlite), do: Drops.Relation.Repos.Sqlite
-  def get_repo_for_adapter(:postgres), do: Drops.Relation.Repos.Postgres
+  def repo(:sqlite), do: Drops.Relation.Repos.Sqlite
+  def repo(:postgres), do: Drops.Relation.Repos.Postgres
 
   @doc """
   Helper for asserting column properties in SQL Database tables.

@@ -84,7 +84,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasIntegrationTest do
       assert user_content =~ "field(:email, :string)"
       assert user_content =~ "field(:first_name, :string)"
       assert user_content =~ "field(:age, :integer)"
-      assert user_content =~ "field(:is_active, :boolean"
+      assert user_content =~ "field(:active, :boolean"
       assert user_content =~ "timestamps()"
 
       # Verify post schema content with foreign key

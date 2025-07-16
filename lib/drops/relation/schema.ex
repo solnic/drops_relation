@@ -99,6 +99,17 @@ defmodule Drops.Relation.Schema do
     new(name, nil, [], [], [])
   end
 
+  @spec project(Schema.t(), [atom()]) :: Schema.t()
+  def project(schema, fields) when is_list(fields) do
+    new(
+      schema.source,
+      schema.primary_key,
+      schema.foreign_keys,
+      Enum.map(fields, fn name -> schema[name] end),
+      schema.indices
+    )
+  end
+
   @doc """
   Merges two schemas, with the right schema taking precedence for conflicts.
 
@@ -172,8 +183,8 @@ defmodule Drops.Relation.Schema do
 
   # Merge foreign keys by field name, with right taking precedence
   defp merge_foreign_keys(left_fks, right_fks) do
-    left_map = Map.new(left_fks, &{&1.field_name, &1})
-    right_map = Map.new(right_fks, &{&1.field_name, &1})
+    left_map = Map.new(left_fks, &{&1.field, &1})
+    right_map = Map.new(right_fks, &{&1.field, &1})
 
     # Right takes precedence, then add any left FKs not in right
     Map.merge(left_map, right_map) |> Map.values()

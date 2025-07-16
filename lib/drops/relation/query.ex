@@ -56,7 +56,7 @@ defmodule Drops.Relation.Query do
 
     actual_queryable =
       if relation_module do
-        Module.concat(relation_module, Struct)
+        relation_module.__schema_module__()
       else
         queryable
       end
@@ -84,7 +84,7 @@ defmodule Drops.Relation.Query do
 
     actual_queryable =
       if relation_module do
-        Module.concat(relation_module, Struct)
+        relation_module.__schema_module__()
       else
         queryable
       end
@@ -112,7 +112,7 @@ defmodule Drops.Relation.Query do
 
     actual_queryable =
       if relation_module do
-        Module.concat(relation_module, Struct)
+        relation_module.__schema_module__()
       else
         queryable
       end
@@ -140,7 +140,7 @@ defmodule Drops.Relation.Query do
 
     actual_queryable =
       if relation_module do
-        Module.concat(relation_module, Struct)
+        relation_module.__schema_module__()
       else
         queryable
       end
@@ -185,7 +185,7 @@ defmodule Drops.Relation.Query do
 
     actual_queryable =
       if relation_module do
-        Module.concat(relation_module, Struct)
+        relation_module.__schema_module__()
       else
         queryable
       end
@@ -213,7 +213,7 @@ defmodule Drops.Relation.Query do
 
     actual_queryable =
       if relation_module do
-        Module.concat(relation_module, Struct)
+        relation_module.__schema_module__()
       else
         queryable
       end
@@ -247,7 +247,7 @@ defmodule Drops.Relation.Query do
 
         %{} = plain_map when relation_module != nil ->
           # Plain map - convert to struct first using relation module
-          struct_module = Module.concat(relation_module, Struct)
+          struct_module = relation_module.__schema_module__()
           struct(struct_module, plain_map)
 
         %{} = plain_map ->
@@ -284,7 +284,7 @@ defmodule Drops.Relation.Query do
 
         %{} = plain_map when relation_module != nil ->
           # Plain map - convert to struct first using relation module
-          struct_module = Module.concat(relation_module, Struct)
+          struct_module = relation_module.__schema_module__()
           struct(struct_module, plain_map)
 
         %{} = plain_map ->
@@ -391,7 +391,7 @@ defmodule Drops.Relation.Query do
 
     actual_queryable =
       if relation_module do
-        Module.concat(relation_module, Struct)
+        relation_module.__schema_module__()
       else
         queryable
       end
@@ -420,7 +420,7 @@ defmodule Drops.Relation.Query do
 
     actual_queryable =
       if relation_module do
-        Module.concat(relation_module, Struct)
+        relation_module.__schema_module__()
       else
         queryable
       end
@@ -449,7 +449,7 @@ defmodule Drops.Relation.Query do
 
     actual_queryable =
       if relation_module do
-        Module.concat(relation_module, Struct)
+        relation_module.__schema_module__()
       else
         queryable
       end
@@ -478,7 +478,7 @@ defmodule Drops.Relation.Query do
 
     actual_queryable =
       if relation_module do
-        Module.concat(relation_module, Struct)
+        relation_module.__schema_module__()
       else
         # This shouldn't happen in normal usage since get_by_field is typically used with relations
         raise ArgumentError,
@@ -493,7 +493,7 @@ defmodule Drops.Relation.Query do
     quote do
       def get(id, opts \\ []) do
         Query.get(
-          Module.concat(__MODULE__, Struct),
+          __MODULE__.__schema_module__(),
           id,
           opts |> Keyword.put(:repo, unquote(repo)) |> Keyword.put(:relation, __MODULE__)
         )
@@ -505,7 +505,7 @@ defmodule Drops.Relation.Query do
     quote do
       def get!(id, opts \\ []) do
         Query.get!(
-          Module.concat(__MODULE__, Struct),
+          __MODULE__.__schema_module__(),
           id,
           opts |> Keyword.put(:repo, unquote(repo)) |> Keyword.put(:relation, __MODULE__)
         )
@@ -517,7 +517,7 @@ defmodule Drops.Relation.Query do
     quote do
       def get_by(clauses, opts \\ []) do
         Query.get_by(
-          Module.concat(__MODULE__, Struct),
+          __MODULE__.__schema_module__(),
           clauses,
           opts |> Keyword.put(:repo, unquote(repo)) |> Keyword.put(:relation, __MODULE__)
         )
@@ -529,7 +529,7 @@ defmodule Drops.Relation.Query do
     quote do
       def get_by!(clauses, opts \\ []) do
         Query.get_by!(
-          Module.concat(__MODULE__, Struct),
+          __MODULE__.__schema_module__(),
           clauses,
           opts |> Keyword.put(:repo, unquote(repo)) |> Keyword.put(:relation, __MODULE__)
         )
@@ -540,7 +540,7 @@ defmodule Drops.Relation.Query do
   defp generate_delegating_all_function(repo) do
     quote do
       def all(queryable \\ nil, opts \\ []) do
-        actual_queryable = queryable || Module.concat(__MODULE__, Struct)
+        actual_queryable = queryable || __MODULE__.__schema_module__()
 
         Query.all(
           actual_queryable,
@@ -641,7 +641,7 @@ defmodule Drops.Relation.Query do
   defp generate_delegating_count_function(repo) do
     quote do
       def count(queryable \\ nil, opts \\ []) do
-        actual_queryable = queryable || Module.concat(__MODULE__, Struct)
+        actual_queryable = queryable || __MODULE__.__schema_module__()
 
         Query.count(
           actual_queryable,
@@ -655,7 +655,7 @@ defmodule Drops.Relation.Query do
   defp generate_delegating_first_function(repo) do
     quote do
       def first(queryable \\ nil, opts \\ []) do
-        actual_queryable = queryable || Module.concat(__MODULE__, Struct)
+        actual_queryable = queryable || __MODULE__.__schema_module__()
 
         Query.first(
           actual_queryable,
@@ -668,7 +668,7 @@ defmodule Drops.Relation.Query do
   defp generate_delegating_last_function(repo) do
     quote do
       def last(queryable \\ nil, opts \\ []) do
-        actual_queryable = queryable || Module.concat(__MODULE__, Struct)
+        actual_queryable = queryable || __MODULE__.__schema_module__()
 
         Query.last(
           actual_queryable,

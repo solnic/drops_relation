@@ -71,22 +71,33 @@ defmodule Drops.Relation.Compilers.EctoCompiler do
     # Get default values from the struct
     default_struct = struct(schema_module)
 
+    associations =
+      Enum.map(schema_module.__schema__(:associations), fn name ->
+        schema_module.__schema__(:association, name)
+      end)
+
     Enum.map(field_names, fn field_name ->
       field_type = schema_module.__schema__(:type, field_name)
       field_source = schema_module.__schema__(:field_source, field_name)
       # Extract default value from the struct
       default_value = Map.get(default_struct, field_name)
+      pk = schema_module.__schema__(:primary_key)
+
+      assoc =
+        Enum.find(associations, fn assoc ->
+          assoc.owner_key == field_name and field_name not in pk
+        end)
+
+      foreign_key = if is_nil(assoc), do: false, else: true
 
       meta = %{
         source: field_source,
-        # Ecto doesn't expose this information easily
         nullable: nil,
-        # Extract default value from struct
         default: default_value,
         check_constraints: [],
-        primary_key: field_name in schema_module.__schema__(:primary_key),
-        # We'll handle this separately if needed
-        foreign_key: false
+        primary_key: field_name in pk,
+        foreign_key: foreign_key,
+        association: not is_nil(assoc)
       }
 
       Field.new(field_name, field_type, meta)

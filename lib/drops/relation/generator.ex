@@ -42,10 +42,12 @@ defmodule Drops.Relation.Generator do
 
   A quoted expression containing the module definition.
   """
-  @spec generate_module_content(Schema.t()) :: Macro.t()
-  def generate_module_content(schema) do
+  @spec generate_module_content(Schema.t(), [Macro.t()]) :: Macro.t()
+  def generate_module_content(schema, custom_block \\ []) do
     table_name = Atom.to_string(schema.source)
     compiled_parts = CodeCompiler.visit(schema)
+
+    filtered_custom_block = filter_fields(custom_block, schema)
 
     attributes =
       Enum.reject([compiled_parts.primary_key, compiled_parts.foreign_key_type], &(&1 == []))
@@ -69,42 +71,41 @@ defmodule Drops.Relation.Generator do
         unquote_splicing(fields)
 
         unquote(timestamps)
+
+        unquote(filtered_custom_block)
       end
     end
   end
 
   # Converts custom schema block to a Drops.Relation.Schema struct
-  def schema_from_block([{table_name, schema_block}]) do
-    temp_module_name =
+  def schema_from_block({table_name, schema_block}, associations_block \\ []) do
+    module =
       Module.concat([
         __MODULE__,
         TempCustomSchema,
         String.to_atom("Table_#{table_name}_#{System.unique_integer([:positive])}")
       ])
 
-    # Create the complete module AST
     module_ast =
       quote do
-        defmodule unquote(temp_module_name) do
+        defmodule unquote(module) do
           use Ecto.Schema
 
           schema unquote(table_name) do
             unquote(schema_block)
+            unquote(associations_block)
           end
         end
       end
 
-    # Compile and load the module
     Code.eval_quoted(module_ast)
 
-    # Convert to Drops.Relation.Schema using EctoCompiler
-    custom_drops_schema = EctoCompiler.visit(temp_module_name, [])
+    schema = EctoCompiler.visit(module, [])
 
-    # Clean up temporary module
-    :code.purge(temp_module_name)
-    :code.delete(temp_module_name)
+    :code.purge(module)
+    :code.delete(module)
 
-    custom_drops_schema
+    schema
   end
 
   @doc """
@@ -132,4 +133,29 @@ defmodule Drops.Relation.Generator do
 
     updated_zipper
   end
+
+  @spec filter_fields(Macro.t(), Schema.t()) :: Macro.t()
+  defp filter_fields(custom_block, schema) do
+    existing_field_names =
+      schema.fields
+      |> Enum.map(& &1.name)
+      |> MapSet.new()
+
+    filter_ast_fields(custom_block, existing_field_names)
+  end
+
+  @spec filter_ast_fields(Macro.t(), MapSet.t()) :: Macro.t()
+  defp filter_ast_fields({:__block__, meta, expressions}, existing_fields) do
+    {:__block__, meta, Enum.map(expressions, &filter_ast_fields(&1, existing_fields))}
+  end
+
+  defp filter_ast_fields({:field, _meta, [field_name | _rest]} = field_ast, existing_fields) do
+    if MapSet.member?(existing_fields, field_name) do
+      nil
+    else
+      field_ast
+    end
+  end
+
+  defp filter_ast_fields(ast, _existing_fields), do: ast
 end

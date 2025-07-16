@@ -6,6 +6,7 @@ defmodule Drops.Relation.Repos.Postgres.Migrations.CreateUsersTable do
       add :name, :string
       add :email, :string
       add :age, :integer
+      add :active, :boolean
 
       timestamps()
     end

@@ -78,9 +78,8 @@ defmodule Drops.Relations.QueryTest do
   describe "nested Schema module" do
     @tag relations: [:users]
     test "generates proper Ecto.Schema module", %{users: users} do
-      # Test that the Struct module exists and behaves like an Ecto.Schema
-      struct_module_name = Module.concat(users, Struct)
-      assert Code.ensure_loaded?(struct_module_name)
+      schema_module = users.__schema_module__()
+      assert Code.ensure_loaded?(schema_module)
 
       # Test Ecto.Schema functions
       assert users.ecto_schema(:source) == "users"
@@ -89,7 +88,7 @@ defmodule Drops.Relations.QueryTest do
       assert :email in users.ecto_schema(:fields)
 
       # Test that we can create structs (using apply to avoid compile-time issues)
-      user_struct = struct(struct_module_name, %{name: "Test", email: "test@example.com"})
+      user_struct = struct(schema_module, %{name: "Test", email: "test@example.com"})
       assert user_struct.name == "Test"
       assert user_struct.email == "test@example.com"
 

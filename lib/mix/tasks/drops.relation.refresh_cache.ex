@@ -146,112 +146,92 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
       Mix.shell().info("Processing repository: #{inspect(repo)}")
     end
 
-    try do
-      # Clear the cache for this repository
-      Drops.Relation.Cache.clear_repo_cache(repo)
+    Drops.Relation.Cache.clear_repo_cache(repo)
 
-      if verbose do
-        Mix.shell().info("  Cache cleared for #{inspect(repo)}")
-      end
+    if verbose do
+      Mix.shell().info("  Cache cleared for #{inspect(repo)}")
+    end
 
-      # Warm up if requested
-      if warm_up do
-        warm_up_result =
-          if tables do
-            # Warm up specific tables
-            Drops.Relation.Cache.warm_up(repo, tables)
-          else
-            # Get all tables from the database and warm up
-            all_tables = get_all_tables(repo)
+    # Warm up if requested
+    if warm_up do
+      warm_up_result =
+        if tables do
+          # Warm up specific tables
+          Drops.Relation.Cache.warm_up(repo, tables)
+        else
+          # Get all tables from the database and warm up
+          all_tables = get_all_tables(repo)
 
-            if Enum.empty?(all_tables) do
-              if verbose do
-                Mix.shell().info("  No tables found in #{inspect(repo)}")
-              end
-
-              {:ok, []}
-            else
-              Drops.Relation.Cache.warm_up(repo, all_tables)
+          if Enum.empty?(all_tables) do
+            if verbose do
+              Mix.shell().info("  No tables found in #{inspect(repo)}")
             end
+
+            {:ok, []}
+          else
+            Drops.Relation.Cache.warm_up(repo, all_tables)
+          end
+        end
+
+      case warm_up_result do
+        {:ok, warmed_tables} ->
+          if verbose do
+            Mix.shell().info("  Cache warmed up for #{length(warmed_tables)} tables")
           end
 
-        case warm_up_result do
-          {:ok, warmed_tables} ->
-            if verbose do
-              Mix.shell().info("  Cache warmed up for #{length(warmed_tables)} tables")
-            end
+          {:ok, repo, :refreshed, length(warmed_tables)}
 
-            {:ok, repo, :refreshed, length(warmed_tables)}
+        {:error, reason} ->
+          Mix.shell().error("  Failed to warm up cache for #{inspect(repo)}: #{inspect(reason)}")
 
-          {:error, reason} ->
-            Mix.shell().error(
-              "  Failed to warm up cache for #{inspect(repo)}: #{inspect(reason)}"
-            )
-
-            {:error, repo, reason}
-        end
-      else
-        if verbose do
-          Mix.shell().info("  Cache cleared (warm-up skipped)")
-        end
-
-        {:ok, repo, :cleared, 0}
+          {:error, repo, reason}
       end
-    rescue
-      error ->
-        Mix.shell().error("  Error processing #{inspect(repo)}: #{Exception.message(error)}")
-        {:error, repo, error}
+    else
+      if verbose do
+        Mix.shell().info("  Cache cleared (warm-up skipped)")
+      end
+
+      {:ok, repo, :cleared, 0}
     end
   end
 
   defp get_all_tables(repo) do
-    try do
-      # Query the database for all table names
-      # This is database-specific, but works for PostgreSQL, MySQL, and Sqlite
-      case repo.__adapter__() do
-        Ecto.Adapters.Postgres ->
-          query = """
-          SELECT table_name
-          FROM information_schema.tables
-          WHERE table_schema = 'public'
-          AND table_type = 'BASE TABLE'
-          """
+    case repo.__adapter__() do
+      Ecto.Adapters.Postgres ->
+        query = """
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+        AND table_type = 'BASE TABLE'
+        """
 
-          result = Ecto.Adapters.SQL.query!(repo, query, [])
-          Enum.map(result.rows, fn [table_name] -> table_name end)
+        result = Ecto.Adapters.SQL.query!(repo, query, [])
+        Enum.map(result.rows, fn [table_name] -> table_name end)
 
-        Ecto.Adapters.MyXQL ->
-          query = """
-          SELECT table_name
-          FROM information_schema.tables
-          WHERE table_schema = DATABASE()
-          AND table_type = 'BASE TABLE'
-          """
+      Ecto.Adapters.MyXQL ->
+        query = """
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+        AND table_type = 'BASE TABLE'
+        """
 
-          result = Ecto.Adapters.SQL.query!(repo, query, [])
-          Enum.map(result.rows, fn [table_name] -> table_name end)
+        result = Ecto.Adapters.SQL.query!(repo, query, [])
+        Enum.map(result.rows, fn [table_name] -> table_name end)
 
-        Ecto.Adapters.SQLite3 ->
-          query = """
-          SELECT name
-          FROM sqlite_master
-          WHERE type = 'table'
-          AND name NOT LIKE 'sqlite_%'
-          """
+      Ecto.Adapters.SQLite3 ->
+        query = """
+        SELECT name
+        FROM sqlite_master
+        WHERE type = 'table'
+        AND name NOT LIKE 'sqlite_%'
+        """
 
-          result = Ecto.Adapters.SQL.query!(repo, query, [])
-          Enum.map(result.rows, fn [table_name] -> table_name end)
+        result = Ecto.Adapters.SQL.query!(repo, query, [])
+        Enum.map(result.rows, fn [table_name] -> table_name end)
 
-        _ ->
-          Mix.shell().error("  Unsupported database adapter for #{inspect(repo)}")
-          []
-      end
-    rescue
-      error ->
-        Mix.shell().error(
-          "  Failed to get tables for #{inspect(repo)}: #{Exception.message(error)}"
-        )
-
+      _ ->
+        Mix.shell().error("  Unsupported database adapter for #{inspect(repo)}")
         []
     end
   end
