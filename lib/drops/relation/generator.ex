@@ -78,7 +78,7 @@ defmodule Drops.Relation.Generator do
   end
 
   # Converts custom schema block to a Drops.Relation.Schema struct
-  def schema_from_block({table_name, schema_block}, associations_block \\ []) do
+  def schema_from_block(table_name, schema_block) do
     module =
       Module.concat([
         __MODULE__,
@@ -93,7 +93,6 @@ defmodule Drops.Relation.Generator do
 
           schema unquote(table_name) do
             unquote(schema_block)
-            unquote(associations_block)
           end
         end
       end

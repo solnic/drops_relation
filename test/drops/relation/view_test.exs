@@ -3,6 +3,8 @@ defmodule Drops.Relation.ViewTest do
 
   describe "defining a relation view" do
     relation(:users) do
+      schema("users", infer: true)
+
       view(:active) do
         schema([:id, :name, :active])
 

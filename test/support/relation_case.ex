@@ -55,12 +55,20 @@ defmodule Drops.RelationCase do
 
   def create_relation(name, opts) do
     adapter = Keyword.get(opts, :adapter, :sqlite)
-    block = Keyword.get(opts, :do, [])
     repo = repo(adapter)
     table_name = Atom.to_string(name)
     relation_name = Macro.camelize(table_name)
 
     module_name = Module.concat([Test, Relations, relation_name])
+
+    block =
+      Keyword.get(
+        opts,
+        :do,
+        quote do
+          schema(unquote(table_name), infer: true)
+        end
+      )
 
     cleanup_modules(module_name)
 
@@ -70,7 +78,7 @@ defmodule Drops.RelationCase do
       Module.create(
         module_name,
         quote do
-          use Drops.Relation, repo: unquote(repo), name: unquote(table_name)
+          use Drops.Relation, repo: unquote(repo)
           unquote(block)
         end,
         Macro.Env.location(__ENV__)

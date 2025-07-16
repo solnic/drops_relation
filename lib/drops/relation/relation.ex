@@ -34,7 +34,7 @@ defmodule Drops.Relation do
     quote do
       import Drops.Relation
 
-      Module.register_attribute(__MODULE__, :custom_schema_block, accumulate: false)
+      Module.register_attribute(__MODULE__, :schema, accumulate: false)
       Module.register_attribute(__MODULE__, :associations_block, accumulate: false)
       Module.register_attribute(__MODULE__, :views, accumulate: true)
 
@@ -82,9 +82,9 @@ defmodule Drops.Relation do
     end
   end
 
-  defmacro schema(table_name, do: block) do
+  defmacro schema(table_name, opts \\ []) do
     quote do
-      @custom_schema_block unquote(Macro.escape({table_name, block}))
+      @schema unquote(Macro.escape({table_name, opts}))
     end
   end
 
@@ -100,52 +100,21 @@ defmodule Drops.Relation do
     end
   end
 
-  defmacro associations(do: block) do
-    quote do
-      @associations_block unquote(Macro.escape(block))
-    end
-  end
-
   defmacro __before_compile__(env) do
     relation = env.module
-
     opts = Module.get_attribute(relation, :opts)
-    repo = opts[:repo]
-    name = opts[:name]
-    view = Keyword.get(opts, :view, false)
-
-    if not view do
-      cache_file = Drops.Relation.Cache.get_cache_file_path(repo, name)
-      Module.put_attribute(relation, :external_resource, cache_file)
-
-      case Drops.Relation.Cache.get_cached_schema(repo, name) do
-        %Drops.Relation.Schema{} = inferred_schema ->
-          __define_relation__(env, inferred_schema)
-
-        {:error, error} ->
-          raise error
-          []
-
-        nil ->
-          []
-      end
-    else
-      # This is a relation view so we rely on the source relation module
-      __define_relation__(env, opts[:source].schema())
-    end
+    __define_relation__(env, opts)
   end
 
   defp view_module(relation, name) do
     Module.concat(relation, Macro.camelize(Atom.to_string(name)))
   end
 
-  def __define_relation__(env, inferred_schema) do
+  def __define_relation__(env, opts) do
     relation = env.module
 
-    opts = Module.get_attribute(relation, :opts)
-    schema = Module.get_attribute(relation, :schema, [])
+    schema = Module.get_attribute(relation, :schema)
     relation_view = Module.get_attribute(relation, :relation, [])
-    custom_schema_block = Module.get_attribute(relation, :custom_schema_block, [])
 
     views = Module.get_attribute(relation, :views, [])
     view_mods = Enum.map(views, fn {name, _block} -> {name, view_module(relation, name)} end)
@@ -159,24 +128,7 @@ defmodule Drops.Relation do
         end
       end)
 
-    # Merge customized schema that was defined via regular `schema(name) do ... end` block
-    # with the inferred schema, so that it's possible to override default fields settings.
-    final_schema =
-      if custom_schema_block != [] do
-        custom_schema = Generator.schema_from_block(custom_schema_block)
-        Schema.merge(inferred_schema, custom_schema)
-      else
-        inferred_schema
-      end
-
-    final_schema =
-      case schema do
-        fields when is_list(fields) and length(fields) > 0 ->
-          Schema.project(final_schema, fields)
-
-        _ ->
-          final_schema
-      end
+    schema = __build_schema__(relation, schema, opts)
 
     queryable_ast =
       if relation_view do
@@ -189,7 +141,7 @@ defmodule Drops.Relation do
         end
       end
 
-    query_api_ast = Query.generate_functions(opts, final_schema) ++ view_ast
+    query_api_ast = Query.generate_functions(opts, schema) ++ view_ast
 
     singular_name =
       relation |> Atom.to_string() |> String.split(".") |> List.last() |> String.trim("s")
@@ -197,7 +149,7 @@ defmodule Drops.Relation do
     ecto_schema_module = Module.concat([relation, "Schemas", singular_name])
 
     quote do
-      @schema unquote(Macro.escape(final_schema))
+      @schema unquote(Macro.escape(schema))
 
       @spec schema() :: Drops.Relation.Schema.t()
       def schema, do: @schema
@@ -292,31 +244,6 @@ defmodule Drops.Relation do
         struct(__schema_module__(), attributes)
       end
 
-      @doc """
-      Preloads associations for the relation.
-
-      This function creates a new relation with the specified associations marked for preloading.
-      When the relation is enumerated or converted to a query, the associations will be preloaded.
-
-      ## Parameters
-
-      - `associations` - An atom, list of atoms, or keyword list specifying which associations to preload
-
-      ## Examples
-
-          # Preload a single association
-          users.preload(:posts)
-
-          # Preload multiple associations
-          users.preload([:posts, :comments])
-
-          # Preload with nested associations
-          users.preload(posts: [:comments])
-
-      ## Returns
-
-      A new relation struct with the preload configuration applied.
-      """
       def preload(associations) when is_atom(associations) or is_list(associations) do
         preload(__MODULE__.new(__schema_module__(), __schema_module__(), []), associations)
       end
@@ -342,12 +269,42 @@ defmodule Drops.Relation do
     end
   end
 
+  def __build_schema__(relation, spec, opts) do
+    case spec do
+      {name, schema_opts} ->
+        source_schema =
+          if Keyword.get(schema_opts, :infer, true) do
+            infer_source_schema(relation, name, opts)
+          end
+
+        block = schema_opts[:do]
+
+        if is_nil(block) do
+          source_schema
+        else
+          Module.put_attribute(relation, :schema_block, block)
+          Schema.merge(source_schema, Generator.schema_from_block(name, block))
+        end
+
+      fields when is_list(fields) ->
+        Schema.project(opts[:source].schema(), fields)
+    end
+  end
+
+  def infer_source_schema(relation, name, opts) do
+    repo = opts[:repo]
+    cache_file = Drops.Relation.Cache.get_cache_file_path(repo, name)
+    Module.put_attribute(relation, :external_resource, cache_file)
+    Drops.Relation.Cache.get_cached_schema(repo, name)
+  end
+
   def __finalize_relation__(relation) do
     opts = relation.opts()
     repo = opts[:repo]
 
-    {_, schema_block} = Module.get_attribute(relation, :custom_schema_block, {:empty, []})
+    schema_block = Module.get_attribute(relation, :schema_block, [])
     ecto_schema = Generator.generate_module_content(relation.schema(), schema_block)
+
     Module.create(relation.__schema_module__(), ecto_schema, Macro.Env.location(__ENV__))
 
     views = Module.get_attribute(relation, :views, [])
