@@ -124,9 +124,8 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
         parse_repo([])
 
       opts[:repo] ->
-        opts[:repo]
-        |> Enum.map(&Module.concat([&1]))
-        |> Enum.filter(&ensure_repo/1)
+        mod = opts[:repo] |> String.split(".") |> Module.concat()
+        if ensure_repo(mod), do: [mod]
 
       true ->
         parse_repo([])
