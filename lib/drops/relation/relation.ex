@@ -37,7 +37,7 @@ defmodule Drops.Relation do
     quote do
       import Drops.Relation
 
-      Module.register_attribute(__MODULE__, :schema, accumulate: false)
+      Module.register_attribute(__MODULE__, :schema_spec, accumulate: false)
       Module.register_attribute(__MODULE__, :views, accumulate: true)
 
       @before_compile Drops.Relation
@@ -52,7 +52,7 @@ defmodule Drops.Relation do
         quote do
           import Drops.Relation
 
-          Module.register_attribute(__MODULE__, :schema, accumulate: false)
+          Module.register_attribute(__MODULE__, :schema_spec, accumulate: false)
           Module.register_attribute(__MODULE__, :derive_block, accumulate: false)
 
           @before_compile Drops.Relation
@@ -79,13 +79,13 @@ defmodule Drops.Relation do
 
   defmacro schema(fields) when is_list(fields) do
     quote do
-      @schema unquote(fields)
+      @schema_spec unquote(fields)
     end
   end
 
   defmacro schema(table_name, opts \\ []) do
     quote do
-      @schema unquote(Macro.escape({table_name, opts}))
+      @schema_spec unquote(Macro.escape({table_name, opts}))
     end
   end
 
@@ -105,7 +105,7 @@ defmodule Drops.Relation do
     relation = env.module
 
     opts = Module.get_attribute(relation, :opts)
-    schema = Module.get_attribute(relation, :schema)
+    schema = Module.get_attribute(relation, :schema_spec)
     derive = Module.get_attribute(relation, :derive_block, [])
     views = Module.get_attribute(relation, :views, [])
 
