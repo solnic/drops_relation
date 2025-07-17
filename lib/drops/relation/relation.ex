@@ -35,10 +35,17 @@ defmodule Drops.Relation do
   }
 
   defmacro __using__(opts) do
-    quote do
+    quote location: :keep do
       import Drops.Relation
 
-      @context Compilation.Context.new(__MODULE__)
+      @config Application.compile_env(
+                unquote(opts)[:repo].config()[:otp_app],
+                [:drops, :relation],
+                []
+              )
+      def __config__, do: @config
+
+      @context Compilation.Context.new(__MODULE__, @config)
 
       @before_compile Drops.Relation
       @after_compile Drops.Relation
@@ -49,10 +56,13 @@ defmodule Drops.Relation do
       defstruct([:struct, :repo, schema: %{}, queryable: [], opts: [], preloads: []])
 
       defmacro __using__(opts) do
-        quote do
+        quote location: :keep do
           import Drops.Relation
 
-          @context Compilation.Context.new(__MODULE__)
+          @config unquote(opts[:source].__config__())
+          def __config__, do: @config
+
+          @context Compilation.Context.new(__MODULE__, @config)
 
           @before_compile Drops.Relation
           @after_compile Drops.Relation
@@ -135,10 +145,9 @@ defmodule Drops.Relation do
         end
       end
 
-    singular_name =
-      relation |> Atom.to_string() |> String.split(".") |> List.last() |> String.trim("s")
-
-    ecto_schema_module = Module.concat([relation, "Schemas", singular_name])
+    ecto_schema_namespace = Compilation.Context.config(relation, :ecto_schema_namespace)
+    ecto_schema_module = Compilation.Context.config(relation, :ecto_schema_module)
+    ecto_schema = Module.concat(ecto_schema_namespace ++ [ecto_schema_module])
 
     quote do
       @schema unquote(Macro.escape(schema))
@@ -174,8 +183,7 @@ defmodule Drops.Relation do
         __schema_module__().__schema__(query, field)
       end
 
-      @ecto_schema_module unquote(ecto_schema_module)
-      def __schema_module__, do: @ecto_schema_module
+      def __schema_module__, do: unquote(ecto_schema)
 
       # Generate query API functions
       unquote_splicing(query_api_ast)

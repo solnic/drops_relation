@@ -1,4 +1,6 @@
 defmodule Drops.Relation.Compilation do
+  alias Drops.Relation.Config
+
   defmodule Macros.Schema do
     defstruct [:name, block: nil, fields: nil, opts: [], infer: true]
 
@@ -39,10 +41,10 @@ defmodule Drops.Relation.Compilation do
   end
 
   defmodule Context do
-    defstruct [:relation, :schema, views: [], derive: nil]
+    defstruct [:relation, :config, :schema, views: [], derive: nil]
 
-    def new(relation) do
-      %Context{relation: relation}
+    def new(relation, config) do
+      %Context{relation: relation, config: Config.persist!(config)}
     end
 
     def update(module, key, args) do
@@ -59,6 +61,16 @@ defmodule Drops.Relation.Compilation do
 
     def derive(context, args) do
       %{context | derive: apply(Macros.Derive, :new, args)}
+    end
+
+    def config(relation, key, default \\ nil) do
+      case Config.get(key, default) do
+        fun when is_function(fun, 1) ->
+          fun.(relation)
+
+        other ->
+          other
+      end
     end
 
     def get(module, key), do: Map.get(context(module), key)

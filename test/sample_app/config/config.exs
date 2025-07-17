@@ -10,6 +10,11 @@ config :sample_app, SampleApp.Repo,
 # Configure Ecto repositories
 config :sample_app, ecto_repos: [SampleApp.Repo]
 
+config :sample_app, :drops,
+  relation: [
+    ecto_schema_namespace: [SampleApp, Schemas]
+  ]
+
 # Configure logger
 config :logger, level: :debug
 

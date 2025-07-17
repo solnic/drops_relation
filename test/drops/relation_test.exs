@@ -252,4 +252,24 @@ defmodule Drops.Relations.SchemaSpec do
       assert found_user.name == "Test User"
     end
   end
+
+  describe "custom ecto schema namespace" do
+    setup do
+      Application.put_env(
+        :drops_relation,
+        :drops,
+        relation: [
+          ecto_schema_namespace: ["MyApp", "Schemas"]
+        ]
+      )
+    end
+
+    relation(:users) do
+      schema("users", infer: true)
+    end
+
+    test "returns relation view", %{users: users} do
+      assert users.__schema_module__() == MyApp.Schemas.User
+    end
+  end
 end
