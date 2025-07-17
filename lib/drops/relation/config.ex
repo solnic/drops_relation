@@ -49,7 +49,7 @@ defmodule Drops.Relation.Config do
   @valid_keys Keyword.keys(@config_schema)
 
   def default_ecto_schema_namespace(relation) do
-    String.split(Atom.to_string(relation), ".") ++ ["Schemas"]
+    String.split(Atom.to_string(relation), ".")
   end
 
   def default_ecto_schema_module(relation) do
@@ -57,7 +57,7 @@ defmodule Drops.Relation.Config do
   end
 
   def default_view_module({relation, name}) do
-    Module.concat([relation, "Views", Macro.camelize(Atom.to_string(name))])
+    Module.concat([relation, Macro.camelize(Atom.to_string(name))])
   end
 
   @doc """

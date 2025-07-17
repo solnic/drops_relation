@@ -72,7 +72,7 @@ defmodule Drops.Relation do
       @opts unquote(opts)
       def opts, do: @opts
 
-      defstruct([:struct, :repo, schema: %{}, queryable: [], opts: [], preloads: []])
+      defstruct([:struct, :repo, schema: %{}, queryable: __MODULE__, opts: [], preloads: []])
 
       defmacro __using__(opts) do
         Drops.Relation.__define_relation__(
@@ -82,13 +82,9 @@ defmodule Drops.Relation do
     end
   end
 
-  defmacro schema(fields) when is_list(fields) do
-    quote do
-      @context Compilation.Context.update(__MODULE__, :schema, [unquote(fields)])
-    end
-  end
+  defmacro schema(fields, opts \\ [])
 
-  defmacro schema(name, opts \\ []) do
+  defmacro schema(name, opts) when is_binary(name) do
     block = opts[:do]
 
     quote do
@@ -97,6 +93,12 @@ defmodule Drops.Relation do
                  unquote(Keyword.delete(opts, :do)),
                  unquote(Macro.escape(block))
                ])
+    end
+  end
+
+  defmacro schema(fields, opts) when is_list(fields) do
+    quote do
+      @context Compilation.Context.update(__MODULE__, :schema, [unquote(fields), unquote(opts)])
     end
   end
 
@@ -113,6 +115,21 @@ defmodule Drops.Relation do
     quote do
       @context Compilation.Context.update(__MODULE__, :derive, [unquote(Macro.escape(block))])
     end
+  end
+
+  def ecto_schema_module(relation) do
+    namespace = Compilation.Context.config(relation, :ecto_schema_namespace)
+
+    module =
+      case Compilation.Context.get(relation, :schema).opts[:struct] do
+        nil ->
+          Compilation.Context.config(relation, :ecto_schema_module)
+
+        value ->
+          value
+      end
+
+    Module.concat(namespace ++ [module])
   end
 
   defmacro __before_compile__(env) do
@@ -141,9 +158,7 @@ defmodule Drops.Relation do
         end
       end
 
-    ecto_schema_namespace = Compilation.Context.config(relation, :ecto_schema_namespace)
-    ecto_schema_module = Compilation.Context.config(relation, :ecto_schema_module)
-    ecto_schema = Module.concat(ecto_schema_namespace ++ [ecto_schema_module])
+    ecto_schema_module = ecto_schema_module(relation)
 
     quote do
       @schema unquote(Macro.escape(schema))
@@ -179,7 +194,7 @@ defmodule Drops.Relation do
         __schema_module__().__schema__(query, field)
       end
 
-      def __schema_module__, do: unquote(ecto_schema)
+      def __schema_module__, do: unquote(ecto_schema_module)
 
       # Generate query API functions
       unquote_splicing(query_api_ast)

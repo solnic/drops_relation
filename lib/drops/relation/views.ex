@@ -13,8 +13,10 @@ defmodule Drops.Relation.Views do
       end)
 
     quote do
-      @views_map unquote(Macro.escape(views_map))
-      def view(name), do: Map.get(@views_map, name)
+      @__views__ unquote(Macro.escape(views_map))
+      def __views__, do: @__views__
+
+      def view(name), do: Map.get(__views__(), name)
 
       unquote_splicing(getters)
     end

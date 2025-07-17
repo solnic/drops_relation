@@ -8,8 +8,8 @@ defmodule Drops.Relation.Compilation do
       %Macros.Schema{name: name}
     end
 
-    def new(fields) when is_list(fields) do
-      %Macros.Schema{name: nil, fields: fields}
+    def new(fields, opts) when is_list(fields) do
+      %Macros.Schema{name: nil, fields: fields, opts: opts}
     end
 
     def new(name, opts) when is_binary(name) and is_list(opts) do

@@ -255,6 +255,8 @@ defmodule Drops.Relations.SchemaSpec do
 
   describe "custom ecto schema namespace" do
     setup do
+      defaults = Application.get_env(:drops_relation, :drops)
+
       Application.put_env(
         :drops_relation,
         :drops,
@@ -262,6 +264,8 @@ defmodule Drops.Relations.SchemaSpec do
           ecto_schema_namespace: ["MyApp", "Schemas"]
         ]
       )
+
+      on_exit(fn -> Application.put_env(:drops_relation, :drops, defaults) end)
     end
 
     relation(:users) do

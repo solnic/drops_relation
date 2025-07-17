@@ -93,6 +93,8 @@ defmodule Drops.RelationCase do
 
   def cleanup_modules(relation_module) do
     if Code.ensure_loaded?(relation_module) do
+      cleanup_modules(Map.values(relation_module.__views__()))
+
       Enum.each([relation_module, relation_module.__schema_module__()], fn module ->
         for protocol <- [Enumerable, Ecto.Queryable] do
           impl_module = Module.concat([protocol, module])
