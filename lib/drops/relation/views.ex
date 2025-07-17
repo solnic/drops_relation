@@ -1,4 +1,6 @@
 defmodule Drops.Relation.Views do
+  alias Drops.Relation.Compilation
+
   def generate_functions(relation, views) do
     views_map = module_map(relation, views)
 
@@ -35,7 +37,7 @@ defmodule Drops.Relation.Views do
   end
 
   def module(relation, name) do
-    Module.concat(relation, Macro.camelize(Atom.to_string(name)))
+    Compilation.Context.config({relation, name}, :view_module)
   end
 
   defp module_map(relation, views) do

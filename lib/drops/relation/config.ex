@@ -34,6 +34,14 @@ defmodule Drops.Relation.Config do
       doc: """
       TODO
       """
+    ],
+    view_module: [
+      type: {:fun, 1},
+      default: &Config.default_view_module/1,
+      type_doc: "function/1",
+      doc: """
+      TODO
+      """
     ]
   ]
 
@@ -46,6 +54,10 @@ defmodule Drops.Relation.Config do
 
   def default_ecto_schema_module(relation) do
     Inflection.module_to_schema_name(relation)
+  end
+
+  def default_view_module({relation, name}) do
+    Module.concat([relation, "Views", Macro.camelize(Atom.to_string(name))])
   end
 
   @doc """

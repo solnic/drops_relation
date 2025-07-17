@@ -18,4 +18,13 @@ defmodule SampleApp do
 
     pid
   end
+
+  def view_module({relation, name}) do
+    Module.concat([
+      SampleApp,
+      Atom.to_string(relation) |> String.split(".") |> List.last(),
+      Views,
+      Macro.camelize(Atom.to_string(name))
+    ])
+  end
 end

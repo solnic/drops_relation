@@ -35,15 +35,34 @@ defmodule Drops.Relation do
   }
 
   defmacro __using__(opts) do
+    __define_relation__(Macro.expand(opts, __CALLER__))
+  end
+
+  def __define_relation__(opts) do
+    config =
+      if opts[:source] do
+        quote location: :keep do
+          @config unquote(opts[:source].__config__())
+          def __config__, do: @config
+
+          @source unquote(opts[:source])
+          def source, do: @source
+        end
+      else
+        quote do
+          @config Application.compile_env(
+                    unquote(opts)[:repo].config()[:otp_app],
+                    [:drops, :relation],
+                    []
+                  )
+          def __config__, do: @config
+        end
+      end
+
     quote location: :keep do
       import Drops.Relation
 
-      @config Application.compile_env(
-                unquote(opts)[:repo].config()[:otp_app],
-                [:drops, :relation],
-                []
-              )
-      def __config__, do: @config
+      unquote(config)
 
       @context Compilation.Context.new(__MODULE__, @config)
 
@@ -56,32 +75,9 @@ defmodule Drops.Relation do
       defstruct([:struct, :repo, schema: %{}, queryable: [], opts: [], preloads: []])
 
       defmacro __using__(opts) do
-        quote location: :keep do
-          import Drops.Relation
-
-          @config unquote(opts[:source].__config__())
-          def __config__, do: @config
-
-          @context Compilation.Context.new(__MODULE__, @config)
-
-          @before_compile Drops.Relation
-          @after_compile Drops.Relation
-
-          @opts unquote(opts)
-          def opts, do: @opts
-
-          @source unquote(opts[:source])
-          def source, do: @source
-
-          defstruct([
-            :struct,
-            :repo,
-            schema: %{},
-            queryable: unquote(opts[:source]),
-            opts: [],
-            preloads: []
-          ])
-        end
+        Drops.Relation.__define_relation__(
+          Keyword.put(Macro.expand(opts, __CALLER__), :source, __MODULE__)
+        )
       end
     end
   end

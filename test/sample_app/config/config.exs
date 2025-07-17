@@ -12,7 +12,8 @@ config :sample_app, ecto_repos: [SampleApp.Repo]
 
 config :sample_app, :drops,
   relation: [
-    ecto_schema_namespace: [SampleApp, Schemas]
+    ecto_schema_namespace: [SampleApp, Schemas],
+    view_module: &SampleApp.view_module/1
   ]
 
 # Configure logger
