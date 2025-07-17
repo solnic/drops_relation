@@ -5,7 +5,7 @@ defmodule Drops.Relations.SchemaSpec do
     @tag relations: [:users]
 
     test "infers basic fields from users table", %{users: users} do
-      assert users.ecto_schema(:fields) == [
+      assert users.__schema__(:fields) == [
                :id,
                :name,
                :email,
@@ -15,19 +15,19 @@ defmodule Drops.Relations.SchemaSpec do
                :updated_at
              ]
 
-      assert users.ecto_schema(:type, :id) == :id
-      assert users.ecto_schema(:type, :name) == :string
-      assert users.ecto_schema(:type, :email) == :string
-      assert users.ecto_schema(:type, :age) == :integer
-      assert users.ecto_schema(:type, :inserted_at) == :naive_datetime
-      assert users.ecto_schema(:type, :updated_at) == :naive_datetime
+      assert users.__schema__(:type, :id) == :id
+      assert users.__schema__(:type, :name) == :string
+      assert users.__schema__(:type, :email) == :string
+      assert users.__schema__(:type, :age) == :integer
+      assert users.__schema__(:type, :inserted_at) == :naive_datetime
+      assert users.__schema__(:type, :updated_at) == :naive_datetime
     end
   end
 
   describe "different field types" do
     @tag relations: [:basic_types]
     test "infers various field types correctly", %{basic_types: basic_types} do
-      fields = basic_types.ecto_schema(:fields)
+      fields = basic_types.__schema__(:fields)
 
       # Should include all non-timestamp fields
       assert :id in fields
@@ -39,19 +39,19 @@ defmodule Drops.Relations.SchemaSpec do
       assert :bitstring_field in fields
 
       # Check types
-      assert basic_types.ecto_schema(:type, :string_field) == :string
-      assert basic_types.ecto_schema(:type, :integer_field) == :integer
-      assert basic_types.ecto_schema(:type, :float_field) == :decimal
+      assert basic_types.__schema__(:type, :string_field) == :string
+      assert basic_types.__schema__(:type, :integer_field) == :integer
+      assert basic_types.__schema__(:type, :float_field) == :decimal
       # TODO: add custom ecto type called Boolean for Sqlite inference
-      assert basic_types.ecto_schema(:type, :boolean_field) == :integer
-      assert basic_types.ecto_schema(:type, :binary_field) == :binary
+      assert basic_types.__schema__(:type, :boolean_field) == :integer
+      assert basic_types.__schema__(:type, :binary_field) == :binary
     end
   end
 
   describe "primary keys" do
     @tag relations: [:custom_pk], adapter: :postgres
     test "handles custom primary keys", %{custom_pk: custom_pk} do
-      fields = custom_pk.ecto_schema(:fields)
+      fields = custom_pk.__schema__(:fields)
 
       # Should include the custom primary key and other fields
       assert :uuid in fields
@@ -63,7 +63,7 @@ defmodule Drops.Relations.SchemaSpec do
 
     @tag relations: [:no_pk]
     test "handles tables without primary keys", %{no_pk: no_pk} do
-      fields = no_pk.ecto_schema(:fields)
+      fields = no_pk.__schema__(:fields)
 
       # Should include all fields
       # Ecto still adds this
@@ -76,7 +76,7 @@ defmodule Drops.Relations.SchemaSpec do
   describe "foreign keys and associations" do
     @tag relations: [:associations, :association_items, :association_parents]
     test "infers foreign key fields", %{associations: associations} do
-      fields = associations.ecto_schema(:fields)
+      fields = associations.__schema__(:fields)
 
       # Should include foreign key fields
       assert :id in fields
@@ -84,12 +84,12 @@ defmodule Drops.Relations.SchemaSpec do
       # belongs_to association
       assert :parent_id in fields
 
-      assert associations.ecto_schema(:type, :parent_id) == :integer
+      assert associations.__schema__(:type, :parent_id) == :integer
     end
 
     @tag relations: [:associations, :association_items, :association_parents]
     test "infers association item foreign keys", %{association_items: association_items} do
-      fields = association_items.ecto_schema(:fields)
+      fields = association_items.__schema__(:fields)
 
       # Should include foreign key fields
       assert :id in fields
@@ -98,14 +98,14 @@ defmodule Drops.Relations.SchemaSpec do
       assert :association_id in fields
 
       # Check that foreign key has correct type
-      assert association_items.ecto_schema(:type, :association_id) == :integer
+      assert association_items.__schema__(:type, :association_id) == :integer
     end
   end
 
   describe "timestamp handling" do
     @tag relations: [:timestamps]
     test "includes timestamp fields in inference by default", %{timestamps: timestamps} do
-      fields = timestamps.ecto_schema(:fields)
+      fields = timestamps.__schema__(:fields)
 
       # Should include regular fields and timestamps
       assert :id in fields
@@ -187,15 +187,15 @@ defmodule Drops.Relations.SchemaSpec do
 
     test "custom fields are respected", %{users: users} do
       # Verify that custom fields are included in the schema
-      fields = users.ecto_schema(:fields)
+      fields = users.__schema__(:fields)
 
       assert :tags in fields
       assert :status in fields
 
       # Verify the custom field types
-      tags_type = users.ecto_schema(:type, :tags)
+      tags_type = users.__schema__(:type, :tags)
       assert match?({:parameterized, {Ecto.Enum, _}}, tags_type)
-      assert users.ecto_schema(:type, :status) == :string
+      assert users.__schema__(:type, :status) == :string
 
       # Verify that inferred fields are still present
       assert :name in fields
@@ -206,11 +206,11 @@ defmodule Drops.Relations.SchemaSpec do
     test "custom fields override inferred fields", %{users: users} do
       # The 'name' field exists in the database as :string, but we didn't override it,
       # so it should still be the inferred type
-      fields = users.ecto_schema(:fields)
+      fields = users.__schema__(:fields)
       assert :name in fields
 
       # Should still be string since we didn't override it
-      assert users.ecto_schema(:type, :name) == :string
+      assert users.__schema__(:type, :name) == :string
     end
   end
 
@@ -222,13 +222,13 @@ defmodule Drops.Relations.SchemaSpec do
     end
 
     test "custom field definitions override inferred ones", %{users: users} do
-      fields = users.ecto_schema(:fields)
+      fields = users.__schema__(:fields)
 
       # The name field should be present (it's overridden but still a real field)
       assert :name in fields
 
       # The name field should be overridden to :binary instead of the inferred :string
-      assert users.ecto_schema(:type, :name) == :binary
+      assert users.__schema__(:type, :name) == :binary
 
       # Other inferred fields should still be present
       assert :email in fields

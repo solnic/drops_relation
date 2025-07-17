@@ -82,10 +82,10 @@ defmodule Drops.Relations.QueryTest do
       assert Code.ensure_loaded?(schema_module)
 
       # Test Ecto.Schema functions
-      assert users.ecto_schema(:source) == "users"
-      assert :id in users.ecto_schema(:fields)
-      assert :name in users.ecto_schema(:fields)
-      assert :email in users.ecto_schema(:fields)
+      assert users.__schema__(:source) == "users"
+      assert :id in users.__schema__(:fields)
+      assert :name in users.__schema__(:fields)
+      assert :email in users.__schema__(:fields)
 
       # Test that we can create structs (using apply to avoid compile-time issues)
       user_struct = struct(schema_module, %{name: "Test", email: "test@example.com"})

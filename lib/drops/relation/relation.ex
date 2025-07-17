@@ -72,7 +72,7 @@ defmodule Drops.Relation do
       @opts unquote(opts)
       def opts, do: @opts
 
-      defstruct([:struct, :repo, schema: %{}, queryable: __MODULE__, opts: [], preloads: []])
+      defstruct([:repo, schema: %{}, queryable: nil, opts: [], preloads: []])
 
       defmacro __using__(opts) do
         Drops.Relation.__define_relation__(
@@ -150,11 +150,11 @@ defmodule Drops.Relation do
     queryable_ast =
       if derive do
         quote do
-          def queryable, do: unquote(derive.block)
+          def queryable, do: source() |> unquote(derive.block)
         end
       else
         quote do
-          def queryable, do: unquote(relation)
+          def queryable, do: __schema_module__()
         end
       end
 
@@ -168,15 +168,15 @@ defmodule Drops.Relation do
 
       unquote(queryable_ast)
       unquote(views_ast)
+      unquote_splicing(query_api_ast)
 
       def new(opts \\ []) do
-        new(queryable(), __schema_module__(), opts)
+        new(queryable(), opts)
       end
 
-      def new(queryable, struct, opts) do
+      def new(queryable, opts) do
         Kernel.struct(__MODULE__, %{
           queryable: queryable,
-          struct: struct,
           schema: Keyword.get(opts, :schema, schema()),
           repo: unquote(opts[:repo]),
           opts: opts,
@@ -196,68 +196,20 @@ defmodule Drops.Relation do
 
       def __schema_module__, do: unquote(ecto_schema_module)
 
-      # Generate query API functions
-      unquote_splicing(query_api_ast)
-
-      # Handle when called with just options (e.g., users.restrict(name: "Jane"))
-      def restrict(opts) when is_list(opts),
-        do: __MODULE__.new(__schema_module__(), __schema_module__(), opts)
+      def restrict(opts) when is_list(opts) do
+        new(opts)
+      end
 
       def restrict(%__MODULE__{} = relation, opts) do
-        # Preserve existing preloads when restricting a relation
         %{relation | opts: Keyword.merge(relation.opts, opts)}
       end
 
-      # Handle composition between different relation types
-      def restrict(%other_module{} = other_relation, opts)
-          when other_module != __MODULE__ do
-        # Check if this is a different relation module
-        if is_relation_module?(other_module) do
-          # Try to infer association between the relations
-          case Drops.Relation.Composite.infer_association(other_module, __MODULE__) do
-            nil ->
-              # No association found, just create a regular restricted relation
-              __MODULE__.new(__schema_module__(), __schema_module__(), opts)
-
-            association ->
-              # Create a composite relation with automatic preloading
-              right_relation = __MODULE__.new(__schema_module__(), __schema_module__(), opts)
-
-              Drops.Relation.Composite.new(
-                other_relation,
-                right_relation,
-                association,
-                unquote(opts[:repo])
-              )
-          end
-        else
-          # Not a relation module, treat as regular queryable
-          __MODULE__.new(other_relation, __schema_module__(), opts)
-        end
+      def restrict(queryable, opts) do
+        new(queryable, opts)
       end
 
-      def restrict(queryable, opts),
-        do: __MODULE__.new(queryable, __schema_module__(), opts)
-
-      # Helper function to check if a module is a relation module
-      defp is_relation_module?(module) do
-        function_exported?(module, :restrict, 2) and
-          function_exported?(module, :ecto_schema, 1) and
-          function_exported?(module, :associations, 0)
-      end
-
-      def ecto_schema(group), do: __schema_module__().__schema__(group)
-      def ecto_schema(group, name), do: __schema_module__().__schema__(group, name)
-
-      def association(name), do: __schema_module__().__schema__(:association, name)
-      def associations(), do: __schema_module__().__schema__(:associations)
-
-      def struct(attributes \\ %{}) do
-        struct(__schema_module__(), attributes)
-      end
-
-      def preload(associations) when is_atom(associations) or is_list(associations) do
-        preload(__MODULE__.new(__schema_module__(), __schema_module__(), []), associations)
+      def preload(association) when is_atom(association) do
+        preload(new(), [association])
       end
 
       def preload(%__MODULE__{} = relation, association) when is_atom(association) do
@@ -266,6 +218,10 @@ defmodule Drops.Relation do
 
       def preload(%__MODULE__{} = relation, associations) when is_list(associations) do
         %{relation | preloads: relation.preloads ++ associations}
+      end
+
+      def struct(attributes \\ %{}) do
+        struct(__schema_module__(), attributes)
       end
     end
   end
@@ -349,17 +305,14 @@ defmodule Drops.Relation do
         import Ecto.Query
 
         def to_query(relation) do
-          base_query = Ecto.Queryable.to_query(relation.struct)
+          base_query = Ecto.Queryable.to_query(relation.queryable)
 
-          # Apply restrictions from opts
           query_with_restrictions =
             build_query_with_restrictions(base_query, relation.opts)
 
-          # Apply preloads if any
           apply_preloads(query_with_restrictions, relation.preloads)
         end
 
-        # Builds an Ecto query with WHERE clauses based on the restriction options
         defp build_query_with_restrictions(queryable, []) do
           queryable
         end
@@ -370,7 +323,6 @@ defmodule Drops.Relation do
           end)
         end
 
-        # Applies preloads to the query
         defp apply_preloads(queryable, []) do
           queryable
         end

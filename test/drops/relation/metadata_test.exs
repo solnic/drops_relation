@@ -30,17 +30,17 @@ defmodule Drops.Relation.MetadataIntegrationTest do
     test "Ecto.Enum fields work with inferred metadata", %{metadata_test: relation} do
       # This tests the end-to-end flow that was previously failing
       # Should compile without errors
-      assert relation.ecto_schema(:fields) != nil
+      assert relation.__schema__(:fields) != nil
 
       # Check that the custom field types are respected
-      status_type = relation.ecto_schema(:type, :status)
+      status_type = relation.__schema__(:type, :status)
       assert match?({:parameterized, {Ecto.Enum, _}}, status_type)
 
-      priority_type = relation.ecto_schema(:type, :priority)
+      priority_type = relation.__schema__(:type, :priority)
       assert priority_type == :integer
 
       # Check that inferred fields are still present
-      fields = relation.ecto_schema(:fields)
+      fields = relation.__schema__(:fields)
       assert :name in fields
       assert :description in fields
       assert :score in fields
