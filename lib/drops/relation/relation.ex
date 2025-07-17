@@ -136,21 +136,6 @@ defmodule Drops.Relation do
     end
   end
 
-  def ecto_schema_module(relation) do
-    namespace = Compilation.Context.config(relation, :ecto_schema_namespace)
-
-    module =
-      case Compilation.Context.get(relation, :schema).opts[:struct] do
-        nil ->
-          Compilation.Context.config(relation, :ecto_schema_module)
-
-        value ->
-          value
-      end
-
-    Module.concat(namespace ++ [module])
-  end
-
   defmacro __before_compile__(env) do
     relation = env.module
 
@@ -305,13 +290,6 @@ defmodule Drops.Relation do
     end
   end
 
-  def infer_source_schema(relation, name, opts) do
-    repo = opts[:repo]
-    cache_file = Drops.Relation.Cache.get_cache_file_path(repo, name)
-    Module.put_attribute(relation, :external_resource, cache_file)
-    Drops.Relation.Cache.get_cached_schema(repo, name)
-  end
-
   def __finalize_relation__(relation) do
     schema = Compilation.Context.get(relation, :schema)
     views = Compilation.Context.get(relation, :views)
@@ -384,5 +362,29 @@ defmodule Drops.Relation do
         end
       end
     end
+  end
+
+  defp infer_source_schema(relation, name, opts) do
+    repo = opts[:repo]
+    file = Drops.Relation.Cache.get_cache_file_path(repo, name)
+
+    Module.put_attribute(relation, :external_resource, file)
+
+    Drops.Relation.Cache.get_cached_schema(repo, name)
+  end
+
+  defp ecto_schema_module(relation) do
+    namespace = Compilation.Context.config(relation, :ecto_schema_namespace)
+
+    module =
+      case Compilation.Context.get(relation, :schema).opts[:struct] do
+        nil ->
+          Compilation.Context.config(relation, :ecto_schema_module)
+
+        value ->
+          value
+      end
+
+    Module.concat(namespace ++ [module])
   end
 end
