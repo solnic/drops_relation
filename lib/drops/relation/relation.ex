@@ -118,6 +118,24 @@ defmodule Drops.Relation do
     end
   end
 
+  defmacro delegate_to(fun, to: target) do
+    fun = Macro.escape(fun)
+
+    quote bind_quoted: [fun: fun, target: target] do
+      {name, args} = Macro.decompose_call(fun)
+
+      final_args =
+        case args do
+          [] -> [[relation: __MODULE__]]
+          _ -> args ++ [[relation: __MODULE__]]
+        end
+
+      def unquote({name, [line: __ENV__.line], args}) do
+        unquote(target).unquote(name)(unquote_splicing(final_args))
+      end
+    end
+  end
+
   def ecto_schema_module(relation) do
     namespace = Compilation.Context.config(relation, :ecto_schema_namespace)
 
@@ -146,7 +164,7 @@ defmodule Drops.Relation do
     Module.put_attribute(relation, :schema, schema)
 
     views_ast = Views.generate_functions(relation, views)
-    query_api_ast = Query.generate_functions(opts, schema)
+    query_api_ast = Query.generate_functions(schema)
 
     queryable_ast =
       if derive do
@@ -162,7 +180,7 @@ defmodule Drops.Relation do
     ecto_schema_module = ecto_schema_module(relation)
 
     quote do
-      import Drops.Relation.Query
+      alias Drops.Relation.{Reading, Writing}
 
       @schema unquote(Macro.escape(schema))
 
@@ -173,7 +191,36 @@ defmodule Drops.Relation do
       unquote(views_ast)
       unquote_splicing(query_api_ast)
 
-      delegate_to_query(get(pk))
+      delegate_to(get(id), to: Reading)
+      delegate_to(get!(id), to: Reading)
+      delegate_to(get_by(clauses), to: Reading)
+      delegate_to(get_by!(clauses), to: Reading)
+      delegate_to(one(), to: Reading)
+      delegate_to(one!(), to: Reading)
+      delegate_to(count(), to: Reading)
+      delegate_to(first(), to: Reading)
+      delegate_to(last(), to: Reading)
+
+      delegate_to(insert(struct_or_changeset), to: Writing)
+      delegate_to(insert!(struct_or_changeset), to: Writing)
+      delegate_to(update(changeset), to: Writing)
+      delegate_to(update!(changeset), to: Writing)
+      delegate_to(delete(struct), to: Writing)
+      delegate_to(delete!(struct), to: Writing)
+
+      def all(relation_or_opts \\ [])
+
+      def all([]) do
+        Reading.all(relation: __MODULE__)
+      end
+
+      def all(opts) when is_list(opts) do
+        Reading.all(opts |> Keyword.put(:relation, __MODULE__))
+      end
+
+      def all(%__MODULE__{} = relation) do
+        Reading.all(relation)
+      end
 
       def new(opts \\ []) do
         new(queryable(), opts)
