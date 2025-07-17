@@ -26,9 +26,12 @@ defmodule Drops.Relation do
   but can be overridden by passing a `:repo` option to any function call.
   """
 
-  alias Drops.Relation.Schema
-  alias Drops.Relation.Query
-  alias Drops.Relation.Generator
+  alias Drops.Relation.{
+    Schema,
+    Views,
+    Query,
+    Generator
+  }
 
   defmacro __using__(opts) do
     quote do
@@ -100,33 +103,16 @@ defmodule Drops.Relation do
 
   defmacro __before_compile__(env) do
     relation = env.module
+
     opts = Module.get_attribute(relation, :opts)
-    __define_relation__(env, opts)
-  end
-
-  defp view_module(relation, name) do
-    Module.concat(relation, Macro.camelize(Atom.to_string(name)))
-  end
-
-  def __define_relation__(env, opts) do
-    relation = env.module
-
     schema = Module.get_attribute(relation, :schema)
     derive = Module.get_attribute(relation, :derive_block, [])
-
     views = Module.get_attribute(relation, :views, [])
-    view_mods = Enum.map(views, fn {name, _block} -> {name, view_module(relation, name)} end)
-
-    view_ast =
-      Enum.map(view_mods, fn {name, mod} ->
-        mod_name = Atom.to_string(mod)
-
-        quote do
-          def unquote(name)(), do: String.to_existing_atom(unquote(mod_name)).queryable()
-        end
-      end)
 
     schema = __build_schema__(relation, schema, opts)
+
+    views_ast = Views.generate_functions(relation, views)
+    query_api_ast = Query.generate_functions(opts, schema)
 
     queryable_ast =
       if derive do
@@ -138,8 +124,6 @@ defmodule Drops.Relation do
           def queryable, do: unquote(relation)
         end
       end
-
-    query_api_ast = Query.generate_functions(opts, schema) ++ view_ast
 
     singular_name =
       relation |> Atom.to_string() |> String.split(".") |> List.last() |> String.trim("s")
@@ -153,6 +137,7 @@ defmodule Drops.Relation do
       def schema, do: @schema
 
       unquote(queryable_ast)
+      unquote(views_ast)
 
       def new(opts \\ []) do
         new(queryable(), __schema_module__(), opts)
@@ -297,9 +282,6 @@ defmodule Drops.Relation do
   end
 
   def __finalize_relation__(relation) do
-    opts = relation.opts()
-    repo = opts[:repo]
-
     schema_block = Module.get_attribute(relation, :schema_block, [])
     ecto_schema = Generator.generate_module_content(relation.schema(), schema_block)
 
@@ -307,22 +289,7 @@ defmodule Drops.Relation do
 
     views = Module.get_attribute(relation, :views, [])
 
-    Enum.each(views, fn {name, block} ->
-      {:module, _view_module, _, _} =
-        Module.create(
-          view_module(relation, name),
-          quote do
-            use unquote(relation),
-              name: unquote(name),
-              source: unquote(relation),
-              repo: unquote(repo),
-              view: true
-
-            unquote(block)
-          end,
-          Macro.Env.location(__ENV__)
-        )
-    end)
+    Enum.each(views, fn {name, block} -> Views.create_module(relation, name, block) end)
 
     quote location: :keep do
       defimpl Enumerable, for: unquote(relation) do
