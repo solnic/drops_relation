@@ -1,6 +1,6 @@
 defmodule Drops.Relation.Views do
-  def generate_functions(relation, view_blocks) do
-    views_map = module_map(relation, view_blocks)
+  def generate_functions(relation, views) do
+    views_map = module_map(relation, views)
 
     getters =
       Enum.map(views_map, fn {name, _} ->
@@ -38,9 +38,9 @@ defmodule Drops.Relation.Views do
     Module.concat(relation, Macro.camelize(Atom.to_string(name)))
   end
 
-  defp module_map(relation, view_blocks) do
-    Enum.reduce(view_blocks, %{}, fn {name, _block}, acc ->
-      Map.put(acc, name, module(relation, name))
+  defp module_map(relation, views) do
+    Enum.reduce(views, %{}, fn view, acc ->
+      Map.put(acc, view.name, module(relation, view.name))
     end)
   end
 end

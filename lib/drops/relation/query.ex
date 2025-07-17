@@ -4,7 +4,7 @@ defmodule Drops.Relation.Query do
   alias __MODULE__
 
   @doc false
-  def generate_functions(opts, drops_relation_schema) do
+  def generate_functions(opts, schema) do
     repo = opts[:repo]
 
     # Basic Ecto.Repo functions that delegate to module-level functions
@@ -28,7 +28,7 @@ defmodule Drops.Relation.Query do
     ]
 
     # Index-based finder functions
-    index_functions = SchemaCompiler.visit(drops_relation_schema, %{repo: repo})
+    index_functions = SchemaCompiler.visit(schema, %{repo: repo})
 
     basic_functions ++ index_functions
   end

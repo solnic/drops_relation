@@ -27,18 +27,18 @@ defmodule Drops.Relation do
   """
 
   alias Drops.Relation.{
+    Compilation,
+    Generator,
     Schema,
-    Views,
     Query,
-    Generator
+    Views
   }
 
   defmacro __using__(opts) do
     quote do
       import Drops.Relation
 
-      Module.register_attribute(__MODULE__, :schema_spec, accumulate: false)
-      Module.register_attribute(__MODULE__, :views, accumulate: true)
+      @context Compilation.Context.new(__MODULE__)
 
       @before_compile Drops.Relation
       @after_compile Drops.Relation
@@ -52,8 +52,7 @@ defmodule Drops.Relation do
         quote do
           import Drops.Relation
 
-          Module.register_attribute(__MODULE__, :schema_spec, accumulate: false)
-          Module.register_attribute(__MODULE__, :derive_block, accumulate: false)
+          @context Compilation.Context.new(__MODULE__)
 
           @before_compile Drops.Relation
           @after_compile Drops.Relation
@@ -79,25 +78,34 @@ defmodule Drops.Relation do
 
   defmacro schema(fields) when is_list(fields) do
     quote do
-      @schema_spec unquote(fields)
+      @context Compilation.Context.update(__MODULE__, :schema, [unquote(fields)])
     end
   end
 
-  defmacro schema(table_name, opts \\ []) do
+  defmacro schema(name, opts \\ []) do
+    block = opts[:do]
+
     quote do
-      @schema_spec unquote(Macro.escape({table_name, opts}))
+      @context Compilation.Context.update(__MODULE__, :schema, [
+                 unquote(name),
+                 unquote(Keyword.delete(opts, :do)),
+                 unquote(Macro.escape(block))
+               ])
     end
   end
 
   defmacro view(name, do: block) do
     quote do
-      @views unquote(Macro.escape({name, block}))
+      @context Compilation.Context.update(__MODULE__, :view, [
+                 unquote(name),
+                 unquote(Macro.escape(block))
+               ])
     end
   end
 
   defmacro derive(do: block) do
     quote do
-      @derive_block unquote(Macro.escape(block))
+      @context Compilation.Context.update(__MODULE__, :derive, [unquote(Macro.escape(block))])
     end
   end
 
@@ -105,11 +113,13 @@ defmodule Drops.Relation do
     relation = env.module
 
     opts = Module.get_attribute(relation, :opts)
-    schema = Module.get_attribute(relation, :schema_spec)
-    derive = Module.get_attribute(relation, :derive_block, [])
-    views = Module.get_attribute(relation, :views, [])
+    schema = Compilation.Context.get(relation, :schema)
+    derive = Compilation.Context.get(relation, :derive)
+    views = Compilation.Context.get(relation, :views)
 
     schema = __build_schema__(relation, schema, opts)
+
+    Module.put_attribute(relation, :schema, schema)
 
     views_ast = Views.generate_functions(relation, views)
     query_api_ast = Query.generate_functions(opts, schema)
@@ -117,7 +127,7 @@ defmodule Drops.Relation do
     queryable_ast =
       if derive do
         quote do
-          def queryable, do: unquote(derive)
+          def queryable, do: unquote(derive.block)
         end
       else
         quote do
@@ -254,23 +264,17 @@ defmodule Drops.Relation do
 
   def __build_schema__(relation, spec, opts) do
     case spec do
-      {name, schema_opts} ->
-        source_schema =
-          if Keyword.get(schema_opts, :infer, true) do
-            infer_source_schema(relation, name, opts)
-          end
-
-        block = schema_opts[:do]
-
-        if is_nil(block) do
-          source_schema
-        else
-          Module.put_attribute(relation, :schema_block, block)
-          Schema.merge(source_schema, Generator.schema_from_block(name, block))
-        end
-
-      fields when is_list(fields) ->
+      %{name: nil, fields: fields} when is_list(fields) ->
         Schema.project(opts[:source].schema(), fields)
+
+      %{name: name, infer: true, block: block} ->
+        source_schema = infer_source_schema(relation, name, opts)
+
+        if block do
+          Schema.merge(source_schema, Generator.schema_from_block(name, block))
+        else
+          source_schema
+        end
     end
   end
 
@@ -282,14 +286,14 @@ defmodule Drops.Relation do
   end
 
   def __finalize_relation__(relation) do
-    schema_block = Module.get_attribute(relation, :schema_block, [])
-    ecto_schema = Generator.generate_module_content(relation.schema(), schema_block)
+    schema = Compilation.Context.get(relation, :schema)
+    views = Compilation.Context.get(relation, :views)
+
+    ecto_schema = Generator.generate_module_content(relation.schema(), schema.block || [])
 
     Module.create(relation.__schema_module__(), ecto_schema, Macro.Env.location(__ENV__))
 
-    views = Module.get_attribute(relation, :views, [])
-
-    Enum.each(views, fn {name, block} -> Views.create_module(relation, name, block) end)
+    Enum.each(views, fn view -> Views.create_module(relation, view.name, view.block) end)
 
     quote location: :keep do
       defimpl Enumerable, for: unquote(relation) do
