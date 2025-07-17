@@ -69,27 +69,31 @@ defmodule Drops.Relation.MixProject do
       source_url: @source_url,
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
       extras: [
-        "README.md",
-        "CHANGELOG.md"
+        "README.md"
       ],
       groups_for_modules: [
         Core: [
           Drops.Relation,
           Drops.Relation.Query,
-          Drops.Relation.Composite
+          Drops.Relation.Reading,
+          Drops.Relation.Writing
         ],
         Schema: [
           Drops.Relation.Schema,
-          Drops.Relation.Schema.MetadataExtractor,
           Drops.Relation.Schema.Field,
           Drops.Relation.Schema.PrimaryKey,
           Drops.Relation.Schema.ForeignKey,
           Drops.Relation.Schema.Index
         ],
-        Inference: [
-          Drops.Relation.Inference,
-          Drops.SQL.Inference,
-          Drops.SQL.Introspection
+        Database: [
+          Drops.SQL.Database,
+          Drops.SQL.Database.Table,
+          Drops.SQL.Database.Column,
+          Drops.SQL.Database.PrimaryKey,
+          Drops.SQL.Database.ForeignKey,
+          Drops.SQL.Database.Index,
+          Drops.SQL.Postgres,
+          Drops.SQL.Sqlite
         ],
         Cache: [
           Drops.Relation.Cache
