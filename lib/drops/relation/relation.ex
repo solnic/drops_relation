@@ -71,6 +71,7 @@ defmodule Drops.Relation do
 
       @opts unquote(opts)
       def opts, do: @opts
+      def opts(name), do: Keyword.get(opts(), name)
 
       defstruct([:repo, schema: %{}, queryable: nil, opts: [], preloads: []])
 
@@ -161,6 +162,8 @@ defmodule Drops.Relation do
     ecto_schema_module = ecto_schema_module(relation)
 
     quote do
+      import Drops.Relation.Query
+
       @schema unquote(Macro.escape(schema))
 
       @spec schema() :: Drops.Relation.Schema.t()
@@ -169,6 +172,8 @@ defmodule Drops.Relation do
       unquote(queryable_ast)
       unquote(views_ast)
       unquote_splicing(query_api_ast)
+
+      delegate_to_query(get(pk))
 
       def new(opts \\ []) do
         new(queryable(), opts)

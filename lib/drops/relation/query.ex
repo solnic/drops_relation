@@ -1,6 +1,5 @@
 defmodule Drops.Relation.Query do
   alias Drops.Relation.Query.SchemaCompiler
-
   alias __MODULE__
 
   @doc false
@@ -9,7 +8,6 @@ defmodule Drops.Relation.Query do
 
     # Basic Ecto.Repo functions that delegate to module-level functions
     basic_functions = [
-      generate_delegating_get_function(repo),
       generate_delegating_get_bang_function(repo),
       generate_delegating_get_by_function(repo),
       generate_delegating_get_by_bang_function(repo),
@@ -27,10 +25,21 @@ defmodule Drops.Relation.Query do
       generate_delegating_last_function(repo)
     ]
 
-    # Index-based finder functions
     index_functions = SchemaCompiler.visit(schema, %{repo: repo})
 
     basic_functions ++ index_functions
+  end
+
+  defmacro delegate_to_query(fun) do
+    fun = Macro.escape(fun)
+
+    quote bind_quoted: [fun: fun] do
+      {name, args} = Macro.decompose_call(fun)
+
+      def unquote({name, [line: __ENV__.line], args}) do
+        unquote(Query).unquote(name)(unquote_splicing(args ++ [[relation: __MODULE__]]))
+      end
+    end
   end
 
   # Query API functions - these are defined at module level for proper documentation
@@ -49,19 +58,8 @@ defmodule Drops.Relation.Query do
 
   See [Ecto.Repo.get/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get/3) for more details.
   """
-  def get(queryable, id, opts \\ []) do
-    repo = opts[:repo]
-    relation_module = opts[:relation]
-    cleaned_opts = opts |> Keyword.delete(:repo) |> Keyword.delete(:relation)
-
-    actual_queryable =
-      if relation_module do
-        relation_module.__schema_module__()
-      else
-        queryable
-      end
-
-    repo.get(actual_queryable, id, cleaned_opts)
+  def get(id, opts) do
+    opts[:relation].opts(:repo).get(opts[:relation], id, Keyword.delete(opts, :relation))
   end
 
   @doc """
@@ -486,19 +484,6 @@ defmodule Drops.Relation.Query do
       end
 
     repo.get_by(actual_queryable, [{field, value}], cleaned_opts)
-  end
-
-  # Delegating function generators - these generate functions that delegate to module-level functions
-  defp generate_delegating_get_function(repo) do
-    quote do
-      def get(id, opts \\ []) do
-        Query.get(
-          __MODULE__.__schema_module__(),
-          id,
-          opts |> Keyword.put(:repo, unquote(repo)) |> Keyword.put(:relation, __MODULE__)
-        )
-      end
-    end
   end
 
   defp generate_delegating_get_bang_function(repo) do
