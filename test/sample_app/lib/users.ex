@@ -6,7 +6,7 @@ defmodule Users do
   view(:active) do
     schema([:id, :email, :active])
 
-    relation do
+    derive do
       restrict(active: true)
     end
   end

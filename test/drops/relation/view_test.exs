@@ -8,7 +8,7 @@ defmodule Drops.Relation.ViewTest do
       view(:active) do
         schema([:id, :name, :active])
 
-        relation do
+        derive do
           restrict(active: true)
         end
       end

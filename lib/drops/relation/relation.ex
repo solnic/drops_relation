@@ -35,7 +35,6 @@ defmodule Drops.Relation do
       import Drops.Relation
 
       Module.register_attribute(__MODULE__, :schema, accumulate: false)
-      Module.register_attribute(__MODULE__, :associations_block, accumulate: false)
       Module.register_attribute(__MODULE__, :views, accumulate: true)
 
       @before_compile Drops.Relation
@@ -51,8 +50,7 @@ defmodule Drops.Relation do
           import Drops.Relation
 
           Module.register_attribute(__MODULE__, :schema, accumulate: false)
-          Module.register_attribute(__MODULE__, :associations_block, accumulate: false)
-          Module.register_attribute(__MODULE__, :relation, accumulate: false)
+          Module.register_attribute(__MODULE__, :derive_block, accumulate: false)
 
           @before_compile Drops.Relation
           @after_compile Drops.Relation
@@ -94,9 +92,9 @@ defmodule Drops.Relation do
     end
   end
 
-  defmacro relation(do: block) do
+  defmacro derive(do: block) do
     quote do
-      @relation unquote(Macro.escape(block))
+      @derive_block unquote(Macro.escape(block))
     end
   end
 
@@ -114,7 +112,7 @@ defmodule Drops.Relation do
     relation = env.module
 
     schema = Module.get_attribute(relation, :schema)
-    relation_view = Module.get_attribute(relation, :relation, [])
+    derive = Module.get_attribute(relation, :derive_block, [])
 
     views = Module.get_attribute(relation, :views, [])
     view_mods = Enum.map(views, fn {name, _block} -> {name, view_module(relation, name)} end)
@@ -131,9 +129,9 @@ defmodule Drops.Relation do
     schema = __build_schema__(relation, schema, opts)
 
     queryable_ast =
-      if relation_view do
+      if derive do
         quote do
-          def queryable, do: unquote(relation_view)
+          def queryable, do: unquote(derive)
         end
       else
         quote do
