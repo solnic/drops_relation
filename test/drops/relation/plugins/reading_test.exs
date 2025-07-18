@@ -1,4 +1,4 @@
-defmodule Drops.Relations.QueryTest do
+defmodule Drops.Relations.Plugins.ReadingTest do
   use Drops.RelationCase, async: false
 
   describe "query API functions" do
