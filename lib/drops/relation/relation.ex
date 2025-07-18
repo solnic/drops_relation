@@ -165,7 +165,8 @@ defmodule Drops.Relation do
     ecto_schema_module = ecto_schema_module(relation)
 
     quote do
-      alias Drops.Relation.{Reading, Writing}
+      use Drops.Relation.Reading
+      use Drops.Relation.Writing
 
       @schema unquote(Macro.escape(schema))
 
@@ -175,37 +176,6 @@ defmodule Drops.Relation do
       unquote(queryable_ast)
       unquote(views_ast)
       unquote_splicing(query_api_ast)
-
-      delegate_to(get(id), to: Reading)
-      delegate_to(get!(id), to: Reading)
-      delegate_to(get_by(clauses), to: Reading)
-      delegate_to(get_by!(clauses), to: Reading)
-      delegate_to(one(), to: Reading)
-      delegate_to(one!(), to: Reading)
-      delegate_to(count(), to: Reading)
-      delegate_to(first(), to: Reading)
-      delegate_to(last(), to: Reading)
-
-      delegate_to(insert(struct_or_changeset), to: Writing)
-      delegate_to(insert!(struct_or_changeset), to: Writing)
-      delegate_to(update(changeset), to: Writing)
-      delegate_to(update!(changeset), to: Writing)
-      delegate_to(delete(struct), to: Writing)
-      delegate_to(delete!(struct), to: Writing)
-
-      def all(relation_or_opts \\ [])
-
-      def all([]) do
-        Reading.all(relation: __MODULE__)
-      end
-
-      def all(opts) when is_list(opts) do
-        Reading.all(opts |> Keyword.put(:relation, __MODULE__))
-      end
-
-      def all(%__MODULE__{} = relation) do
-        Reading.all(relation)
-      end
 
       def new(opts \\ []) do
         new(__schema_module__(), opts)
@@ -232,34 +202,6 @@ defmodule Drops.Relation do
       end
 
       def __schema_module__, do: unquote(ecto_schema_module)
-
-      def restrict(opts) when is_list(opts) do
-        new(opts)
-      end
-
-      def restrict(%__MODULE__{} = relation, opts) do
-        %{relation | opts: Keyword.merge(relation.opts, opts)}
-      end
-
-      def restrict(queryable, opts) do
-        new(queryable, opts)
-      end
-
-      def preload(association) when is_atom(association) do
-        preload(new(), [association])
-      end
-
-      def preload(%__MODULE__{} = relation, association) when is_atom(association) do
-        preload(relation, [association])
-      end
-
-      def preload(%__MODULE__{} = relation, associations) when is_list(associations) do
-        %{relation | preloads: relation.preloads ++ associations}
-      end
-
-      def struct(attributes \\ %{}) do
-        struct(__schema_module__(), attributes)
-      end
     end
   end
 

@@ -1,4 +1,21 @@
 defmodule Drops.Relation.Writing do
+  defmacro __using__(_opts) do
+    quote do
+      alias unquote(__MODULE__)
+
+      delegate_to(insert(struct_or_changeset), to: Writing)
+      delegate_to(insert!(struct_or_changeset), to: Writing)
+      delegate_to(update(changeset), to: Writing)
+      delegate_to(update!(changeset), to: Writing)
+      delegate_to(delete(struct), to: Writing)
+      delegate_to(delete!(struct), to: Writing)
+
+      def struct(attributes \\ %{}) do
+        struct(__schema_module__(), attributes)
+      end
+    end
+  end
+
   @doc """
   Inserts a struct, changeset, or plain map.
 

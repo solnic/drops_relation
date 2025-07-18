@@ -1,4 +1,58 @@
 defmodule Drops.Relation.Reading do
+  defmacro __using__(_opts) do
+    quote do
+      alias unquote(__MODULE__)
+
+      delegate_to(get(id), to: Reading)
+      delegate_to(get!(id), to: Reading)
+      delegate_to(get_by(clauses), to: Reading)
+      delegate_to(get_by!(clauses), to: Reading)
+      delegate_to(one(), to: Reading)
+      delegate_to(one!(), to: Reading)
+      delegate_to(count(), to: Reading)
+      delegate_to(first(), to: Reading)
+      delegate_to(last(), to: Reading)
+
+      def all(relation_or_opts \\ [])
+
+      def all([]) do
+        Reading.all(relation: __MODULE__)
+      end
+
+      def all(opts) when is_list(opts) do
+        Reading.all(opts |> Keyword.put(:relation, __MODULE__))
+      end
+
+      def all(%__MODULE__{} = relation) do
+        Reading.all(relation)
+      end
+
+      def restrict(opts) when is_list(opts) do
+        new(opts)
+      end
+
+      def restrict(%__MODULE__{} = relation, opts) do
+        %{relation | opts: Keyword.merge(relation.opts, opts)}
+      end
+
+      def restrict(queryable, opts) do
+        new(queryable, opts)
+      end
+
+      def preload(association) when is_atom(association) do
+        preload(new(), [association])
+      end
+
+      def preload(%__MODULE__{} = relation, association) when is_atom(association) do
+        preload(relation, [association])
+      end
+
+      def preload(%__MODULE__{} = relation, associations) when is_list(associations) do
+        %{relation | preloads: relation.preloads ++ associations}
+      end
+    end
+  end
+
   # Query API functions - these are defined at module level for proper documentation
   # and delegate to Ecto.Repo functions with the configured repository
 
