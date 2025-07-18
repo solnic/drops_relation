@@ -65,10 +65,10 @@ defmodule Drops.Relation do
       use Drops.Relation.Plugins.Schema
       use Drops.Relation.Plugins.Reading
       use Drops.Relation.Plugins.Writing
-      use Drops.Relation.Plugins.Queryable
       use Drops.Relation.Plugins.Loadable
-      use Drops.Relation.Plugins.AutoRestrict
       use Drops.Relation.Plugins.Views
+      use Drops.Relation.Plugins.Queryable
+      use Drops.Relation.Plugins.AutoRestrict
 
       @opts unquote(opts)
       def opts, do: @opts

@@ -20,7 +20,7 @@ defmodule Drops.Relation.ViewTest do
       users.insert(%{name: "Joe", active: false})
       users.insert(%{name: "Jade", active: true})
 
-      [jane, jade] = users.active() |> Enum.to_list()
+      [jane, jade] = users.active().all()
 
       assert jane.name == "Jane"
       assert jane.active
@@ -51,9 +51,17 @@ defmodule Drops.Relation.ViewTest do
       users.insert(%{name: "Joe", active: false})
       users.insert(%{name: "Jade", active: true})
 
-      user = users.view(:active).first()
+      [jane, jade] = users.view(:active).all()
 
-      assert user.__struct__ == Test.Relations.Users.Active.ActiveUser
+      assert jane.__struct__ == Test.Relations.Users.Active.ActiveUser
+      assert jane.name == "Jane"
+      assert jane.active
+      assert :email not in Map.keys(jane)
+
+      assert jade.__struct__ == Test.Relations.Users.Active.ActiveUser
+      assert jade.name == "Jade"
+      assert jade.active
+      assert :email not in Map.keys(jade)
     end
   end
 end

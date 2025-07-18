@@ -4,7 +4,6 @@ defmodule Drops.Relation.Plugins.Queryable do
   use Drops.Relation.Plugin
 
   def on(:before_compile, relation, %{opts: opts}) do
-    derive = context(relation, :derive)
     ecto_schema_module = ecto_schema_module(relation)
 
     ecto_funcs =
@@ -15,25 +14,15 @@ defmodule Drops.Relation.Plugins.Queryable do
         def __schema_module__, do: unquote(ecto_schema_module)
       end
 
-    queryable_fun =
-      if derive do
-        quote do
-          def queryable, do: unquote(derive.block)
-        end
-      else
-        quote do
-          def queryable, do: __schema_module__()
-        end
-      end
-
     quote do
-      unquote(queryable_fun)
       unquote(ecto_funcs)
 
       @spec repo() :: module()
       def repo, do: unquote(opts[:repo])
 
-      def new(opts \\ []) do
+      def new(), do: new([])
+
+      def new(opts) do
         new(__schema_module__(), opts)
       end
 

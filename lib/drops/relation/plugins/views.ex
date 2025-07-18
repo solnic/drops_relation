@@ -14,6 +14,17 @@ defmodule Drops.Relation.Plugins.Views do
   end
 
   def on(:before_compile, relation, _) do
+    derive = context(relation, :derive)
+
+    derived_new =
+      if derive do
+        quote do
+          def new(), do: unquote(derive.block)
+        end
+      else
+        []
+      end
+
     views = context(relation, :views)
     views_map = module_map(relation, views)
 
@@ -21,7 +32,7 @@ defmodule Drops.Relation.Plugins.Views do
       Enum.map(views_map, fn {name, _} ->
         quote do
           def unquote(name)(),
-            do: view(unquote(name)).queryable()
+            do: view(unquote(name))
         end
       end)
 
@@ -32,6 +43,8 @@ defmodule Drops.Relation.Plugins.Views do
       def view(name), do: Map.get(__views__(), name)
 
       unquote_splicing(getters)
+
+      unquote(derived_new)
     end
   end
 

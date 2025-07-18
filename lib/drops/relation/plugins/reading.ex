@@ -72,7 +72,7 @@ defmodule Drops.Relation.Plugins.Reading do
   See [Ecto.Repo.get/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get/3) for more details.
   """
   def get(id, opts) do
-    opts[:relation].opts(:repo).get(opts[:relation], id, Keyword.delete(opts, :relation))
+    read(:get, [id], opts)
   end
 
   @doc """
@@ -89,7 +89,7 @@ defmodule Drops.Relation.Plugins.Reading do
   See [Ecto.Repo.get!/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get!/3) for more details.
   """
   def get!(id, opts) do
-    opts[:relation].opts(:repo).get!(opts[:relation], id, Keyword.delete(opts, :relation))
+    read(:get!, [id], opts)
   end
 
   @doc """
@@ -106,7 +106,7 @@ defmodule Drops.Relation.Plugins.Reading do
   See [Ecto.Repo.get_by/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get_by/3) for more details.
   """
   def get_by(clauses, opts) do
-    opts[:relation].opts(:repo).get_by(opts[:relation], clauses, Keyword.delete(opts, :relation))
+    read(:get_by, [clauses], opts)
   end
 
   @doc """
@@ -123,7 +123,7 @@ defmodule Drops.Relation.Plugins.Reading do
   See [Ecto.Repo.get_by!/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get_by!/3) for more details.
   """
   def get_by!(clauses, opts) do
-    opts[:relation].opts(:repo).get_by!(opts[:relation], clauses, Keyword.delete(opts, :relation))
+    read(:get_by!, [clauses], opts)
   end
 
   @doc """
@@ -140,13 +140,11 @@ defmodule Drops.Relation.Plugins.Reading do
   See [Ecto.Repo.all/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:all/2) for more details.
   """
   def all(opts) when is_list(opts) do
-    opts[:relation].opts(:repo).all(opts[:relation], Keyword.delete(opts, :relation))
+    read(:all, [], opts)
   end
 
   def all(%{__struct__: relation_module} = relation) do
-    # When called with a relation struct, use the Ecto.Queryable protocol
-    repo = relation.repo || relation_module.opts(:repo)
-    repo.all(relation, [])
+    read(:all, [], relation: relation_module, queryable: relation)
   end
 
   @doc """
@@ -163,7 +161,7 @@ defmodule Drops.Relation.Plugins.Reading do
   See [Ecto.Repo.one/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:one/2) for more details.
   """
   def one(opts) do
-    opts[:relation].opts(:repo).one(opts[:relation], Keyword.delete(opts, :relation))
+    read(:one, [], opts)
   end
 
   @doc """
@@ -180,7 +178,7 @@ defmodule Drops.Relation.Plugins.Reading do
   See [Ecto.Repo.one!/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:one!/2) for more details.
   """
   def one!(opts) do
-    opts[:relation].opts(:repo).one!(opts[:relation], Keyword.delete(opts, :relation))
+    read(:one!, [], opts)
   end
 
   @doc """
@@ -197,11 +195,7 @@ defmodule Drops.Relation.Plugins.Reading do
   See [Ecto.Repo.aggregate/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:aggregate/3) for more details.
   """
   def count(opts) do
-    opts[:relation].opts(:repo).aggregate(
-      opts[:relation],
-      :count,
-      Keyword.delete(opts, :relation)
-    )
+    read(:aggregate, [:count], opts)
   end
 
   @doc """
@@ -219,10 +213,7 @@ defmodule Drops.Relation.Plugins.Reading do
   [Ecto.Query.first/1](https://hexdocs.pm/ecto/Ecto.Query.html#first/1) for more details.
   """
   def first(opts) do
-    opts[:relation].opts(:repo).one(
-      Ecto.Query.first(opts[:relation]),
-      Keyword.delete(opts, :relation)
-    )
+    read(:one, [], Keyword.merge(opts, queryable: Ecto.Query.first(opts[:relation])))
   end
 
   @doc """
@@ -240,10 +231,7 @@ defmodule Drops.Relation.Plugins.Reading do
   [Ecto.Query.last/1](https://hexdocs.pm/ecto/Ecto.Query.html#last/1) for more details.
   """
   def last(opts) do
-    opts[:relation].opts(:repo).one(
-      Ecto.Query.last(opts[:relation]),
-      Keyword.delete(opts, :relation)
-    )
+    read(:one, [], Keyword.merge(opts, queryable: Ecto.Query.last(opts[:relation])))
   end
 
   @doc """
@@ -261,10 +249,15 @@ defmodule Drops.Relation.Plugins.Reading do
   See [Ecto.Repo.get_by/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get_by/3) for more details.
   """
   def get_by_field(field, value, opts) do
-    opts[:relation].opts(:repo).get_by(
-      opts[:relation],
-      [{field, value}],
-      Keyword.delete(opts, :relation)
-    )
+    read(:get_by_field, [{field, value}], opts)
+  end
+
+  defp read(fun, args, opts) do
+    relation = opts[:relation]
+    repo = relation.repo()
+    queryable = Keyword.get(opts, :queryable) || relation.new()
+    repo_opts = Keyword.delete(opts, :relation) |> Keyword.delete(:queryable)
+
+    apply(repo, fun, [queryable] ++ args ++ [repo_opts])
   end
 end
