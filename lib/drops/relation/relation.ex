@@ -141,13 +141,10 @@ defmodule Drops.Relation do
 
     opts = Module.get_attribute(relation, :opts)
     schema = Compilation.Context.get(relation, :schema)
-    views = Compilation.Context.get(relation, :views)
-
     schema = __build_schema__(relation, schema, opts)
 
     Module.put_attribute(relation, :schema, schema)
 
-    views_ast = Views.generate_functions(relation, views)
     query_api_ast = Query.generate_functions(schema)
 
     quote do
@@ -155,13 +152,13 @@ defmodule Drops.Relation do
       use Drops.Relation.Writing
       use Drops.Relation.Queryable
       use Drops.Relation.Loadable
+      use Drops.Relation.Views
 
       @schema unquote(Macro.escape(schema))
 
       @spec schema() :: Drops.Relation.Schema.t()
       def schema, do: @schema
 
-      unquote(views_ast)
       unquote_splicing(query_api_ast)
 
       def new(opts \\ []) do

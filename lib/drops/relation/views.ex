@@ -1,6 +1,18 @@
 defmodule Drops.Relation.Views do
   alias Drops.Relation.Compilation
 
+  alias __MODULE__
+
+  defmacro __using__(_opts) do
+    relation = __CALLER__.module
+    views = Compilation.Context.get(relation, :views)
+    views_ast = Views.generate_functions(relation, views)
+
+    quote location: :keep do
+      unquote(views_ast)
+    end
+  end
+
   def generate_functions(relation, views) do
     views_map = module_map(relation, views)
 
