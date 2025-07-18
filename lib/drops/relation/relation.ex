@@ -26,11 +26,7 @@ defmodule Drops.Relation do
   but can be overridden by passing a `:repo` option to any function call.
   """
 
-  alias Drops.Relation.{
-    Compilation,
-    Generator,
-    Schema
-  }
+  alias Drops.Relation.Compilation
 
   defmacro __using__(opts) do
     __define_relation__(Macro.expand(opts, __CALLER__))
@@ -137,18 +133,14 @@ defmodule Drops.Relation do
     relation = env.module
     opts = Module.get_attribute(relation, :opts)
 
-    __put_schema__(relation, opts)
-
     quote do
+      use Drops.Relation.Plugins.Schema
       use Drops.Relation.Query
       use Drops.Relation.Reading
       use Drops.Relation.Writing
       use Drops.Relation.Queryable
       use Drops.Relation.Loadable
       use Drops.Relation.Views
-
-      @spec schema() :: Drops.Relation.Schema.t()
-      def schema, do: @schema
 
       @spec repo() :: module()
       def repo, do: unquote(opts[:repo])
@@ -167,33 +159,5 @@ defmodule Drops.Relation do
         })
       end
     end
-  end
-
-  def __put_schema__(relation, opts) do
-    schema =
-      case Compilation.Context.get(relation, :schema) do
-        %{name: nil, fields: fields} when is_list(fields) ->
-          Schema.project(opts[:source].schema(), fields)
-
-        %{name: name, infer: true, block: block} ->
-          source_schema = infer_source_schema(relation, name, opts)
-
-          if block do
-            Schema.merge(source_schema, Generator.schema_from_block(name, block))
-          else
-            source_schema
-          end
-      end
-
-    Module.put_attribute(relation, :schema, schema)
-  end
-
-  defp infer_source_schema(relation, name, opts) do
-    repo = opts[:repo]
-    file = Drops.Relation.Cache.get_cache_file_path(repo, name)
-
-    Module.put_attribute(relation, :external_resource, file)
-
-    Drops.Relation.Cache.get_cached_schema(repo, name)
   end
 end
