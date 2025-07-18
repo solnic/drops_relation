@@ -1,14 +1,11 @@
-defmodule Drops.Relation.Queryable do
-  alias Drops.Relation.Compilation
+defmodule Drops.Relation.Plugins.Queryable do
   alias Drops.Relation.Generator
 
-  alias __MODULE__
+  use Drops.Relation.Plugin
 
-  defmacro __using__(_opts) do
-    relation = __CALLER__.module
-
-    derive = Compilation.Context.get(relation, :derive)
-    ecto_schema_module = Queryable.ecto_schema_module(relation)
+  def on(:before_compile, relation, %{opts: opts}) do
+    derive = context(relation, :derive)
+    ecto_schema_module = ecto_schema_module(relation)
 
     ecto_funcs =
       quote do
@@ -30,17 +27,30 @@ defmodule Drops.Relation.Queryable do
       end
 
     quote do
-      @after_compile unquote(__MODULE__)
-
       unquote(queryable_fun)
       unquote(ecto_funcs)
+
+      @spec repo() :: module()
+      def repo, do: unquote(opts[:repo])
+
+      def new(opts \\ []) do
+        new(__schema_module__(), opts)
+      end
+
+      def new(queryable, opts) do
+        Kernel.struct(__MODULE__, %{
+          queryable: queryable,
+          schema: schema(),
+          repo: repo(),
+          opts: opts,
+          preloads: []
+        })
+      end
     end
   end
 
-  defmacro __after_compile__(env, _) do
-    relation = env.module
-    schema = Compilation.Context.get(relation, :schema)
-
+  def on(:after_compile, relation, _) do
+    schema = context(relation, :schema)
     ecto_schema = Generator.generate_module_content(relation.schema(), schema.block || [])
 
     Module.create(
@@ -84,12 +94,12 @@ defmodule Drops.Relation.Queryable do
   end
 
   def ecto_schema_module(relation) do
-    namespace = Compilation.Context.config(relation, :ecto_schema_namespace)
+    namespace = config(relation, :ecto_schema_namespace)
 
     module =
-      case Compilation.Context.get(relation, :schema).opts[:struct] do
+      case context(relation, :schema).opts[:struct] do
         nil ->
-          Compilation.Context.config(relation, :ecto_schema_module)
+          config(relation, :ecto_schema_module)
 
         value ->
           value

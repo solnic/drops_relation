@@ -1,17 +1,15 @@
-defmodule Drops.Relation.Loadable do
-  defmacro __using__(_opts) do
-    quote do
-      @after_compile unquote(__MODULE__)
+defmodule Drops.Relation.Plugins.Loadable do
+  use Drops.Relation.Plugin
 
+  def on(:before_compile, _, _) do
+    quote do
       def load(relation) do
         all(relation)
       end
     end
   end
 
-  defmacro __after_compile__(env, _) do
-    relation = env.module
-
+  def on(:after_compile, relation, _) do
     quote location: :keep do
       defimpl Enumerable, for: unquote(relation) do
         import Ecto.Query

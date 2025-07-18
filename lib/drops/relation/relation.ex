@@ -60,7 +60,15 @@ defmodule Drops.Relation do
 
       @context Compilation.Context.new(__MODULE__, @config)
 
-      @before_compile Drops.Relation
+      Module.register_attribute(__MODULE__, :plugins, accumulate: true)
+
+      use Drops.Relation.Plugins.Schema
+      use Drops.Relation.Plugins.Query
+      use Drops.Relation.Plugins.Reading
+      use Drops.Relation.Plugins.Writing
+      use Drops.Relation.Plugins.Queryable
+      use Drops.Relation.Plugins.Loadable
+      use Drops.Relation.Plugins.Views
 
       @opts unquote(opts)
       def opts, do: @opts
@@ -73,41 +81,6 @@ defmodule Drops.Relation do
           Keyword.put(Macro.expand(opts, __CALLER__), :source, __MODULE__)
         )
       end
-    end
-  end
-
-  defmacro schema(fields, opts \\ [])
-
-  defmacro schema(name, opts) when is_binary(name) do
-    block = opts[:do]
-
-    quote do
-      @context Compilation.Context.update(__MODULE__, :schema, [
-                 unquote(name),
-                 unquote(Keyword.delete(opts, :do)),
-                 unquote(Macro.escape(block))
-               ])
-    end
-  end
-
-  defmacro schema(fields, opts) when is_list(fields) do
-    quote do
-      @context Compilation.Context.update(__MODULE__, :schema, [unquote(fields), unquote(opts)])
-    end
-  end
-
-  defmacro view(name, do: block) do
-    quote do
-      @context Compilation.Context.update(__MODULE__, :view, [
-                 unquote(name),
-                 unquote(Macro.escape(block))
-               ])
-    end
-  end
-
-  defmacro derive(do: block) do
-    quote do
-      @context Compilation.Context.update(__MODULE__, :derive, [unquote(Macro.escape(block))])
     end
   end
 
@@ -125,38 +98,6 @@ defmodule Drops.Relation do
 
       def unquote({name, [line: __ENV__.line], args}) do
         unquote(target).unquote(name)(unquote_splicing(final_args))
-      end
-    end
-  end
-
-  defmacro __before_compile__(env) do
-    relation = env.module
-    opts = Module.get_attribute(relation, :opts)
-
-    quote do
-      use Drops.Relation.Plugins.Schema
-      use Drops.Relation.Query
-      use Drops.Relation.Reading
-      use Drops.Relation.Writing
-      use Drops.Relation.Queryable
-      use Drops.Relation.Loadable
-      use Drops.Relation.Views
-
-      @spec repo() :: module()
-      def repo, do: unquote(opts[:repo])
-
-      def new(opts \\ []) do
-        new(__schema_module__(), opts)
-      end
-
-      def new(queryable, opts) do
-        Kernel.struct(__MODULE__, %{
-          queryable: queryable,
-          schema: schema(),
-          repo: repo(),
-          opts: opts,
-          preloads: []
-        })
       end
     end
   end

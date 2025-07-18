@@ -1,5 +1,7 @@
-defmodule Drops.Relation.Reading do
-  defmacro __using__(_opts) do
+defmodule Drops.Relation.Plugins.Reading do
+  use Drops.Relation.Plugin
+
+  def on(:before_compile, _relation, _) do
     quote do
       alias unquote(__MODULE__)
 

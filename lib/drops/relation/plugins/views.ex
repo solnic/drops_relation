@@ -1,28 +1,20 @@
-defmodule Drops.Relation.Views do
-  alias Drops.Relation.Compilation
+defmodule Drops.Relation.Plugins.Views do
+  use Drops.Relation.Plugin, imports: [view: 2, derive: 1]
 
-  alias __MODULE__
-
-  defmacro __using__(_opts) do
-    relation = __CALLER__.module
-    views = Compilation.Context.get(relation, :views)
-    views_ast = Views.generate_functions(relation, views)
-
-    quote location: :keep do
-      @after_compile unquote(__MODULE__)
-      unquote(views_ast)
+  defmacro view(name, do: block) do
+    quote do
+      @context update_context(__MODULE__, :view, [unquote(name), unquote(Macro.escape(block))])
     end
   end
 
-  defmacro __after_compile__(env, _) do
-    relation = env.module
-
-    views = Compilation.Context.get(relation, :views)
-
-    Enum.each(views, &Views.create_module(relation, &1.name, &1.block))
+  defmacro derive(do: block) do
+    quote do
+      @context update_context(__MODULE__, :derive, [unquote(Macro.escape(block))])
+    end
   end
 
-  def generate_functions(relation, views) do
+  def on(:before_compile, relation, _) do
+    views = context(relation, :views)
     views_map = module_map(relation, views)
 
     getters =
@@ -43,6 +35,12 @@ defmodule Drops.Relation.Views do
     end
   end
 
+  def on(:after_compile, relation, _) do
+    views = context(relation, :views)
+
+    Enum.each(views, &create_module(relation, &1.name, &1.block))
+  end
+
   def create_module(source, name, block) do
     opts = Keyword.merge(source.opts(), source: source, view: true)
 
@@ -60,7 +58,7 @@ defmodule Drops.Relation.Views do
   end
 
   def module(relation, name) do
-    Compilation.Context.config({relation, name}, :view_module)
+    config({relation, name}, :view_module)
   end
 
   defp module_map(relation, views) do
