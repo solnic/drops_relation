@@ -20,7 +20,15 @@ defmodule Drops.Relation.ViewTest do
       users.insert(%{name: "Joe", active: false})
       users.insert(%{name: "Jade", active: true})
 
-      assert [%{name: "Jane"}, %{name: "Jade"}] = users.active() |> Enum.to_list()
+      [jane, jade] = users.active() |> Enum.to_list()
+
+      assert jane.name == "Jane"
+      assert jane.active
+      assert :email not in Map.keys(jane)
+
+      assert jade.name == "Jade"
+      assert jade.active
+      assert :email not in Map.keys(jade)
     end
   end
 

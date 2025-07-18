@@ -73,7 +73,7 @@ defmodule Drops.Relation do
       def opts, do: @opts
       def opts(name), do: Keyword.get(opts(), name)
 
-      defstruct([:repo, schema: %{}, queryable: nil, opts: [], preloads: []])
+      defstruct([:repo, :schema, :queryable, opts: [], preloads: []])
 
       defmacro __using__(opts) do
         Drops.Relation.__define_relation__(
@@ -154,7 +154,7 @@ defmodule Drops.Relation do
     queryable_ast =
       if derive do
         quote do
-          def queryable, do: source() |> unquote(derive.block)
+          def queryable, do: unquote(derive.block)
         end
       else
         quote do
@@ -208,7 +208,7 @@ defmodule Drops.Relation do
       end
 
       def new(opts \\ []) do
-        new(queryable(), opts)
+        new(__schema_module__(), opts)
       end
 
       def new(queryable, opts) do
