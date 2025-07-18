@@ -107,6 +107,7 @@ defmodule Drops.Relation.MixProject do
     [
       {:nimble_options, "~> 1.0"},
       {:telemetry, "~> 1.0"},
+      {:drops_inflector, "~> 0.1", github: "solnic/drops_inflector"},
       {:ecto, "~> 3.10"},
       {:ecto_sql, "~> 3.10"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},

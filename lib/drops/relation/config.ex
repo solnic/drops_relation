@@ -1,5 +1,5 @@
 defmodule Drops.Relation.Config do
-  alias Drops.Relation.Inflection
+  alias Drops.Relation.Inflector
 
   alias __MODULE__
 
@@ -53,11 +53,11 @@ defmodule Drops.Relation.Config do
   end
 
   def default_ecto_schema_module(relation) do
-    Inflection.module_to_schema_name(relation)
+    Inflector.classify(relation)
   end
 
   def default_view_module({relation, name}) do
-    Module.concat([relation, Macro.camelize(Atom.to_string(name))])
+    Module.concat([relation, Inflector.camelize(name)])
   end
 
   @doc """
