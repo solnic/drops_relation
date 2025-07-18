@@ -30,7 +30,6 @@ defmodule Drops.Relation do
     Compilation,
     Generator,
     Schema,
-    Query,
     Views
   }
 
@@ -138,28 +137,23 @@ defmodule Drops.Relation do
 
   defmacro __before_compile__(env) do
     relation = env.module
-
     opts = Module.get_attribute(relation, :opts)
-    schema = Compilation.Context.get(relation, :schema)
-    schema = __build_schema__(relation, schema, opts)
 
-    Module.put_attribute(relation, :schema, schema)
-
-    query_api_ast = Query.generate_functions(schema)
+    __put_schema__(relation, opts)
 
     quote do
+      use Drops.Relation.Query
       use Drops.Relation.Reading
       use Drops.Relation.Writing
       use Drops.Relation.Queryable
       use Drops.Relation.Loadable
       use Drops.Relation.Views
 
-      @schema unquote(Macro.escape(schema))
-
       @spec schema() :: Drops.Relation.Schema.t()
       def schema, do: @schema
 
-      unquote_splicing(query_api_ast)
+      @spec repo() :: module()
+      def repo, do: unquote(opts[:repo])
 
       def new(opts \\ []) do
         new(__schema_module__(), opts)
@@ -168,8 +162,8 @@ defmodule Drops.Relation do
       def new(queryable, opts) do
         Kernel.struct(__MODULE__, %{
           queryable: queryable,
-          schema: Keyword.get(opts, :schema, schema()),
-          repo: unquote(opts[:repo]),
+          schema: schema(),
+          repo: repo(),
           opts: opts,
           preloads: []
         })
@@ -188,20 +182,23 @@ defmodule Drops.Relation do
     end
   end
 
-  def __build_schema__(relation, spec, opts) do
-    case spec do
-      %{name: nil, fields: fields} when is_list(fields) ->
-        Schema.project(opts[:source].schema(), fields)
+  def __put_schema__(relation, opts) do
+    schema =
+      case Compilation.Context.get(relation, :schema) do
+        %{name: nil, fields: fields} when is_list(fields) ->
+          Schema.project(opts[:source].schema(), fields)
 
-      %{name: name, infer: true, block: block} ->
-        source_schema = infer_source_schema(relation, name, opts)
+        %{name: name, infer: true, block: block} ->
+          source_schema = infer_source_schema(relation, name, opts)
 
-        if block do
-          Schema.merge(source_schema, Generator.schema_from_block(name, block))
-        else
-          source_schema
-        end
-    end
+          if block do
+            Schema.merge(source_schema, Generator.schema_from_block(name, block))
+          else
+            source_schema
+          end
+      end
+
+    Module.put_attribute(relation, :schema, schema)
   end
 
   def __finalize_relation__(relation) do
