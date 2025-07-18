@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Plugins.Query.SchemaCompiler do
+defmodule Drops.Relation.Plugins.AutoRestrict.SchemaCompiler do
   @moduledoc """
   Compiler for generating get_by_* finder functions from Drops.Relation.Schema structures.
 

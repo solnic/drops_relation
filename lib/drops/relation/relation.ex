@@ -63,11 +63,11 @@ defmodule Drops.Relation do
       Module.register_attribute(__MODULE__, :plugins, accumulate: true)
 
       use Drops.Relation.Plugins.Schema
-      use Drops.Relation.Plugins.Query
       use Drops.Relation.Plugins.Reading
       use Drops.Relation.Plugins.Writing
       use Drops.Relation.Plugins.Queryable
       use Drops.Relation.Plugins.Loadable
+      use Drops.Relation.Plugins.AutoRestrict
       use Drops.Relation.Plugins.Views
 
       @opts unquote(opts)

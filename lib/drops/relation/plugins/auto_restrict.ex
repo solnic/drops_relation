@@ -1,5 +1,5 @@
-defmodule Drops.Relation.Plugins.Query do
-  alias Drops.Relation.Plugins.Query.SchemaCompiler
+defmodule Drops.Relation.Plugins.AutoRestrict do
+  alias Drops.Relation.Plugins.AutoRestrict.SchemaCompiler
 
   use Drops.Relation.Plugin
 
