@@ -141,7 +141,6 @@ defmodule Drops.Relation do
 
     opts = Module.get_attribute(relation, :opts)
     schema = Compilation.Context.get(relation, :schema)
-    derive = Compilation.Context.get(relation, :derive)
     views = Compilation.Context.get(relation, :views)
 
     schema = __build_schema__(relation, schema, opts)
@@ -151,29 +150,16 @@ defmodule Drops.Relation do
     views_ast = Views.generate_functions(relation, views)
     query_api_ast = Query.generate_functions(schema)
 
-    queryable_ast =
-      if derive do
-        quote do
-          def queryable, do: unquote(derive.block)
-        end
-      else
-        quote do
-          def queryable, do: __schema_module__()
-        end
-      end
-
-    ecto_schema_module = ecto_schema_module(relation)
-
     quote do
       use Drops.Relation.Reading
       use Drops.Relation.Writing
+      use Drops.Relation.Queryable
 
       @schema unquote(Macro.escape(schema))
 
       @spec schema() :: Drops.Relation.Schema.t()
       def schema, do: @schema
 
-      unquote(queryable_ast)
       unquote(views_ast)
       unquote_splicing(query_api_ast)
 
@@ -190,18 +176,6 @@ defmodule Drops.Relation do
           preloads: []
         })
       end
-
-      # Make the relation module itself queryable by implementing the necessary functions
-      # This allows the relation module to be used directly in Ecto queries
-      def __schema__(query) do
-        __schema_module__().__schema__(query)
-      end
-
-      def __schema__(query, field) do
-        __schema_module__().__schema__(query, field)
-      end
-
-      def __schema_module__, do: unquote(ecto_schema_module)
     end
   end
 
@@ -233,13 +207,7 @@ defmodule Drops.Relation do
   end
 
   def __finalize_relation__(relation) do
-    schema = Compilation.Context.get(relation, :schema)
     views = Compilation.Context.get(relation, :views)
-
-    ecto_schema = Generator.generate_module_content(relation.schema(), schema.block || [])
-
-    Module.create(relation.__schema_module__(), ecto_schema, Macro.Env.location(__ENV__))
-
     Enum.each(views, fn view -> Views.create_module(relation, view.name, view.block) end)
 
     quote location: :keep do
@@ -272,37 +240,6 @@ defmodule Drops.Relation do
           unquote(relation).all(relation)
         end
       end
-
-      defimpl Ecto.Queryable, for: unquote(relation) do
-        import Ecto.Query
-
-        def to_query(relation) do
-          base_query = Ecto.Queryable.to_query(relation.queryable)
-
-          query_with_restrictions =
-            build_query_with_restrictions(base_query, relation.opts)
-
-          apply_preloads(query_with_restrictions, relation.preloads)
-        end
-
-        defp build_query_with_restrictions(queryable, []) do
-          queryable
-        end
-
-        defp build_query_with_restrictions(queryable, opts) do
-          Enum.reduce(opts, queryable, fn {field, value}, query ->
-            where(query, [r], field(r, ^field) == ^value)
-          end)
-        end
-
-        defp apply_preloads(queryable, []) do
-          queryable
-        end
-
-        defp apply_preloads(queryable, preloads) do
-          from(q in queryable, preload: ^preloads)
-        end
-      end
     end
   end
 
@@ -313,20 +250,5 @@ defmodule Drops.Relation do
     Module.put_attribute(relation, :external_resource, file)
 
     Drops.Relation.Cache.get_cached_schema(repo, name)
-  end
-
-  defp ecto_schema_module(relation) do
-    namespace = Compilation.Context.config(relation, :ecto_schema_namespace)
-
-    module =
-      case Compilation.Context.get(relation, :schema).opts[:struct] do
-        nil ->
-          Compilation.Context.config(relation, :ecto_schema_module)
-
-        value ->
-          value
-      end
-
-    Module.concat(namespace ++ [module])
   end
 end
