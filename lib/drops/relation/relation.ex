@@ -154,6 +154,7 @@ defmodule Drops.Relation do
       use Drops.Relation.Reading
       use Drops.Relation.Writing
       use Drops.Relation.Queryable
+      use Drops.Relation.Loadable
 
       @schema unquote(Macro.escape(schema))
 
@@ -209,38 +210,6 @@ defmodule Drops.Relation do
   def __finalize_relation__(relation) do
     views = Compilation.Context.get(relation, :views)
     Enum.each(views, fn view -> Views.create_module(relation, view.name, view.block) end)
-
-    quote location: :keep do
-      defimpl Enumerable, for: unquote(relation) do
-        import Ecto.Query
-
-        def count(relation) do
-          {:ok, length(materialize(relation))}
-        end
-
-        def member?(relation, value) do
-          case materialize(relation) do
-            {:ok, list} -> {:ok, value in list}
-            {:error, _} = error -> error
-          end
-        end
-
-        def slice(relation) do
-          list = materialize(relation)
-          size = length(list)
-
-          {:ok, size, fn start, count, _step -> Enum.slice(list, start, count) end}
-        end
-
-        def reduce(relation, acc, fun) do
-          Enumerable.List.reduce(materialize(relation), acc, fun)
-        end
-
-        defp materialize(relation) do
-          unquote(relation).all(relation)
-        end
-      end
-    end
   end
 
   defp infer_source_schema(relation, name, opts) do
