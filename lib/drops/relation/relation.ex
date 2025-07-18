@@ -29,8 +29,7 @@ defmodule Drops.Relation do
   alias Drops.Relation.{
     Compilation,
     Generator,
-    Schema,
-    Views
+    Schema
   }
 
   defmacro __using__(opts) do
@@ -66,7 +65,6 @@ defmodule Drops.Relation do
       @context Compilation.Context.new(__MODULE__, @config)
 
       @before_compile Drops.Relation
-      @after_compile Drops.Relation
 
       @opts unquote(opts)
       def opts, do: @opts
@@ -171,17 +169,6 @@ defmodule Drops.Relation do
     end
   end
 
-  defmacro __after_compile__(env, _) do
-    relation = env.module
-    schema = Module.get_attribute(relation, :schema)
-
-    if schema do
-      __finalize_relation__(relation)
-    else
-      []
-    end
-  end
-
   def __put_schema__(relation, opts) do
     schema =
       case Compilation.Context.get(relation, :schema) do
@@ -199,11 +186,6 @@ defmodule Drops.Relation do
       end
 
     Module.put_attribute(relation, :schema, schema)
-  end
-
-  def __finalize_relation__(relation) do
-    views = Compilation.Context.get(relation, :views)
-    Enum.each(views, fn view -> Views.create_module(relation, view.name, view.block) end)
   end
 
   defp infer_source_schema(relation, name, opts) do

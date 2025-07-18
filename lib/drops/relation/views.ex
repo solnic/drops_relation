@@ -9,8 +9,17 @@ defmodule Drops.Relation.Views do
     views_ast = Views.generate_functions(relation, views)
 
     quote location: :keep do
+      @after_compile unquote(__MODULE__)
       unquote(views_ast)
     end
+  end
+
+  defmacro __after_compile__(env, _) do
+    relation = env.module
+
+    views = Compilation.Context.get(relation, :views)
+
+    Enum.each(views, &Views.create_module(relation, &1.name, &1.block))
   end
 
   def generate_functions(relation, views) do
