@@ -75,8 +75,6 @@ defmodule Drops.Relation do
       def opts, do: @opts
       def opts(name), do: Keyword.get(opts(), name)
 
-      defstruct([:repo, :schema, :queryable, opts: [], preloads: []])
-
       defmacro __using__(opts) do
         Drops.Relation.__define_relation__(
           Keyword.put(Macro.expand(opts, __CALLER__), :source, __MODULE__)

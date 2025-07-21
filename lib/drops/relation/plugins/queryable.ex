@@ -1,7 +1,9 @@
 defmodule Drops.Relation.Plugins.Queryable do
   alias Drops.Relation.Generator
 
-  use Drops.Relation.Plugin
+  use Drops.Relation.Plugin do
+    defstruct([:repo, :schema, :queryable, opts: [], preloads: []])
+  end
 
   def on(:before_compile, relation, %{opts: opts}) do
     ecto_schema_module = ecto_schema_module(relation)

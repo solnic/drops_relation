@@ -15,6 +15,8 @@ defmodule Drops.Relation.Plugin do
   end
 
   defmacro __using__(opts) do
+    block = opts[:do]
+
     quote location: :keep do
       import Plugin
 
@@ -22,6 +24,9 @@ defmodule Drops.Relation.Plugin do
 
       @opts unquote(opts)
       def opts, do: @opts
+
+      @block unquote(Macro.escape(block))
+      def block, do: @block
 
       Module.register_attribute(__MODULE__, :dsl, accumulate: false)
 
@@ -69,6 +74,8 @@ defmodule Drops.Relation.Plugin do
 
             @before_compile unquote(plugin)
             @after_compile unquote(plugin)
+
+            unquote(plugin.block())
           end
 
         quote do
