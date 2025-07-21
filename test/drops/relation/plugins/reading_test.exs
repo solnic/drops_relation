@@ -114,4 +114,123 @@ defmodule Drops.Relations.Plugins.ReadingTest do
       assert :email in field_names
     end
   end
+
+  describe "all_by/2 function" do
+    @tag relations: [:users]
+    test "fetches all records matching clauses", %{users: users} do
+      # Insert test data
+      {:ok, _user1} =
+        users.insert(%{name: "Active User 1", email: "user1@example.com", active: true})
+
+      {:ok, _user2} =
+        users.insert(%{name: "Active User 2", email: "user2@example.com", active: true})
+
+      {:ok, _user3} =
+        users.insert(%{name: "Inactive User", email: "user3@example.com", active: false})
+
+      # Test all_by with single condition
+      active_users = users.all_by(active: true)
+      assert length(active_users) == 2
+      assert Enum.all?(active_users, & &1.active)
+
+      # Test all_by with multiple conditions
+      specific_user = users.all_by(name: "Active User 1", active: true)
+      assert length(specific_user) == 1
+      assert hd(specific_user).name == "Active User 1"
+
+      # Test all_by with no matches
+      no_matches = users.all_by(name: "Nonexistent")
+      assert no_matches == []
+    end
+  end
+
+  describe "new query functions" do
+    @tag relations: [:users]
+    test "exists? function works", %{users: users} do
+      # Test on empty table
+      refute users.exists?()
+
+      # Insert a user
+      {:ok, _user} = users.insert(%{name: "Test User", email: "test@example.com"})
+
+      # Test exists? returns true
+      assert users.exists?()
+    end
+
+    @tag relations: [:users]
+    test "aggregate functions work", %{users: users} do
+      # Insert test data with ages
+      {:ok, _user1} = users.insert(%{name: "User 1", email: "user1@example.com", age: 25})
+      {:ok, _user2} = users.insert(%{name: "User 2", email: "user2@example.com", age: 30})
+      {:ok, _user3} = users.insert(%{name: "User 3", email: "user3@example.com", age: 35})
+
+      # Test aggregate with field
+      avg_age = users.aggregate(:avg, :age)
+      assert avg_age == 30.0
+
+      max_age = users.aggregate(:max, :age)
+      assert max_age == 35
+
+      min_age = users.aggregate(:min, :age)
+      assert min_age == 25
+    end
+
+    @tag relations: [:users]
+    test "delete_all function works", %{users: users} do
+      # Insert test data
+      {:ok, _user1} = users.insert(%{name: "User 1", email: "user1@example.com"})
+      {:ok, _user2} = users.insert(%{name: "User 2", email: "user2@example.com"})
+
+      assert users.count() == 2
+
+      # Delete all users
+      {count, _} = users.delete_all()
+      assert count == 2
+      assert users.count() == 0
+    end
+
+    @tag relations: [:users]
+    test "update_all function works", %{users: users} do
+      # Insert test data
+      {:ok, _user1} = users.insert(%{name: "User 1", email: "user1@example.com", active: false})
+      {:ok, _user2} = users.insert(%{name: "User 2", email: "user2@example.com", active: false})
+
+      # Update all users to active
+      {count, _} = users.update_all(set: [active: true])
+      assert count == 2
+
+      # Verify all users are now active
+      active_users = users.all_by(active: true)
+      assert length(active_users) == 2
+    end
+  end
+
+  describe "transaction functions" do
+    @tag relations: [:users]
+    test "transaction function works", %{users: users} do
+      result =
+        users.transaction(fn ->
+          {:ok, user1} = users.insert(%{name: "User 1", email: "user1@example.com"})
+          {:ok, user2} = users.insert(%{name: "User 2", email: "user2@example.com"})
+          [user1, user2]
+        end)
+
+      assert {:ok, [user1, user2]} = result
+      assert user1.name == "User 1"
+      assert user2.name == "User 2"
+      assert users.count() == 2
+    end
+
+    @tag relations: [:users]
+    test "in_transaction? function works", %{users: users} do
+      # Outside transaction
+      refute users.in_transaction?()
+
+      # Inside transaction
+      users.transaction(fn ->
+        assert users.in_transaction?()
+        {:ok, :test}
+      end)
+    end
+  end
 end
