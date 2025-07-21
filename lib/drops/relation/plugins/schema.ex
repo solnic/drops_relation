@@ -5,13 +5,38 @@ defmodule Drops.Relation.Plugins.Schema do
 
   use Drops.Relation.Plugin, imports: [schema: 1, schema: 2]
 
+  defmodule Macros.Schema do
+    use Drops.Relation.Plugin.MacroStruct,
+      key: :schema,
+      struct: [:name, block: nil, fields: nil, opts: [], infer: true]
+
+    def new(name) when is_binary(name) do
+      %Macros.Schema{name: name}
+    end
+
+    def new(fields, opts) when is_list(fields) do
+      %Macros.Schema{name: nil, fields: fields, opts: opts}
+    end
+
+    def new(name, opts) when is_binary(name) and is_list(opts) do
+      opts = Keyword.delete(opts, :do)
+      infer = Keyword.get(opts, :infer, true)
+
+      %{new(name) | opts: opts, infer: infer}
+    end
+
+    def new(name, opts, block) when is_binary(name) and is_list(opts) do
+      %{new(name, opts) | block: block}
+    end
+  end
+
   defmacro schema(fields, opts \\ [])
 
   defmacro schema(name, opts) when is_binary(name) do
     block = opts[:do]
 
     quote do
-      @context update_context(__MODULE__, :schema, [
+      @context update_context(__MODULE__, Macros.Schema, [
                  unquote(name),
                  unquote(Keyword.delete(opts, :do)),
                  unquote(Macro.escape(block))
@@ -21,7 +46,7 @@ defmodule Drops.Relation.Plugins.Schema do
 
   defmacro schema(fields, opts) when is_list(fields) do
     quote do
-      @context update_context(__MODULE__, :schema, [unquote(fields), unquote(opts)])
+      @context update_context(__MODULE__, Macros.Schema, [unquote(fields), unquote(opts)])
     end
   end
 

@@ -69,6 +69,7 @@ defmodule Drops.Relation do
       use Drops.Relation.Plugins.Views
       use Drops.Relation.Plugins.Queryable
       use Drops.Relation.Plugins.AutoRestrict
+      use Drops.Relation.Plugins.Ecto.Query
 
       @opts unquote(opts)
       def opts, do: @opts

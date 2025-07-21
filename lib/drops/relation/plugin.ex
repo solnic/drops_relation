@@ -3,6 +3,17 @@ defmodule Drops.Relation.Plugin do
 
   alias __MODULE__
 
+  defmodule MacroStruct do
+    defmacro __using__(opts) do
+      quote location: :keep do
+        defstruct unquote(opts[:struct])
+
+        def accumulate, do: unquote(Keyword.get(opts, :accumulate, false))
+        def key, do: unquote(opts[:key])
+      end
+    end
+  end
+
   defmacro __using__(opts) do
     quote location: :keep do
       import Plugin
