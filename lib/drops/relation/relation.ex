@@ -53,6 +53,13 @@ defmodule Drops.Relation do
         end
       end
 
+    plugins =
+      Enum.map(plugins(opts), fn plugin ->
+        quote do
+          use unquote(plugin)
+        end
+      end)
+
     quote location: :keep do
       import Drops.Relation
 
@@ -62,14 +69,7 @@ defmodule Drops.Relation do
 
       Module.register_attribute(__MODULE__, :plugins, accumulate: true)
 
-      use Drops.Relation.Plugins.Schema
-      use Drops.Relation.Plugins.Reading
-      use Drops.Relation.Plugins.Writing
-      use Drops.Relation.Plugins.Loadable
-      use Drops.Relation.Plugins.Views
-      use Drops.Relation.Plugins.Queryable
-      use Drops.Relation.Plugins.AutoRestrict
-      use Drops.Relation.Plugins.Ecto.Query
+      unquote_splicing(plugins)
 
       @opts unquote(opts)
       def opts, do: @opts
@@ -100,6 +100,16 @@ defmodule Drops.Relation do
       def unquote({name, [line: __ENV__.line], args}) do
         unquote(target).unquote(name)(unquote_splicing(final_args))
       end
+    end
+  end
+
+  defp plugins(opts) do
+    case opts[:plugins] do
+      nil ->
+        Drops.Relation.Config.default_plugins(opts[:repo])
+
+      plugins when is_list(plugins) ->
+        plugins
     end
   end
 end

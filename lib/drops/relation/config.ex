@@ -42,6 +42,16 @@ defmodule Drops.Relation.Config do
       doc: """
       TODO
       """
+    ],
+    default_plugins: [
+      type: {:or, [{:list, :atom}, {:fun, 1}]},
+      default: &Config.default_plugins/1,
+      type_doc: "list of atoms or function/1",
+      doc: """
+      List of plugin modules to use by default when no plugins are explicitly specified.
+      Each plugin module should implement the Drops.Relation.Plugin behavior.
+      Can be a list of atoms or a function that takes a relation module and returns a list of atoms.
+      """
     ]
   ]
 
@@ -58,6 +68,19 @@ defmodule Drops.Relation.Config do
 
   def default_view_module({relation, name}) do
     Module.concat([relation, Inflector.camelize(name)])
+  end
+
+  def default_plugins(_relation) do
+    [
+      Drops.Relation.Plugins.Schema,
+      Drops.Relation.Plugins.Reading,
+      Drops.Relation.Plugins.Writing,
+      Drops.Relation.Plugins.Loadable,
+      Drops.Relation.Plugins.Views,
+      Drops.Relation.Plugins.Queryable,
+      Drops.Relation.Plugins.AutoRestrict,
+      Drops.Relation.Plugins.Ecto.Query
+    ]
   end
 
   @doc """
