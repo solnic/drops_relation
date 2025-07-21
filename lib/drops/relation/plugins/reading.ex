@@ -234,24 +234,6 @@ defmodule Drops.Relation.Plugins.Reading do
     read(:one, [], Keyword.merge(opts, queryable: Ecto.Query.last(opts[:relation])))
   end
 
-  @doc """
-  Gets a record by a specific field value.
-
-  This is a generic function used by dynamically generated index-based finders.
-  Delegates to `Ecto.Repo.get_by/3`. The `:repo` and `:relation` options are automatically set
-  based on the repository and relation module configured in the `use` macro, but can be overridden.
-
-  ## Examples
-
-      user = MyRelation.get_by_field(:email, "user@example.com")
-      user = MyRelation.get_by_field(:email, "user@example.com", repo: AnotherRepo)
-
-  See [Ecto.Repo.get_by/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get_by/3) for more details.
-  """
-  def get_by_field(field, value, opts) do
-    read(:get_by_field, [{field, value}], opts)
-  end
-
   defp read(fun, args, opts) do
     relation = opts[:relation]
     repo = relation.repo()
