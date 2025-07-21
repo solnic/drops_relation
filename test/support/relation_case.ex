@@ -95,19 +95,26 @@ defmodule Drops.RelationCase do
     if Code.ensure_loaded?(relation_module) do
       cleanup_modules(Map.values(relation_module.__views__()))
 
-      Enum.each([relation_module, relation_module.__schema_module__()], fn module ->
-        for protocol <- [Enumerable, Ecto.Queryable] do
-          impl_module = Module.concat([protocol, module])
+      Enum.each(
+        [
+          relation_module,
+          Module.concat([relation_module, QueryBuilder]),
+          relation_module.__schema_module__()
+        ],
+        fn module ->
+          for protocol <- [Enumerable, Ecto.Queryable] do
+            impl_module = Module.concat([protocol, module])
 
-          if Code.ensure_loaded?(impl_module) do
-            :code.delete(impl_module)
-            :code.purge(impl_module)
+            if Code.ensure_loaded?(impl_module) do
+              :code.delete(impl_module)
+              :code.purge(impl_module)
+            end
           end
-        end
 
-        :code.delete(module)
-        :code.purge(module)
-      end)
+          :code.delete(module)
+          :code.purge(module)
+        end
+      )
     end
   end
 
