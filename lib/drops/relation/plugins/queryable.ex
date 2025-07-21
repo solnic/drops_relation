@@ -1,8 +1,9 @@
 defmodule Drops.Relation.Plugins.Queryable do
   alias Drops.Relation.Generator
+  alias Drops.Relation.Plugins.Queryable.Operations
 
   use Drops.Relation.Plugin do
-    defstruct([:repo, :schema, :queryable, opts: [], preloads: []])
+    defstruct([:repo, :schema, :queryable, :associations, operations: [], opts: []])
   end
 
   def on(:before_compile, relation, %{opts: opts}) do
@@ -14,6 +15,12 @@ defmodule Drops.Relation.Plugins.Queryable do
         defdelegate __schema__(key, value), to: unquote(ecto_schema_module)
 
         def __schema_module__, do: unquote(ecto_schema_module)
+
+        def __associations__ do
+          Enum.reduce(__schema__(:associations), %{}, fn name, acc ->
+            Map.put(acc, name, __schema__(:association, name))
+          end)
+        end
       end
 
     quote do
@@ -32,10 +39,26 @@ defmodule Drops.Relation.Plugins.Queryable do
         Kernel.struct(__MODULE__, %{
           queryable: queryable,
           schema: schema(),
+          associations: __associations__(),
           repo: repo(),
-          opts: opts,
-          preloads: []
+          operations: [],
+          opts: opts
         })
+      end
+
+      defp add_operation(%__MODULE__{operations: operations} = relation, name, opts \\ []) do
+        relation_opts = relation.opts
+
+        if name in operations do
+          current_opts = Keyword.get(relation_opts, name, [])
+          updated_opts = Keyword.put(relation_opts, name, current_opts ++ List.wrap(opts))
+
+          %{relation | opts: updated_opts}
+        else
+          updated_opts = Keyword.put(relation_opts, name, List.wrap(opts))
+
+          %{relation | operations: operations ++ [name], opts: updated_opts}
+        end
       end
     end
   end
@@ -52,51 +75,26 @@ defmodule Drops.Relation.Plugins.Queryable do
 
     quote location: :keep do
       defimpl Ecto.Queryable, for: unquote(relation) do
-        import Ecto.Query
+        @compilers [
+          restrict: Operations.Restrict.Compiler,
+          order: Operations.Order.Compiler,
+          preload: Operations.Preload.Compiler
+        ]
 
-        def to_query(relation) do
-          base_query = Ecto.Queryable.to_query(relation.queryable)
-
-          query_with_restrictions =
-            build_query_with_restrictions(base_query, relation.opts)
-
-          apply_preloads(query_with_restrictions, relation.preloads)
+        def to_query(%{operations: [], queryable: queryable}) do
+          Ecto.Queryable.to_query(queryable)
         end
 
-        defp build_query_with_restrictions(queryable, []) do
-          queryable
-        end
+        def to_query(%{operations: operations, queryable: queryable, opts: opts} = relation) do
+          Enum.reduce(operations, Ecto.Queryable.to_query(queryable), fn name, query ->
+            case @compilers[name].visit(relation, %{query: query, opts: opts}) do
+              {:ok, result_query} ->
+                result_query
 
-        defp build_query_with_restrictions(queryable, opts) do
-          {order_opts, where_opts} = Keyword.split(opts, [:order])
-
-          query_with_where =
-            Enum.reduce(where_opts, queryable, fn {field, value}, query ->
-              where(query, [r], field(r, ^field) == ^value)
-            end)
-
-          apply_order_by(query_with_where, order_opts[:order])
-        end
-
-        defp apply_order_by(queryable, nil), do: queryable
-        defp apply_order_by(queryable, []), do: queryable
-
-        defp apply_order_by(queryable, order_by) when is_atom(order_by) do
-          order_by(queryable, ^order_by)
-        end
-
-        defp apply_order_by(queryable, order_by) when is_list(order_by) do
-          Enum.reduce(order_by, queryable, fn order_spec, query ->
-            order_by(query, ^order_spec)
+              {:error, errors} ->
+                raise Drops.Relation.Plugins.Queryable.InvalidQueryError, errors: errors
+            end
           end)
-        end
-
-        defp apply_preloads(queryable, []) do
-          queryable
-        end
-
-        defp apply_preloads(queryable, preloads) do
-          from(q in queryable, preload: ^preloads)
         end
       end
     end

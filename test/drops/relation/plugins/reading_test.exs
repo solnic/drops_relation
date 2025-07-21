@@ -316,6 +316,219 @@ defmodule Drops.Relations.Plugins.ReadingTest do
     end
   end
 
+  describe "restrict/2 with advanced field filtering" do
+    @tag relations: [:users]
+    test "handles list values with IN expressions", %{users: users} do
+      # Insert test data
+      {:ok, _user1} = users.insert(%{name: "Alice", email: "alice@example.com", active: true})
+      {:ok, _user2} = users.insert(%{name: "Bob", email: "bob@example.com", active: false})
+      {:ok, _user3} = users.insert(%{name: "Charlie", email: "charlie@example.com", active: true})
+
+      # Test list values (should use IN clause)
+      relation = users.restrict(name: ["Alice", "Charlie"])
+      found_users = Enum.to_list(relation)
+
+      assert length(found_users) == 2
+      names = Enum.map(found_users, & &1.name)
+      assert "Alice" in names
+      assert "Charlie" in names
+      refute "Bob" in names
+    end
+
+    @tag relations: [:users]
+    test "handles boolean values correctly", %{users: users} do
+      # Insert test data
+      {:ok, _user1} =
+        users.insert(%{name: "Active User", email: "active@example.com", active: true})
+
+      {:ok, _user2} =
+        users.insert(%{name: "Inactive User", email: "inactive@example.com", active: false})
+
+      # Test boolean true
+      active_relation = users.restrict(active: true)
+      active_users = Enum.to_list(active_relation)
+      assert length(active_users) == 1
+      assert hd(active_users).name == "Active User"
+
+      # Test boolean false
+      inactive_relation = users.restrict(active: false)
+      inactive_users = Enum.to_list(inactive_relation)
+      assert length(inactive_users) == 1
+      assert hd(inactive_users).name == "Inactive User"
+    end
+
+    @tag relations: [:users]
+    test "handles nil values with is_nil expressions", %{users: users} do
+      # Insert test data with some nil ages
+      {:ok, _user1} = users.insert(%{name: "User with age", email: "user1@example.com", age: 25})
+
+      {:ok, _user2} =
+        users.insert(%{name: "User without age", email: "user2@example.com", age: nil})
+
+      # Test nil values (should use is_nil)
+      relation = users.restrict(age: nil)
+      found_users = Enum.to_list(relation)
+
+      assert length(found_users) == 1
+      assert hd(found_users).name == "User without age"
+      assert hd(found_users).age == nil
+    end
+
+    @tag relations: [:users]
+    test "raises error on invalid fields", %{users: users} do
+      assert_raise Drops.Relation.Plugins.Queryable.InvalidQueryError, ~r/invalid_field/, fn ->
+        users.restrict(name: "Test User", invalid_field: "some_value") |> Enum.to_list()
+      end
+    end
+
+    @tag relations: [:users]
+    test "combines multiple field types in single restrict", %{users: users} do
+      # Insert test data
+      {:ok, _user1} =
+        users.insert(%{name: "Alice", email: "alice@example.com", active: true, age: 25})
+
+      {:ok, _user2} =
+        users.insert(%{name: "Bob", email: "bob@example.com", active: true, age: nil})
+
+      {:ok, _user3} =
+        users.insert(%{name: "Charlie", email: "charlie@example.com", active: false, age: 30})
+
+      # Test combining list, boolean, and nil values
+      relation = users.restrict(name: ["Alice", "Bob"], active: true, age: nil)
+      found_users = Enum.to_list(relation)
+
+      assert length(found_users) == 1
+      assert hd(found_users).name == "Bob"
+      assert hd(found_users).active == true
+      assert hd(found_users).age == nil
+    end
+
+    @tag relations: [:users]
+    test "sets operation metadata correctly", %{users: users} do
+      # Test that restrict sets the operations field
+      relation = users.restrict(name: "Test")
+      assert relation.operations == [:restrict]
+
+      # Test that order sets the operations field
+      order_relation = users.order(:name)
+      assert order_relation.operations == [:order]
+
+      # Test that chaining operations accumulates them
+      chained_relation = users.restrict(name: "Test") |> users.order(:name)
+      assert chained_relation.operations == [:restrict, :order]
+    end
+  end
+
+  describe "preload operations" do
+    relation(:association_parents) do
+      schema("association_parents", infer: true)
+    end
+
+    relation(:association_items) do
+      schema("association_items") do
+        belongs_to(:association, Test.Relations.Associations)
+      end
+    end
+
+    relation(:associations) do
+      schema("associations") do
+        has_many(:items, Test.Relations.AssociationItems)
+        belongs_to(:parent, Test.Relations.AssociationParents)
+      end
+    end
+
+    test "preloads single association", %{
+      associations: associations,
+      association_parents: parents
+    } do
+      # Create test data
+      {:ok, parent} = parents.insert(%{description: "Test Parent"})
+      {:ok, _association} = associations.insert(%{name: "Test Association", parent_id: parent.id})
+
+      # Test preload with single association
+      result = associations.preload(:parent) |> associations.all()
+
+      assert length(result) == 1
+      loaded_association = List.first(result)
+      assert loaded_association.name == "Test Association"
+      assert loaded_association.parent.description == "Test Parent"
+    end
+
+    test "preloads multiple associations", %{
+      associations: associations,
+      association_items: items,
+      association_parents: parents
+    } do
+      # Create test data
+      {:ok, parent} = parents.insert(%{description: "Test Parent"})
+      {:ok, association} = associations.insert(%{name: "Test Association", parent_id: parent.id})
+      {:ok, _item} = items.insert(%{title: "Test Item", association_id: association.id})
+
+      # Test preload with multiple associations
+      result = associations.preload([:parent, :items]) |> associations.all()
+
+      assert length(result) == 1
+      loaded_association = List.first(result)
+      assert loaded_association.name == "Test Association"
+      assert loaded_association.parent.description == "Test Parent"
+      assert length(loaded_association.items) == 1
+      assert List.first(loaded_association.items).title == "Test Item"
+    end
+
+    test "combines preload with restrict", %{
+      associations: associations,
+      association_parents: parents
+    } do
+      # Create test data
+      {:ok, parent1} = parents.insert(%{description: "Parent 1"})
+      {:ok, parent2} = parents.insert(%{description: "Parent 2"})
+      {:ok, _assoc1} = associations.insert(%{name: "Association 1", parent_id: parent1.id})
+      {:ok, _assoc2} = associations.insert(%{name: "Association 2", parent_id: parent2.id})
+
+      # Test combining preload with restrict
+      result =
+        associations
+        |> associations.restrict(name: "Association 1")
+        |> associations.preload(:parent)
+        |> associations.all()
+
+      assert length(result) == 1
+      loaded_association = List.first(result)
+      assert loaded_association.name == "Association 1"
+      assert loaded_association.parent.description == "Parent 1"
+    end
+  end
+
+  describe "nullable field handling in restrict" do
+    @tag relations: [:users]
+    test "handles nil values for nullable fields", %{users: users} do
+      # Create test data with nil email (assuming email is nullable)
+      {:ok, _user1} = users.insert(%{name: "User 1", email: nil})
+      {:ok, _user2} = users.insert(%{name: "User 2", email: "user2@example.com"})
+
+      # Test restricting by nil value
+      result = users.restrict(email: nil) |> users.all()
+
+      assert length(result) == 1
+      assert List.first(result).name == "User 1"
+    end
+
+    @tag relations: [:users]
+    test "handles list values with in clause", %{users: users} do
+      # Create test data
+      {:ok, _user1} = users.insert(%{name: "User 1", email: "user1@example.com"})
+      {:ok, _user2} = users.insert(%{name: "User 2", email: "user2@example.com"})
+      {:ok, _user3} = users.insert(%{name: "User 3", email: "user3@example.com"})
+
+      # Test restricting by list of values
+      result = users.restrict(email: ["user1@example.com", "user2@example.com"]) |> users.all()
+
+      assert length(result) == 2
+      names = Enum.map(result, & &1.name) |> Enum.sort()
+      assert names == ["User 1", "User 2"]
+    end
+  end
+
   describe "transaction functions" do
     @tag relations: [:users]
     test "transaction function works", %{users: users} do
@@ -342,6 +555,105 @@ defmodule Drops.Relations.Plugins.ReadingTest do
         assert users.in_transaction?()
         {:ok, :test}
       end)
+    end
+  end
+
+  describe "query validation errors" do
+    alias Drops.Relation.Plugins.Queryable.InvalidQueryError
+
+    relation(:metadata_test) do
+      schema("metadata_test", infer: true)
+    end
+
+    test "raises InvalidQueryError when comparing nil to non-nullable field", %{
+      metadata_test: metadata_test
+    } do
+      # The 'name' field in metadata_test is non-nullable
+      assert_raise InvalidQueryError, ~r/name is not nullable/, fn ->
+        metadata_test.restrict(name: nil) |> Enum.to_list()
+      end
+    end
+
+    test "raises InvalidQueryError when comparing boolean to non-boolean field", %{
+      metadata_test: metadata_test
+    } do
+      # The 'name' field is a string field, not boolean
+      assert_raise InvalidQueryError, ~r/name is not a boolean field/, fn ->
+        metadata_test.restrict(name: true) |> Enum.to_list()
+      end
+    end
+
+    @tag relations: [:users]
+    test "raises InvalidQueryError when ordering by non-existent field", %{users: users} do
+      assert_raise InvalidQueryError, ~r/Field 'nonexistent' not found in schema/, fn ->
+        users.order(:nonexistent) |> Enum.to_list()
+      end
+    end
+
+    @tag relations: [:users]
+    test "raises InvalidQueryError when ordering with invalid specification", %{users: users} do
+      assert_raise InvalidQueryError, ~r/invalid order specification/, fn ->
+        users.order([{:invalid_direction, :name}]) |> Enum.to_list()
+      end
+    end
+
+    @tag relations: [:users]
+    test "raises InvalidQueryError when preloading non-existent association", %{users: users} do
+      assert_raise InvalidQueryError, ~r/association :nonexistent is not defined/, fn ->
+        users.preload(:nonexistent) |> Enum.to_list()
+      end
+    end
+
+    @tag relations: [:users]
+    test "allows nil comparison for nullable fields", %{users: users} do
+      # The 'age' field in users is nullable
+      # This should not raise an error
+      result = users.restrict(age: nil) |> Enum.to_list()
+      assert is_list(result)
+    end
+
+    test "raises InvalidQueryError for non-boolean fields with integer defaults", %{
+      metadata_test: metadata_test
+    } do
+      # The 'is_enabled' field has default: 1 (integer), so it's NOT a boolean field
+      # This should raise an error
+      assert_raise InvalidQueryError, ~r/is_enabled is not a boolean field/, fn ->
+        metadata_test.restrict(is_enabled: true) |> Enum.to_list()
+      end
+    end
+
+    relation(:custom_types) do
+      schema("custom_types", infer: true)
+    end
+
+    test "allows boolean comparison for proper boolean fields", %{custom_types: custom_types} do
+      # The 'boolean_true_default' field has default: true, so it IS a boolean field
+      # This should not raise an error
+      result = custom_types.restrict(boolean_true_default: true) |> Enum.to_list()
+      assert is_list(result)
+
+      # Test false value as well
+      result = custom_types.restrict(boolean_false_default: false) |> Enum.to_list()
+      assert is_list(result)
+    end
+
+    test "error message includes multiple validation errors", %{metadata_test: metadata_test} do
+      assert_raise InvalidQueryError, fn ->
+        metadata_test.restrict(name: nil, nonexistent_field: "value") |> Enum.to_list()
+      end
+    end
+
+    test "validation errors are human-readable", %{metadata_test: metadata_test} do
+      try do
+        metadata_test.restrict(name: nil) |> Enum.to_list()
+        flunk("Expected InvalidQueryError to be raised")
+      rescue
+        error in InvalidQueryError ->
+          message = Exception.message(error)
+          assert message =~ "Query validation failed"
+          assert message =~ "name is not nullable"
+          assert message =~ "comparing to `nil` is not allowed"
+      end
     end
   end
 end
