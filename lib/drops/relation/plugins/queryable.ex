@@ -68,8 +68,26 @@ defmodule Drops.Relation.Plugins.Queryable do
         end
 
         defp build_query_with_restrictions(queryable, opts) do
-          Enum.reduce(opts, queryable, fn {field, value}, query ->
-            where(query, [r], field(r, ^field) == ^value)
+          {order_opts, where_opts} = Keyword.split(opts, [:order])
+
+          query_with_where =
+            Enum.reduce(where_opts, queryable, fn {field, value}, query ->
+              where(query, [r], field(r, ^field) == ^value)
+            end)
+
+          apply_order_by(query_with_where, order_opts[:order])
+        end
+
+        defp apply_order_by(queryable, nil), do: queryable
+        defp apply_order_by(queryable, []), do: queryable
+
+        defp apply_order_by(queryable, order_by) when is_atom(order_by) do
+          order_by(queryable, ^order_by)
+        end
+
+        defp apply_order_by(queryable, order_by) when is_list(order_by) do
+          Enum.reduce(order_by, queryable, fn order_spec, query ->
+            order_by(query, ^order_spec)
           end)
         end
 

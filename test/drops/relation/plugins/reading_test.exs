@@ -205,6 +205,117 @@ defmodule Drops.Relations.Plugins.ReadingTest do
     end
   end
 
+  describe "order/1" do
+    @tag relations: [:users]
+    test "ordering by single field", %{users: users} do
+      users.insert(%{name: "Charlie", email: "charlie@example.com"})
+      users.insert(%{name: "Alice", email: "alice@example.com"})
+      users.insert(%{name: "Bob", email: "bob@example.com"})
+
+      # Test ordering by name ascending
+      relation = users |> users.order(:name)
+      ordered_users = Enum.to_list(relation)
+
+      assert length(ordered_users) == 3
+      assert Enum.at(ordered_users, 0).name == "Alice"
+      assert Enum.at(ordered_users, 1).name == "Bob"
+      assert Enum.at(ordered_users, 2).name == "Charlie"
+    end
+
+    @tag relations: [:users]
+    test "ordering by multiple fields", %{users: users} do
+      users.insert(%{name: "Alice", email: "alice2@example.com"})
+      users.insert(%{name: "Alice", email: "alice1@example.com"})
+      users.insert(%{name: "Bob", email: "bob@example.com"})
+
+      # Test ordering by name then email
+      relation = users |> users.order([:name, :email])
+      ordered_users = Enum.to_list(relation)
+
+      assert length(ordered_users) == 3
+      assert Enum.at(ordered_users, 0).name == "Alice"
+      assert Enum.at(ordered_users, 0).email == "alice1@example.com"
+      assert Enum.at(ordered_users, 1).name == "Alice"
+      assert Enum.at(ordered_users, 1).email == "alice2@example.com"
+      assert Enum.at(ordered_users, 2).name == "Bob"
+    end
+
+    @tag relations: [:users]
+    test "composing order with restrict", %{users: users} do
+      users.insert(%{name: "Alice", email: "alice@example.com"})
+      users.insert(%{name: "Bob", email: "bob@example.com"})
+      users.insert(%{name: "Charlie", email: "charlie@example.com"})
+
+      # Test composing order with restrict
+      relation =
+        users
+        |> users.restrict(name: "Alice")
+        |> users.order(:email)
+
+      ordered_users = Enum.to_list(relation)
+      assert length(ordered_users) == 1
+      assert Enum.at(ordered_users, 0).name == "Alice"
+    end
+
+    @tag relations: [:users]
+    test "chaining multiple order calls", %{users: users} do
+      users.insert(%{name: "Alice", email: "alice2@example.com"})
+      users.insert(%{name: "Alice", email: "alice1@example.com"})
+      users.insert(%{name: "Bob", email: "bob@example.com"})
+
+      # Test chaining multiple order calls
+      relation =
+        users
+        |> users.order(:name)
+        |> users.order(:email)
+
+      ordered_users = Enum.to_list(relation)
+
+      assert length(ordered_users) == 3
+      # Should be ordered by name first, then email
+      assert Enum.at(ordered_users, 0).name == "Alice"
+      assert Enum.at(ordered_users, 0).email == "alice1@example.com"
+      assert Enum.at(ordered_users, 1).name == "Alice"
+      assert Enum.at(ordered_users, 1).email == "alice2@example.com"
+      assert Enum.at(ordered_users, 2).name == "Bob"
+    end
+
+    @tag relations: [:users]
+    test "ordering with keyword list directions", %{users: users} do
+      users.insert(%{name: "Alice", email: "alice@example.com"})
+      users.insert(%{name: "Bob", email: "bob@example.com"})
+      users.insert(%{name: "Charlie", email: "charlie@example.com"})
+
+      # Test ordering with desc direction
+      relation = users |> users.order(desc: :name)
+      ordered_users = Enum.to_list(relation)
+
+      assert length(ordered_users) == 3
+      assert Enum.at(ordered_users, 0).name == "Charlie"
+      assert Enum.at(ordered_users, 1).name == "Bob"
+      assert Enum.at(ordered_users, 2).name == "Alice"
+    end
+
+    @tag relations: [:users]
+    test "ordering with mixed directions", %{users: users} do
+      users.insert(%{name: "Alice", email: "alice2@example.com"})
+      users.insert(%{name: "Alice", email: "alice1@example.com"})
+      users.insert(%{name: "Bob", email: "bob@example.com"})
+
+      # Test ordering with mixed directions
+      relation = users |> users.order(asc: :name, desc: :email)
+      ordered_users = Enum.to_list(relation)
+
+      assert length(ordered_users) == 3
+      # Should be ordered by name asc, then email desc
+      assert Enum.at(ordered_users, 0).name == "Alice"
+      assert Enum.at(ordered_users, 0).email == "alice2@example.com"
+      assert Enum.at(ordered_users, 1).name == "Alice"
+      assert Enum.at(ordered_users, 1).email == "alice1@example.com"
+      assert Enum.at(ordered_users, 2).name == "Bob"
+    end
+  end
+
   describe "transaction functions" do
     @tag relations: [:users]
     test "transaction function works", %{users: users} do
