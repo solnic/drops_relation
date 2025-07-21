@@ -12,6 +12,8 @@ defmodule Users do
   end
 end
 
+Enum.each(Users.all(), &Users.delete/1)
+
 Users.insert(%{name: "John", active: false})
 Users.insert(%{name: "Jane", active: true})
 Users.insert(%{name: "Joe", active: false})

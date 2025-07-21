@@ -27,6 +27,7 @@ Users.insert(%{name: "Jane", active: true})
 Users.insert(%{name: "Joe", active: false})
 Users.insert(%{name: "Jade", active: true})
 
+# Composable query functions
 users =
   Users.active()
   |> Users.by_name(["Jane", "John"])
