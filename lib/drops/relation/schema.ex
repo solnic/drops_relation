@@ -25,13 +25,7 @@ defmodule Drops.Relation.Schema do
           indices: [Index.t()]
         }
 
-  defstruct [
-    :source,
-    :primary_key,
-    :foreign_keys,
-    :fields,
-    :indices
-  ]
+  defstruct [:source, :fields, primary_key: nil, foreign_keys: [], indices: []]
 
   alias Drops.Relation.Schema.Serializable
 
@@ -62,6 +56,11 @@ defmodule Drops.Relation.Schema do
   - `fields` - List of field metadata
   - `indices` - Index information
   """
+  @spec new(String.t(), [Field.t()], keyword()) :: t()
+  def new(source, fields, rest \\ []) do
+    new(Map.merge(%{source: source, fields: fields}, Enum.into(rest, %{})))
+  end
+
   @spec new(
           String.t(),
           PrimaryKey.t(),
