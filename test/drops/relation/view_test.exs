@@ -30,6 +30,14 @@ defmodule Drops.Relation.ViewTest do
       assert jade.active
       assert :email not in Map.keys(jade)
     end
+
+    test "uses derived relation by default", %{users: users} do
+      users.insert(%{name: "John", active: false})
+      users.insert(%{name: "Jane", active: true})
+
+      assert users.active().get_by_name("John") |> Enum.to_list() == []
+      assert [%{name: "Jane"}] = users.active().get_by_name("Jane") |> Enum.to_list()
+    end
   end
 
   describe "defining a relation view with custom struct name" do

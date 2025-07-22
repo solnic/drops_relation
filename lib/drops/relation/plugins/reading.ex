@@ -40,7 +40,7 @@ defmodule Drops.Relation.Plugins.Reading do
       end
 
       def restrict(opts) when is_list(opts) do
-        add_operation(new(__schema_module__(), []), :restrict, opts)
+        add_operation(new(), :restrict, opts)
       end
 
       def restrict(%__MODULE__{} = relation, opts) do
@@ -52,7 +52,7 @@ defmodule Drops.Relation.Plugins.Reading do
       end
 
       def preload(association) when is_atom(association) do
-        add_operation(new(__schema_module__(), []), :preload, [association])
+        add_operation(new(), :preload, [association])
       end
 
       def preload(%__MODULE__{} = relation, association) when is_atom(association) do
@@ -60,7 +60,7 @@ defmodule Drops.Relation.Plugins.Reading do
       end
 
       def preload(associations) when is_list(associations) do
-        add_operation(new(__schema_module__(), []), :preload, associations)
+        add_operation(new(), :preload, associations)
       end
 
       def preload(%__MODULE__{} = relation, associations) when is_list(associations) do
@@ -68,7 +68,7 @@ defmodule Drops.Relation.Plugins.Reading do
       end
 
       def order(opts) when is_atom(opts) or is_list(opts) do
-        add_operation(new(__schema_module__(), []), :order, opts)
+        add_operation(new(), :order, opts)
       end
 
       def order(%__MODULE__{} = relation, opts) when is_atom(opts) or is_list(opts) do

@@ -43,7 +43,7 @@ defmodule Drops.Relation.Plugins.AutoRestrict.SchemaCompiler do
 
     quote do
       def unquote(function_name)(value) do
-        __MODULE__.restrict(__MODULE__, [{unquote(name), value}])
+        __MODULE__.restrict(__MODULE__.new(), [{unquote(name), value}])
       end
 
       def unquote(function_name)(queryable, value) do
@@ -67,7 +67,7 @@ defmodule Drops.Relation.Plugins.AutoRestrict.SchemaCompiler do
     quote do
       def unquote(get_function_name)(unquote_splicing(param_names)) do
         clauses = unquote(clauses_ast)
-        __MODULE__.restrict(__MODULE__, clauses)
+        __MODULE__.restrict(__MODULE__.new(), clauses)
       end
 
       def unquote(get_function_name)(queryable, unquote_splicing(param_names)) do

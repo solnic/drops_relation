@@ -41,6 +41,9 @@ defmodule Drops.Relation do
 
           @source unquote(opts[:source])
           def source, do: @source
+
+          @view unquote(opts[:view])
+          def name, do: @view
         end
       else
         quote do

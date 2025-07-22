@@ -37,18 +37,7 @@ defmodule Drops.Relation.Plugins.Views do
     end
   end
 
-  def on(:before_compile, relation, _) do
-    derive = context(relation, :derive)
-
-    derived_new =
-      if derive do
-        quote do
-          def new(), do: unquote(derive.block)
-        end
-      else
-        []
-      end
-
+  def on(:before_compile, relation, _opts) do
     views = context(relation, :views) || []
     views_map = module_map(relation, views)
 
@@ -60,33 +49,52 @@ defmodule Drops.Relation.Plugins.Views do
         end
       end)
 
-    quote do
+    derive_funcs =
+      Enum.map(views, fn view ->
+        derive_block = extract_derive_block(view.block)
+
+        quote do
+          def derive_for(unquote(view.name), view) do
+            relation = unquote(derive_block)
+            view_relation = view.new(view.__schema_module__(), relation.opts)
+            %{view_relation | operations: relation.operations}
+          end
+        end
+      end)
+
+    quote location: :keep do
       @__views__ unquote(Macro.escape(views_map))
       def __views__, do: @__views__
 
       def view(name), do: Map.get(__views__(), name)
 
       unquote_splicing(getters)
-
-      unquote(derived_new)
+      unquote_splicing(derive_funcs)
     end
   end
 
-  def on(:after_compile, relation, _) do
+  def on(:after_compile, relation, opts) when not is_map_key(opts, :source) do
     views = context(relation, :views)
 
-    if views, do: Enum.each(views, &create_module(relation, &1.name, &1.block))
+    if views do
+      Enum.each(views, fn view ->
+        create_module(relation, view.name, view.block)
+      end)
+    end
   end
 
   def create_module(source, name, block) do
-    opts = Keyword.merge(source.opts(), source: source, view: true)
+    opts = Keyword.merge(source.opts(), source: source, view: name)
+    module_name = module(source, name)
 
     {:module, module, _, _} =
       Module.create(
-        module(source, name),
-        quote do
+        module_name,
+        quote location: :keep do
           use unquote(source), unquote(opts)
           unquote(block)
+
+          def queryable(), do: unquote(source).derive_for(unquote(name), __MODULE__)
         end,
         Macro.Env.location(__ENV__)
       )
@@ -101,6 +109,21 @@ defmodule Drops.Relation.Plugins.Views do
   defp module_map(relation, views) do
     Enum.reduce(views, %{}, fn view, acc ->
       Map.put(acc, view.name, module(relation, view.name))
+    end)
+  end
+
+  defp extract_derive_block({:__block__, _meta, expressions}) do
+    extract_derive_from_expressions(expressions)
+  end
+
+  defp extract_derive_block(expression) do
+    extract_derive_from_expressions([expression])
+  end
+
+  defp extract_derive_from_expressions(expressions) do
+    Enum.find_value(expressions, fn
+      {:derive, _meta, [[do: block]]} -> block
+      _ -> nil
     end)
   end
 end

@@ -101,12 +101,22 @@ defmodule Drops.Relation.Schema do
 
   @spec project(Schema.t(), [atom()]) :: Schema.t()
   def project(schema, fields) when is_list(fields) do
+    field_set = MapSet.new(fields)
+    projected_fields = Enum.map(fields, fn name -> schema[name] end)
+
+    # Only include indices where all fields are in the projected field set
+    relevant_indices =
+      Enum.filter(schema.indices, fn index ->
+        index_field_names = Enum.map(index.fields, & &1.name)
+        Enum.all?(index_field_names, &MapSet.member?(field_set, &1))
+      end)
+
     new(
       schema.source,
       schema.primary_key,
       schema.foreign_keys,
-      Enum.map(fields, fn name -> schema[name] end),
-      schema.indices
+      projected_fields,
+      relevant_indices
     )
   end
 

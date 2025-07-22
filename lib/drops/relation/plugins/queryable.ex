@@ -29,11 +29,7 @@ defmodule Drops.Relation.Plugins.Queryable do
       @spec repo() :: module()
       def repo, do: unquote(opts[:repo])
 
-      def new(), do: new([])
-
-      def new(opts) do
-        new(__schema_module__(), opts)
-      end
+      def new(opts \\ []), do: new(queryable(), opts)
 
       def new(queryable, opts) do
         Kernel.struct(__MODULE__, %{
@@ -45,6 +41,9 @@ defmodule Drops.Relation.Plugins.Queryable do
           opts: opts
         })
       end
+
+      def queryable(), do: __schema_module__()
+      defoverridable queryable: 0
 
       defp add_operation(%__MODULE__{operations: operations} = relation, name, opts \\ []) do
         relation_opts = relation.opts
