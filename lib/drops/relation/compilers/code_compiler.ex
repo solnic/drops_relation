@@ -2,6 +2,7 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
   @moduledoc false
 
   alias Drops.Relation.Schema
+  alias Drops.Relation.Schema.Field
 
   def visit(node, opts \\ %{})
 
@@ -101,58 +102,24 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
     end)
   end
 
-  def visit({:fields, fields}, %{schema: schema}) do
-    # Get primary key field names
-    pk_field_names =
-      if schema.primary_key do
-        Enum.map(schema.primary_key.fields, & &1.name)
-      else
-        []
-      end
-
-    # Generate field definitions for non-primary key fields and non-timestamp fields
-    Enum.map(fields, fn field ->
-      cond do
-        # Skip timestamp fields - they're handled by timestamps() macro
-        field.name in [:inserted_at, :updated_at] ->
-          nil
-
-        field.meta[:association] ->
-          nil
-
-        # Skip primary key fields unless composite
-        field.name in pk_field_names and
-            not (schema.primary_key && schema.primary_key.meta.composite) ->
-          nil
-
-        # Generate field definition for composite primary key
-        (field.name in pk_field_names and schema.primary_key) &&
-            schema.primary_key.meta.composite ->
-          generate_composite_primary_key_field(field)
-
-        # Generate regular field definition
-        true ->
-          generate_field_definition(field.name, field.type, field.meta)
-      end
-    end)
-    |> Enum.reject(&is_nil/1)
+  def visit({:fields, fields}, opts) do
+    Enum.map(fields, &visit(&1, opts))
   end
 
-  def visit({:indices, _indices}, _opts) do
-    nil
-  end
+  def visit({type, _}, _opts) when type in [:index, :foreign_key], do: nil
+  def visit(nil, _opts), do: nil
 
-  def visit({:field, nodes}, opts) do
-    [name, type_tuple, meta_tuple] = visit(nodes, opts)
-
-    type = visit(type_tuple, opts)
-    meta = visit(meta_tuple, opts)
+  def visit(%Field{} = field, %{schema: schema} = opts) do
+    [name, type, meta] = Enum.map(field, &visit(&1, opts))
 
     cond do
       name in [:inserted_at, :updated_at] ->
         nil
 
-      meta.primary_key ->
+      meta[:association] ->
+        nil
+
+      Schema.primary_key?(schema, field) ->
         nil
 
       true ->
@@ -170,17 +137,6 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
 
   def visit({:meta, meta}, _opts) when is_map(meta) do
     meta
-  end
-
-  def visit(
-        {:foreign_key, [_field, _references_table, _references_field, _association_name]},
-        _opts
-      ) do
-    nil
-  end
-
-  def visit({:index, [_name, _columns, _unique, _type]}, _opts) do
-    nil
   end
 
   def visit({type, type_opts}, _opts) when is_atom(type) and is_list(type_opts) do
@@ -206,8 +162,6 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
   def visit(enumerable, opts) when is_list(enumerable) and not is_binary(enumerable) do
     Enum.map(enumerable, &visit(&1, opts))
   end
-
-  def visit(nil, _opts), do: nil
 
   def visit(value, _opts), do: value
 
@@ -235,35 +189,8 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
     end
   end
 
-  defp generate_composite_primary_key_field(field) do
-    field_opts = [{:primary_key, true}]
-
-    source = Map.get(field.meta, :source, field.name)
-    field_opts = if source != field.name, do: [{:source, source} | field_opts], else: field_opts
-
-    field_opts =
-      case Map.get(field.meta, :default) do
-        nil -> field_opts
-        :auto_increment -> field_opts
-        value -> [{:default, value} | field_opts]
-      end
-
-    {field_type, type_opts} =
-      case field.type do
-        {type_module, opts} when is_list(opts) -> {type_module, opts}
-        {type_module, opts} when is_map(opts) -> {type_module, Map.to_list(opts)}
-        _ -> {field.type, []}
-      end
-
-    all_opts = type_opts ++ field_opts
-
-    quote do
-      field(unquote(field.name), unquote(field_type), unquote(all_opts))
-    end
-  end
-
   defp generate_field_definition(name, type, meta) do
-    field_opts = []
+    field_opts = if meta[:primary_key], do: [{:primary_key, true}], else: []
 
     source = Map.get(meta, :source, name)
     field_opts = if source != name, do: [{:source, source} | field_opts], else: field_opts

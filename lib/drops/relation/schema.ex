@@ -147,6 +147,12 @@ defmodule Drops.Relation.Schema do
     end
   end
 
+  def primary_key?(%{primary_key: nil}, _field), do: false
+  def primary_key?(%{primary_key: %{meta: %{composite: true}}}, _field), do: false
+
+  def primary_key?(%{primary_key: primary_key}, field),
+    do: field.name in Enum.map(primary_key.fields, & &1.name)
+
   @doc """
   Merges two schemas, with the right schema taking precedence for conflicts.
 

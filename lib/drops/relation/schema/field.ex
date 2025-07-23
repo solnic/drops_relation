@@ -205,12 +205,12 @@ defimpl Enumerable, for: Drops.Relation.Schema.Field do
   end
 
   def member?(%Drops.Relation.Schema.Field{} = field, element) do
-    tuple_representation = {:field, [field.name, {:type, field.type}, {:meta, field.meta}]}
+    tuple_representation = [field.name, {:type, field.type}, {:meta, field.meta}]
     {:ok, element == tuple_representation}
   end
 
   def slice(%Drops.Relation.Schema.Field{} = field) do
-    tuple_representation = {:field, [field.name, {:type, field.type}, {:meta, field.meta}]}
+    tuple_representation = [field.name, {:type, field.type}, {:meta, field.meta}]
 
     {:ok, 1,
      fn
@@ -220,7 +220,7 @@ defimpl Enumerable, for: Drops.Relation.Schema.Field do
   end
 
   def reduce(%Drops.Relation.Schema.Field{} = field, acc, fun) do
-    tuple_representation = {:field, [field.name, {:type, field.type}, {:meta, field.meta}]}
-    Enumerable.reduce([tuple_representation], acc, fun)
+    tuple_representation = [field.name, {:type, field.type}, {:meta, field.meta}]
+    Enumerable.reduce(tuple_representation, acc, fun)
   end
 end
