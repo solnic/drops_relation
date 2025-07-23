@@ -97,6 +97,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.get/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get/3) for more details.
   """
+  @doc group: "Query API"
   def get(id, opts) do
     read(:get, [id], opts)
   end
@@ -114,6 +115,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.get!/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get!/3) for more details.
   """
+  @doc group: "Query API"
   def get!(id, opts) do
     read(:get!, [id], opts)
   end
@@ -131,6 +133,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.get_by/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get_by/3) for more details.
   """
+  @doc group: "Query API"
   def get_by(clauses, opts) do
     read(:get_by, [clauses], opts)
   end
@@ -148,6 +151,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.get_by!/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get_by!/3) for more details.
   """
+  @doc group: "Query API"
   def get_by!(clauses, opts) do
     read(:get_by!, [clauses], opts)
   end
@@ -165,6 +169,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.all/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:all/2) for more details.
   """
+  @doc group: "Query API"
   def all_by(clauses, opts) do
     # Use the same approach as get_by but return all results
     relation = opts[:relation]
@@ -213,6 +218,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.one/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:one/2) for more details.
   """
+  @doc group: "Query API"
   def one(opts) do
     read(:one, [], opts)
   end
@@ -230,6 +236,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.one!/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:one!/2) for more details.
   """
+  @doc group: "Query API"
   def one!(opts) do
     read(:one!, [], opts)
   end
@@ -247,6 +254,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.aggregate/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:aggregate/3) for more details.
   """
+  @doc group: "Query API"
   def count(opts) do
     read(:aggregate, [:count], opts)
   end
@@ -265,6 +273,7 @@ defmodule Drops.Relation.Plugins.Reading do
   See [Ecto.Repo.one/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:one/2) and
   [Ecto.Query.first/1](https://hexdocs.pm/ecto/Ecto.Query.html#first/1) for more details.
   """
+  @doc group: "Query API"
   def first(opts) do
     read(:one, [], Keyword.merge(opts, queryable: Ecto.Query.first(opts[:relation])))
   end
@@ -283,6 +292,7 @@ defmodule Drops.Relation.Plugins.Reading do
   See [Ecto.Repo.one/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:one/2) and
   [Ecto.Query.last/1](https://hexdocs.pm/ecto/Ecto.Query.html#last/1) for more details.
   """
+  @doc group: "Query API"
   def last(opts) do
     read(:one, [], Keyword.merge(opts, queryable: Ecto.Query.last(opts[:relation])))
   end
@@ -300,6 +310,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.exists?/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:exists?/2) for more details.
   """
+  @doc group: "Query API"
   def exists?(opts) do
     read(:exists?, [], opts)
   end
@@ -317,6 +328,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.stream/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:stream/2) for more details.
   """
+  @doc group: "Query API"
   def stream(opts) do
     read(:stream, [], opts)
   end
@@ -336,6 +348,7 @@ defmodule Drops.Relation.Plugins.Reading do
   See [Ecto.Repo.aggregate/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:aggregate/3) and
   [Ecto.Repo.aggregate/4](https://hexdocs.pm/ecto/Ecto.Repo.html#c:aggregate/4) for more details.
   """
+  @doc group: "Query API"
   def aggregate(aggregate, opts) do
     read(:aggregate, [aggregate], opts)
   end
@@ -357,6 +370,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.delete_all/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:delete_all/2) for more details.
   """
+  @doc group: "Query API"
   def delete_all(opts) do
     read(:delete_all, [], opts)
   end
@@ -374,6 +388,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.update_all/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:update_all/3) for more details.
   """
+  @doc group: "Query API"
   def update_all(updates, opts) do
     read(:update_all, [updates], opts)
   end
@@ -394,6 +409,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.transaction/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:transaction/2) for more details.
   """
+  @doc group: "Query API"
   def transaction(fun_or_multi, opts) do
     relation = opts[:relation]
     repo = relation.repo()
@@ -414,6 +430,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.in_transaction?/0](https://hexdocs.pm/ecto/Ecto.Repo.html#c:in_transaction?/0) for more details.
   """
+  @doc group: "Query API"
   def in_transaction?(opts) do
     relation = opts[:relation]
     repo = relation.repo()
@@ -435,6 +452,7 @@ defmodule Drops.Relation.Plugins.Reading do
 
   See [Ecto.Repo.checkout/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:checkout/2) for more details.
   """
+  @doc group: "Query API"
   def checkout(fun, opts) do
     relation = opts[:relation]
     repo = relation.repo()
