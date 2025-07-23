@@ -23,6 +23,7 @@ drops_relation-*.tar
 /tmp/
 
 priv/*.db*
+priv/repo/*sqlite*
 
 test/sample_app/_build
 test/sample_app/deps
