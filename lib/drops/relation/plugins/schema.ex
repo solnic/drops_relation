@@ -66,7 +66,14 @@ defmodule Drops.Relation.Plugins.Schema do
           Schema.project(opts[:source].schema(), fields)
 
         %{name: name, infer: true, block: block} ->
-          source_schema = infer_source_schema(relation, name, opts)
+          source_schema =
+            case infer_source_schema(relation, name, opts) do
+              nil ->
+                Schema.new(%{source: name})
+
+              schema ->
+                schema
+            end
 
           if block do
             Schema.merge(source_schema, Generator.schema_from_block(name, block))

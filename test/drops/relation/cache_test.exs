@@ -175,22 +175,6 @@ defmodule Drops.Relation.CacheTest do
     end
   end
 
-  describe "maybe_get_cached_schema/2" do
-    test "returns cached schema when available" do
-      test_schema = Schema.empty(:users)
-      Cache.cache_schema(TestRepo, "users", test_schema)
-      result = Cache.maybe_get_cached_schema(TestRepo, "users")
-      assert result.source == :users
-    end
-
-    test "returns empty schema when not cached" do
-      result = Cache.maybe_get_cached_schema(TestRepo, "non_existent")
-      assert %Drops.Relation.Schema{source: "non_existent"} = result
-      assert result.fields == []
-      assert result.foreign_keys == []
-    end
-  end
-
   describe "Serializable protocol for Field" do
     test "dumps and loads Field correctly" do
       field = %Field{

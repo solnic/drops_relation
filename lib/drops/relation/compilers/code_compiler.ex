@@ -110,7 +110,6 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
   end
 
   def visit({:foreign_keys, _foreign_keys}, %{schema: schema}) do
-    # Check if we need @foreign_key_type attribute based on foreign key fields
     Enum.find_value(schema.fields, fn field ->
       is_foreign_key = Map.get(field.meta, :foreign_key, false)
 

@@ -45,43 +45,6 @@ defmodule Drops.Relation.Cache do
 
   @digest_file_name "migrations_digest.txt"
 
-  ## Public API
-
-  @doc """
-  Gets a cached schema if available.
-
-  Returns the cached schema for the given repository and table name if it exists
-  and the migration digest matches. Returns nil if not cached or digest mismatch.
-
-  ## Parameters
-
-  - `repo` - The Ecto repository module
-  - `table_name` - The database table name
-
-  ## Returns
-
-  The cached schema or nil if not cached.
-
-  ## Examples
-
-      schema = get_cached_schema(MyApp.Repo, "users")
-      if schema do
-        # Use cached schema
-      else
-        # Need to infer schema
-      end
-  """
-  @spec maybe_get_cached_schema(module(), String.t()) :: any()
-  def maybe_get_cached_schema(repo, table_name) do
-    case get_cached_schema(repo, table_name) do
-      nil ->
-        Schema.empty(table_name)
-
-      schema ->
-        schema
-    end
-  end
-
   @spec get_cached_schema(module(), String.t()) :: any() | nil
   def get_cached_schema(repo, table_name) do
     current_digest = get_migrations_digest(repo)

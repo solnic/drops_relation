@@ -19,13 +19,13 @@ defmodule Drops.Relation.Schema do
 
   @type t :: %__MODULE__{
           source: String.t(),
-          primary_key: PrimaryKey.t(),
+          primary_key: PrimaryKey.t() | nil,
           foreign_keys: [ForeignKey.t()],
           fields: [Field.t()],
           indices: [Index.t()]
         }
 
-  defstruct [:source, :fields, primary_key: nil, foreign_keys: [], indices: []]
+  defstruct [:source, fields: [], primary_key: nil, foreign_keys: [], indices: []]
 
   alias Drops.Relation.Schema.Serializable
 
@@ -56,6 +56,25 @@ defmodule Drops.Relation.Schema do
   - `fields` - List of field metadata
   - `indices` - Index information
   """
+  @spec new(atom(), keyword()) :: t()
+  def new(source) when is_atom(source) do
+    new(%{source: source})
+  end
+
+  def new(attributes) when is_map(attributes) do
+    struct(__MODULE__, attributes)
+  end
+
+  @doc """
+  Creates an empty schema with the given source.
+
+  This is an alias for `new/1` for backward compatibility.
+  """
+  @spec empty(atom()) :: t()
+  def empty(source) when is_atom(source) do
+    new(source)
+  end
+
   @spec new(String.t(), [Field.t()], keyword()) :: t()
   def new(source, fields, rest \\ []) do
     new(Map.merge(%{source: source, fields: fields}, Enum.into(rest, %{})))
@@ -78,45 +97,32 @@ defmodule Drops.Relation.Schema do
     }
   end
 
-  def new(attributes) when is_map(attributes) do
-    # Ensure fields only contains Field structs
-    cleaned_attributes =
-      case Map.get(attributes, :fields) do
-        fields when is_list(fields) ->
-          cleaned_fields = Enum.filter(fields, &is_struct(&1, Field))
-          Map.put(attributes, :fields, cleaned_fields)
-
-        _ ->
-          attributes
-      end
-
-    struct(__MODULE__, cleaned_attributes)
-  end
-
-  @spec empty(String.t()) :: t()
-  def empty(name) do
-    new(name, nil, [], [], [])
-  end
-
   @spec project(Schema.t(), [atom()]) :: Schema.t()
   def project(schema, fields) when is_list(fields) do
-    field_set = MapSet.new(fields)
-    projected_fields = Enum.map(fields, fn name -> schema[name] end)
+    # If the source schema has no fields, return an empty schema with the same source
+    # This handles the case where we're projecting from a schema that hasn't been
+    # populated yet (e.g., cache miss during compilation)
+    if Enum.empty?(schema.fields) do
+      new(schema.source)
+    else
+      field_set = MapSet.new(fields)
+      projected_fields = Enum.map(fields, fn name -> schema[name] end)
 
-    # Only include indices where all fields are in the projected field set
-    relevant_indices =
-      Enum.filter(schema.indices, fn index ->
-        index_field_names = Enum.map(index.fields, & &1.name)
-        Enum.all?(index_field_names, &MapSet.member?(field_set, &1))
-      end)
+      # Only include indices where all fields are in the projected field set
+      relevant_indices =
+        Enum.filter(schema.indices, fn index ->
+          index_field_names = Enum.map(index.fields, & &1.name)
+          Enum.all?(index_field_names, &MapSet.member?(field_set, &1))
+        end)
 
-    new(
-      schema.source,
-      schema.primary_key,
-      schema.foreign_keys,
-      projected_fields,
-      relevant_indices
-    )
+      new(
+        schema.source,
+        schema.primary_key,
+        schema.foreign_keys,
+        projected_fields,
+        relevant_indices
+      )
+    end
   end
 
   @doc """
