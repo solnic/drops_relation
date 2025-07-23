@@ -3,16 +3,16 @@ defmodule Drops.Relation.Repos.Postgres.Migrations.CreateUsersTable do
 
   def change do
     create table(:users) do
-      add :name, :string
-      add :email, :string
-      add :age, :integer
-      add :active, :boolean
+      add(:name, :string)
+      add(:email, :string)
+      add(:age, :integer)
+      add(:active, :boolean)
 
       timestamps()
     end
 
-    create unique_index(:users, [:email])
-    create index(:users, [:name])
-    create index(:users, [:name, :age])
+    create(unique_index(:users, [:email]))
+    create(index(:users, [:name]))
+    create(index(:users, [:name, :age]))
   end
 end

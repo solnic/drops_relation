@@ -3,8 +3,8 @@ defmodule Drops.Relation.Repos.Sqlite.Migrations.CreateGroupsTable do
 
   def change do
     create table(:groups) do
-      add :name, :string
-      add :description, :string
+      add(:name, :string)
+      add(:description, :string)
 
       timestamps()
     end

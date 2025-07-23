@@ -3,12 +3,13 @@ defmodule Drops.Relation.Repos.Postgres.Migrations.CreateBasicTypesTable do
 
   def change do
     create table(:basic_types) do
-      add :string_field, :string
-      add :integer_field, :integer
-      add :float_field, :float
-      add :boolean_field, :boolean
-      add :binary_field, :binary
-      add :bitstring_field, :text  # SQLite doesn't have bitstring, use text
+      add(:string_field, :string)
+      add(:integer_field, :integer)
+      add(:float_field, :float)
+      add(:boolean_field, :boolean)
+      add(:binary_field, :binary)
+      # SQLite doesn't have bitstring, use text
+      add(:bitstring_field, :text)
 
       timestamps()
     end

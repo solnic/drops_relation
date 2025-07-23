@@ -3,7 +3,7 @@ defmodule Drops.Relation.Repos.Sqlite.Migrations.CreateTimestampsTable do
 
   def change do
     create table(:timestamps) do
-      add :name, :string
+      add(:name, :string)
 
       timestamps()
     end
