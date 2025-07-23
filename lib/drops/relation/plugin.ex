@@ -27,9 +27,11 @@ defmodule Drops.Relation.Plugin do
       @before_compile Plugin
 
       @opts unquote(opts)
+      @doc false
       def opts, do: @opts
 
       @block unquote(Macro.escape(block))
+      @doc false
       def block, do: @block
 
       Module.register_attribute(__MODULE__, :dsl, accumulate: false)
@@ -92,9 +94,8 @@ defmodule Drops.Relation.Plugin do
 
   defmacro __before_compile__(_env) do
     quote do
+      @doc false
       def on(_event, _relation, _attributes), do: []
-
-      def dsl, do: @dsl || []
     end
   end
 

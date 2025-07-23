@@ -328,6 +328,7 @@ defmodule Drops.Relation.Plugins.Reading do
     operation(other, :preload, Keyword.put(opts, :preload, associations))
   end
 
+  @doc group: "Composable Query API"
   @spec preload(atom(), keyword()) :: relation()
   def preload(association, opts) when is_atom(association) do
     preload([association], opts)
@@ -602,6 +603,7 @@ defmodule Drops.Relation.Plugins.Reading do
               |> Users.restrict(active: true)
               |> Users.all()
   """
+  @doc group: "Query API"
   @spec all(struct(), keyword()) :: [struct()]
   def all(%{__struct__: relation_module} = relation, opts) do
     read(:all, [], Keyword.merge(opts, relation: relation_module, queryable: relation))
@@ -755,6 +757,7 @@ defmodule Drops.Relation.Plugins.Reading do
     read(:aggregate, [aggregate], opts)
   end
 
+  @doc group: "Query API"
   def aggregate(aggregate, field, opts) do
     read(:aggregate, [aggregate, field], opts)
   end

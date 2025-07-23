@@ -83,14 +83,12 @@ defmodule Drops.Relation.MixProject do
           Drops.Relation,
           Drops.Relation.Config,
           Drops.Relation.Plugins.Schema,
-          Drops.Relation.Plugins.Views,
-          Drops.Relation.Plugins.Loadable
+          Drops.Relation.Plugins.Views
         ],
         "Query API": [
           Drops.Relation.Plugins.Reading,
           Drops.Relation.Plugins.Writing,
-          Drops.Relation.Plugins.AutoRestrict,
-          Drops.Relation.Plugins.Queryable
+          Drops.Relation.Plugins.AutoRestrict
         ],
         "Advanced Composition": [
           Drops.Relation.Query,

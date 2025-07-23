@@ -5,12 +5,6 @@ defmodule Drops.Relation.Plugins.AutoRestrict do
   This plugin analyzes the relation's schema indices and generates composable
   finder functions like `get_by_email/1`, `get_by_name/1`, etc.
 
-  ## Generated Functions
-
-  For each index in the database, this plugin generates:
-  - `get_by_{field}/1` - Returns a composable relation for the field
-  - `find_by_{field}/1` - Alias for `get_by_{field}/1`
-
   ## Examples
 
       # If users table has an index on email
