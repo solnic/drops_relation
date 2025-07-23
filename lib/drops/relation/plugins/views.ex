@@ -9,8 +9,8 @@ defmodule Drops.Relation.Plugins.Views do
 
   ## Usage
 
-      defmodule Users do
-        use Drops.Relation, repo: MyRepo
+      defmodule MyApp.Users do
+        use Drops.Relation, repo: MyApp.Repo
 
         schema("users", infer: true)
 
@@ -24,29 +24,39 @@ defmodule Drops.Relation.Plugins.Views do
       end
 
       # Use the view
-      active_users = Users.active().all()  # Returns only active users with limited fields
+      active_users = MyApp.Users.active().all()  # Returns only active users with limited fields
 
   ## Examples
 
-      # View with custom struct name
-      view(:public_profile) do
-        schema([:id, :name], struct: "PublicUser")
+      defmodule MyApp.Users do
+        use Drops.Relation, repo: MyApp.Repo
 
-        derive do
-          restrict(active: true)
-          |> restrict(public_profile: true)
+        schema("users", infer: true)
+
+        # View with custom struct name
+        view(:public_profile) do
+          schema([:id, :name], struct: "PublicUser")
+
+          derive do
+            restrict(active: true)
+            |> restrict(public_profile: true)
+          end
+        end
+
+        # View for admin data
+        view(:admin_view) do
+          schema([:id, :name, :email, :role, :last_login])
+
+          derive do
+            restrict(role: ["admin", "super_admin"])
+            |> order(:last_login)
+          end
         end
       end
 
-      # View for admin data
-      view(:admin_view) do
-        schema([:id, :name, :email, :role, :last_login])
-
-        derive do
-          restrict(role: ["admin", "super_admin"])
-          |> order(:last_login)
-        end
-      end
+      # Using the views
+      public_users = MyApp.Users.public_profile().all()
+      admin_users = MyApp.Users.admin_view().all()
   """
 
   use Drops.Relation.Plugin, imports: [view: 2, derive: 1]

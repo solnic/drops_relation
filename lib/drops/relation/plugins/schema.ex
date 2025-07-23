@@ -8,21 +8,77 @@ defmodule Drops.Relation.Plugins.Schema do
 
   ## Automatic Schema Inference
 
-      schema("users", infer: true)  # Infers all fields, types, and relationships
+  The most common usage is to automatically infer the complete schema from the database:
+
+      defmodule MyApp.Users do
+        use Drops.Relation, repo: MyApp.Repo
+
+        schema("users", infer: true)  # Infers all fields, types, and relationships
+      end
+
+      # Access the inferred schema
+      schema = MyApp.Users.schema()
+      fields = schema.fields  # All database columns as Field structs
 
   ## Manual Schema Definition
 
-      schema("users") do
-        field(:name, :string)
-        field(:email, :string)
-        field(:active, :boolean, default: true)
+  You can also define schemas manually using familiar Ecto.Schema syntax:
 
-        timestamps()
+      defmodule MyApp.Users do
+        use Drops.Relation, repo: MyApp.Repo
+
+        schema("users") do
+          field(:name, :string)
+          field(:email, :string)
+          field(:active, :boolean, default: true)
+
+          timestamps()
+        end
       end
 
-  ## Field Selection
+  ## Field Selection from Inferred Schema
 
-      schema([:id, :name, :email])  # Only include specific fields from inferred schema
+  Select only specific fields from an automatically inferred schema:
+
+      defmodule MyApp.UserSummary do
+        use Drops.Relation, repo: MyApp.Repo
+
+        schema([:id, :name, :email])  # Only include specific fields from inferred schema
+      end
+
+  ## Hybrid Approach
+
+  Combine automatic inference with manual customizations:
+
+      defmodule MyApp.Users do
+        use Drops.Relation, repo: MyApp.Repo
+
+        schema("users", infer: true) do
+          # Add custom virtual fields
+          field(:full_name, :string, virtual: true)
+
+          # Add associations not inferred from foreign keys
+          has_many(:posts, MyApp.Posts)
+        end
+      end
+
+  ## Schema Access
+
+  All relation modules provide access to their schema metadata:
+
+      # Get the complete schema
+      schema = MyApp.Users.schema()
+
+      # Access specific fields
+      email_field = schema[:email]
+
+      # Get the generated Ecto schema module
+      schema_module = MyApp.Users.__schema_module__()
+      # => MyApp.Users.Struct
+
+      # Create struct instances
+      user = MyApp.Users.struct(%{name: "John", email: "john@example.com"})
+      # => %MyApp.Users.Struct{name: "John", email: "john@example.com"}
 
   ## Options
 

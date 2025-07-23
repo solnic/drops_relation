@@ -17,20 +17,37 @@ defmodule Drops.Relation.Plugins.Ecto.Query do
 
   ## Usage
 
-      relation(:users) do
+      defmodule MyApp.Users do
+        use Drops.Relation, repo: MyApp.Repo
+
         schema("users", infer: true)
 
         defquery active() do
           from(u in relation(), where: u.active == true)
         end
+
+        defquery by_role(role) when is_binary(role) do
+          from(u in relation(), where: u.role == ^role)
+        end
+
+        defquery recent(days \\ 7) do
+          cutoff = DateTime.utc_now() |> DateTime.add(-days, :day)
+          from(u in relation(), where: u.inserted_at >= ^cutoff)
+        end
       end
 
       # This creates:
-      # - users.active() -> delegates to users.QueryBuilder.active()
-      # - users.QueryBuilder module with Ecto.Query imported
+      # - MyApp.Users.active() -> delegates to MyApp.Users.QueryBuilder.active()
+      # - MyApp.Users.QueryBuilder module with Ecto.Query imported
       # - relation() function available in query blocks
 
-  The `relation()` function within the query block returns the relation module.
+      # Usage examples:
+      active_users = MyApp.Users.active() |> MyApp.Users.all()
+      admin_users = MyApp.Users.by_role("admin") |> MyApp.Users.all()
+      recent_users = MyApp.Users.recent(30) |> MyApp.Users.all()
+
+  The `relation()` function within the query block returns the relation module, allowing
+  you to reference the current relation in your Ecto queries.
   """
 
   use Drops.Relation.Plugin, imports: [defquery: 2]

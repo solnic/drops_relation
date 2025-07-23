@@ -22,22 +22,46 @@ defmodule Drops.Relation.Schema do
       schema[:email]  # Returns the email field
       schema[:id]     # Returns the id field
 
-  ## Examples
+  ## Usage with Relation Modules
 
-      schema = %Drops.Relation.Schema{
-        source: "users",
-        fields: [
-          %Field{name: :id, type: :integer},
-          %Field{name: :email, type: :string}
-        ],
-        primary_key: %PrimaryKey{fields: [:id]},
-        foreign_keys: [],
-        indices: []
-      }
+  Schemas are automatically created when you define a relation module and are
+  accessible via the `schema/0` function:
 
-      # Access fields
+      defmodule MyApp.Users do
+        use Drops.Relation, repo: MyApp.Repo
+
+        schema("users", infer: true)
+      end
+
+      # Access the relation's schema
+      schema = MyApp.Users.schema()
+
+      # Inspect schema metadata
+      schema.source        # => :users
+      schema.fields        # => [%Field{name: :id, type: :integer}, ...]
+      schema.primary_key   # => %PrimaryKey{fields: [:id]}
+
+      # Access specific fields
       email_field = schema[:email]
-      id_field = schema.primary_key
+      id_field = schema[:id]
+
+      # Get field information
+      email_field.type     # => :string
+      email_field.meta     # => %{type: :varchar, ...}
+
+  ## Field Access Examples
+
+      # Check if a field exists
+      if schema[:email] do
+        IO.puts("Email field exists with type: " <> to_string(schema[:email].type))
+      end
+
+      # Get all field names
+      field_names = Enum.map(schema.fields, & &1.name)
+      # => [:id, :name, :email, :active, :inserted_at, :updated_at]
+
+      # Filter fields by type
+      string_fields = Enum.filter(schema.fields, &(&1.type == :string))
   """
 
   alias Drops.Relation.Schema.{PrimaryKey, ForeignKey, Index, Field}
