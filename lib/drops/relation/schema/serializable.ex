@@ -1,5 +1,9 @@
 defmodule Drops.Relation.Schema.Serializable do
+  @moduledoc false
+
   defprotocol Loader do
+    @moduledoc false
+
     @fallback_to_any true
 
     @spec load(any()) :: any()
@@ -10,6 +14,8 @@ defmodule Drops.Relation.Schema.Serializable do
   end
 
   defprotocol Dumper do
+    @moduledoc false
+
     @fallback_to_any true
 
     @spec dump(struct()) :: map()
@@ -93,10 +99,6 @@ defimpl Drops.Relation.Schema.Serializable.Loader, for: Map do
     Enum.reduce(map, %{}, fn {key, value}, acc ->
       Map.put(acc, String.to_atom(key), @protocol.load(value))
     end)
-  end
-
-  def load(%{"__struct__" => "Schema", "attributes" => attributes}) do
-    @protocol.load(attributes, Drops.Relation.Schema)
   end
 
   def load(%{"__struct__" => module, "attributes" => attributes}) when module != "Schema" do

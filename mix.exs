@@ -68,15 +68,24 @@ defmodule Drops.Relation.MixProject do
       source_ref: "v#{@version}",
       source_url: @source_url,
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
+      filter_modules: "Drops.*",
       extras: [
         "README.md"
       ],
       groups_for_modules: [
-        Core: [
+        Relation: [
           Drops.Relation,
+          Drops.Relation.Config,
           Drops.Relation.Query,
-          Drops.Relation.Reading,
-          Drops.Relation.Writing
+          Drops.Relation.Plugins.Schema,
+          Drops.Relation.Plugins.Queryable,
+          Drops.Relation.Plugins.Queryable.InvalidQueryError,
+          Drops.Relation.Plugins.Reading,
+          Drops.Relation.Plugins.Ecto.Query,
+          Drops.Relation.Plugins.Writing,
+          Drops.Relation.Plugins.Views,
+          Drops.Relation.Plugins.AutoRestrict,
+          Drops.Relation.Plugins.Loadable
         ],
         Schema: [
           Drops.Relation.Schema,
@@ -85,7 +94,7 @@ defmodule Drops.Relation.MixProject do
           Drops.Relation.Schema.ForeignKey,
           Drops.Relation.Schema.Index
         ],
-        Database: [
+        SQL: [
           Drops.SQL.Database,
           Drops.SQL.Database.Table,
           Drops.SQL.Database.Column,
@@ -93,7 +102,10 @@ defmodule Drops.Relation.MixProject do
           Drops.SQL.Database.ForeignKey,
           Drops.SQL.Database.Index,
           Drops.SQL.Postgres,
-          Drops.SQL.Sqlite
+          Drops.SQL.Sqlite,
+          Drops.SQL.Compiler,
+          Drops.SQL.Compilers.Postgres,
+          Drops.SQL.Compilers.Sqlite
         ],
         Cache: [
           Drops.Relation.Cache

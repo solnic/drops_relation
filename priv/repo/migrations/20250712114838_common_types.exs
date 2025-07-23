@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Repos.CommonTypes do
+defmodule Test.Repos.CommonTypes do
   use Ecto.Migration
 
   def change do

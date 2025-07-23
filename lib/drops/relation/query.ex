@@ -1,4 +1,27 @@
 defmodule Drops.Relation.Query do
+  @moduledoc """
+  Provides query composition macros for building complex relation queries.
+
+  This module contains macros for transforming query expressions and enabling
+  composition of relation operations. It supports logical operations (AND/OR)
+  and function call transformations within query contexts.
+
+  ## Usage
+
+  This module is primarily used internally by the query system, but can be
+  used directly for advanced query composition scenarios.
+
+      query(Users, [u], u.active() and u.by_role("admin"))
+
+  ## Supported Operations
+
+  - `and` - Logical AND composition
+  - `or` - Logical OR composition
+  - Function calls on relation bindings
+
+  The macro transforms expressions to use the appropriate relation operations
+  and maintains proper binding contexts for complex queries.
+  """
   defmacro query(source, bindings, expression) do
     binding_vars = parse_bindings(bindings)
     transformed_expr = transform_expression(expression, binding_vars, source)

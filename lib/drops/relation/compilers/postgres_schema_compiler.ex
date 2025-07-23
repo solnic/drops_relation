@@ -1,11 +1,5 @@
 defmodule Drops.Relation.Compilers.PostgresSchemaCompiler do
-  @moduledoc """
-  PostgreSQL-specific schema compiler for converting SQL Database structures to Relation Schema structures.
-
-  This module implements the `Drops.Relation.Compilers.SchemaCompiler` behavior to provide PostgreSQL-specific
-  type mapping and field processing. It converts PostgreSQL database types to Ecto types
-  and handles PostgreSQL-specific type characteristics.
-  """
+  @moduledoc false
 
   use Drops.Relation.Compilers.SchemaCompiler
 

@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Repos.Postgres.Migrations.CustomTypes20250712114839 do
+defmodule Test.Repos.Postgres.Migrations.CustomTypes20250712114839 do
   use Ecto.Migration
 
   def change do

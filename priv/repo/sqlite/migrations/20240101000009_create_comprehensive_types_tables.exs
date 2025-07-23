@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Repos.Sqlite.Migrations.CreateComprehensiveTypesTables do
+defmodule Test.Repos.Sqlite.Migrations.CreateComprehensiveTypesTables do
   use Ecto.Migration
 
   def change do

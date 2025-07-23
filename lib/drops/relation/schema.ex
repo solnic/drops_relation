@@ -1,11 +1,43 @@
 defmodule Drops.Relation.Schema do
   @moduledoc """
-  Represents comprehensive schema metadata for a database table/relation.
+  Represents schema metadata for a relation.
 
-  This struct stores all extracted metadata about a database table including
+  This struct stores all extracted metadata about a relation including
   primary keys, foreign keys, field information, and indices. It serves as
-  a central container for schema information that can be used for validation,
-  documentation, and code generation.
+  a central container for schema information used for automatic Ecto schema
+  generation and query compilation.
+
+  ## Structure
+
+  - `source` - The database table name
+  - `fields` - List of field definitions with types and metadata
+  - `primary_key` - Primary key information
+  - `foreign_keys` - List of foreign key relationships
+  - `indices` - List of database indices
+
+  ## Access Behavior
+
+  The schema implements the Access behavior, allowing field lookup by name:
+
+      schema[:email]  # Returns the email field
+      schema[:id]     # Returns the id field
+
+  ## Examples
+
+      schema = %Drops.Relation.Schema{
+        source: "users",
+        fields: [
+          %Field{name: :id, type: :integer},
+          %Field{name: :email, type: :string}
+        ],
+        primary_key: %PrimaryKey{fields: [:id]},
+        foreign_keys: [],
+        indices: []
+      }
+
+      # Access fields
+      email_field = schema[:email]
+      id_field = schema.primary_key
   """
 
   alias Drops.Relation.Schema.{PrimaryKey, ForeignKey, Index, Field}

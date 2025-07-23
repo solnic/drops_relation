@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Repos.Postgres.Migrations.CreateUsersTable do
+defmodule Test.Repos.Postgres.Migrations.CreateUsersTable do
   use Ecto.Migration
 
   def change do

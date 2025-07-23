@@ -1,7 +1,11 @@
 defmodule Drops.Relation.Plugins.Queryable.Operations.Compiler do
+  @moduledoc false
+
   @callback visit(map(), map()) :: {:ok, Ecto.Query.t()} | {:error, [String.t()]}
 
   defmodule Result do
+    @moduledoc false
+
     defstruct [:query, errors: []]
 
     def new(query), do: %__MODULE__{query: query}

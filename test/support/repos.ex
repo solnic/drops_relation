@@ -1,8 +1,10 @@
-defmodule Drops.Relation.Repos do
+defmodule Test.Repos do
+  @moduledoc false
+
   def start(repo, mode \\ nil)
 
-  def start(:sqlite, mode), do: start(Drops.Relation.Repos.Sqlite, mode)
-  def start(:postgres, mode), do: start(Drops.Relation.Repos.Postgres, mode)
+  def start(:sqlite, mode), do: start(Test.Repos.Sqlite, mode)
+  def start(:postgres, mode), do: start(Test.Repos.Postgres, mode)
 
   def start(repo, mode) do
     {:ok, pid} = repo.start_link()
@@ -20,8 +22,8 @@ defmodule Drops.Relation.Repos do
 
   def start_owner!(repo, opts \\ [])
 
-  def start_owner!(:sqlite, opts), do: start_owner!(Drops.Relation.Repos.Sqlite, opts)
-  def start_owner!(:postgres, opts), do: start_owner!(Drops.Relation.Repos.Postgres, opts)
+  def start_owner!(:sqlite, opts), do: start_owner!(Test.Repos.Sqlite, opts)
+  def start_owner!(:postgres, opts), do: start_owner!(Test.Repos.Postgres, opts)
 
   def start_owner!(repo, opts) do
     case ensure_started(repo) do
@@ -34,8 +36,8 @@ defmodule Drops.Relation.Repos do
     end
   end
 
-  def stop_owner(:sqlite), do: stop_owner(Drops.Relation.Repos.Sqlite)
-  def stop_owner(:postgres), do: stop_owner(Drops.Relation.Repos.Postgres)
+  def stop_owner(:sqlite), do: stop_owner(Test.Repos.Sqlite)
+  def stop_owner(:postgres), do: stop_owner(Test.Repos.Postgres)
 
   def stop_owner(repo) do
     Ecto.Adapters.SQL.Sandbox.stop_owner(:persistent_term.get({:repos, repo, :owner}))
@@ -63,7 +65,7 @@ defmodule Drops.Relation.Repos do
     case Process.whereis(repo) do
       nil ->
         try do
-          :ok = Drops.Relation.Repos.start(repo)
+          :ok = Test.Repos.start(repo)
 
           {:ok, repo_pid(repo)}
         rescue
@@ -81,23 +83,18 @@ defmodule Drops.Relation.Repos do
   end
 end
 
-defmodule Drops.Relation.Repos.Sqlite do
+defmodule Test.Repos.Sqlite do
+  @moduledoc false
+
   use Ecto.Repo,
     otp_app: :drops_relation,
     adapter: Ecto.Adapters.SQLite3
 end
 
-defmodule Drops.Relation.Repos.Postgres do
+defmodule Test.Repos.Postgres do
+  @moduledoc false
+
   use Ecto.Repo,
     otp_app: :drops_relation,
     adapter: Ecto.Adapters.Postgres
-end
-
-if Mix.env() == :test do
-  # Keep the original TestRepo as a simple Sqlite repo for Operations tests
-  defmodule Drops.Relation.TestRepo do
-    use Ecto.Repo,
-      otp_app: :drops_relation,
-      adapter: Ecto.Adapters.SQLite3
-  end
 end

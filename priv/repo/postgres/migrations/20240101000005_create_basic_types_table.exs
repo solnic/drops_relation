@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Repos.Postgres.Migrations.CreateBasicTypesTable do
+defmodule Test.Repos.Postgres.Migrations.CreateBasicTypesTable do
   use Ecto.Migration
 
   def change do

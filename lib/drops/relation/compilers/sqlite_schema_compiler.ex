@@ -1,11 +1,5 @@
 defmodule Drops.Relation.Compilers.SqliteSchemaCompiler do
-  @moduledoc """
-  SQLite-specific schema compiler for converting SQL Database structures to Relation Schema structures.
-
-  This module implements the `Drops.Relation.Compilers.SchemaCompiler` behavior to provide SQLite-specific
-  type mapping and field processing. It converts SQLite database types to Ecto types
-  and handles SQLite-specific type characteristics.
-  """
+  @moduledoc false
 
   use Drops.Relation.Compilers.SchemaCompiler
 

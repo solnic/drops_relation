@@ -1,5 +1,5 @@
 defmodule Users do
-  use Drops.Relation, repo: Drops.Relation.Repos.Postgres
+  use Drops.Relation, repo: Test.Repos.Postgres
 
   schema("users", infer: true)
 

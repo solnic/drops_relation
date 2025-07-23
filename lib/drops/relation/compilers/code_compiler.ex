@@ -1,27 +1,5 @@
 defmodule Drops.Relation.Compilers.CodeCompiler do
-  @moduledoc """
-  Compiler for converting Drops.Relation.Schema structures to Ecto schema AST.
-
-  This module follows the same visitor pattern as Drops.SQL.Compiler and
-  Drops.Relation.Compilers.SchemaCompiler but works with Drops.Relation.Schema structs
-  and converts them to quoted expressions for field definitions and attributes.
-
-  Since primary key nodes now contain complete field information, field nodes
-  with primary_key: true are skipped and handled entirely by primary key processing.
-
-  ## Usage
-
-      # Convert a Relation Schema to field AST
-      schema = %Drops.Relation.Schema{...}
-      field_asts = Drops.Relation.Compilers.CodeCompiler.visit(schema, %{})
-
-  ## Examples
-
-      iex> schema = %Drops.Relation.Schema{fields: [...], primary_key: ...}
-      iex> asts = Drops.Relation.Compilers.CodeCompiler.visit(schema, %{})
-      iex> is_list(asts)
-      true
-  """
+  @moduledoc false
 
   alias Drops.Relation.Schema
 

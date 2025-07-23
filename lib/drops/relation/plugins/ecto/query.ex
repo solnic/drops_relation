@@ -36,6 +36,8 @@ defmodule Drops.Relation.Plugins.Ecto.Query do
   use Drops.Relation.Plugin, imports: [defquery: 2]
 
   defmodule Macros.Defquery do
+    @moduledoc false
+
     use Drops.Relation.Plugin.MacroStruct,
       key: :queries,
       accumulate: true,

@@ -1,7 +1,7 @@
 import Config
 
 # Configure ecto repos
-config :drops_relation, ecto_repos: [Drops.Relation.Repos.Sqlite, Drops.Relation.Repos.Postgres]
+config :drops_relation, ecto_repos: [Test.Repos.Sqlite, Test.Repos.Postgres]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

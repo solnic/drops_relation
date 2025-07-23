@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Repos.Sqlite.Migrations.CustomTypes20250712114840 do
+defmodule Test.Repos.Sqlite.Migrations.CustomTypes20250712114840 do
   use Ecto.Migration
 
   def change do

@@ -33,7 +33,7 @@ if Mix.env() == :dev do
       Application.ensure_all_started(:ecto_sql)
       Application.ensure_all_started(:drops_relation)
 
-      :ok = Drops.Relation.Repos.start(adapter(), :auto)
+      :ok = Test.Repos.start(adapter(), :auto)
     end
 
     defp adapter, do: String.to_atom(System.get_env("ADAPTER", "postgres"))

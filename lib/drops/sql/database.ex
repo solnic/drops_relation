@@ -126,48 +126,113 @@ defmodule Drops.SQL.Database do
   @doc """
   Callback for database adapters to implement table introspection.
 
-  This callback should return the complete table structure as an AST that can
-  be processed by the corresponding compiler.
+  This callback must be implemented by each database adapter module to provide
+  database-specific logic for introspecting table structures. The implementation
+  should query the database's system catalogs or information schema to extract
+  complete table metadata and return it as a structured AST.
+
+  The returned AST should include all table components: columns with their types
+  and metadata, primary key information, foreign key constraints, and indices.
+  This AST will then be processed by the adapter's corresponding compiler.
 
   ## Parameters
 
-  - `table_name` - The name of the table to introspect
-  - `repo` - The Ecto repository module to use for database queries
+  - `table_name` - The name of the database table to introspect (as a string)
+  - `repo` - The Ecto repository module configured for database access
 
   ## Returns
 
-  - `{:ok, table()}` - Successfully introspected table AST
-  - `{:error, term()}` - Error during introspection
+  - `{:ok, table()}` - Successfully introspected table AST following the `table()` type specification
+  - `{:error, term()}` - Error during introspection (table not found, permission denied, etc.)
+
+  ## Implementation Requirements
+
+  Implementations must:
+  1. Query the database for table metadata using the repository connection
+  2. Extract column information including names, types, nullability, defaults
+  3. Identify primary key constraints
+  4. Discover foreign key relationships
+  5. List table indices
+  6. Return all data as a properly structured AST
+
+  ## Example Implementation Structure
+
+      @impl true
+      def introspect_table(table_name, repo) do
+        with {:ok, columns} <- get_columns(table_name, repo),
+             {:ok, primary_key} <- get_primary_key(table_name, repo),
+             {:ok, foreign_keys} <- get_foreign_keys(table_name, repo),
+             {:ok, indices} <- get_indices(table_name, repo) do
+          {:ok, build_table_ast(table_name, columns, primary_key, foreign_keys, indices)}
+        end
+      end
   """
   @callback introspect_table(String.t(), module()) :: {:ok, table()} | {:error, term()}
 
   @doc """
   Macro for implementing database adapter modules.
 
-  This macro sets up the necessary behavior implementation and provides
-  a `table/2` function that combines introspection and compilation.
+  This macro provides the foundation for creating database adapter modules by
+  setting up the necessary behavior implementation, generating helper functions,
+  and providing a unified `table/2` interface that combines introspection and compilation.
+
+  When you `use Drops.SQL.Database`, the macro automatically:
+  1. Sets up the `Drops.SQL.Database` behavior
+  2. Generates helper functions for accessing adapter configuration
+  3. Creates a `table/2` function that orchestrates introspection and compilation
+  4. Requires you to implement the `introspect_table/2` callback
 
   ## Options
 
-  - `:adapter` - The adapter identifier (e.g., `:postgres`, `:sqlite`)
-  - `:compiler` - The compiler module to use for AST processing
+  - `:adapter` - The adapter identifier atom (e.g., `:postgres`, `:sqlite`, `:mysql`)
+  - `:compiler` - The compiler module to use for processing AST (e.g., `Drops.SQL.Compilers.Postgres`)
 
   ## Generated Functions
 
-  - `opts/0` - Returns the adapter options
-  - `adapter/0` - Returns the adapter identifier
-  - `table/2` - Introspects and compiles a table
+  The macro generates these functions in your adapter module:
 
-  ## Example
+  - `opts/0` - Returns the complete adapter configuration as a keyword list
+  - `adapter/0` - Returns the adapter identifier atom for easy access
+  - `table/2` - High-level interface that introspects and compiles a table in one call
 
-      defmodule MyAdapter do
-        use Drops.SQL.Database, adapter: :my_db, compiler: MyCompiler
+  ## Usage Example
+
+      defmodule Drops.SQL.MyDatabase do
+        use Drops.SQL.Database,
+          adapter: :my_database,
+          compiler: Drops.SQL.Compilers.MyDatabase
 
         @impl true
         def introspect_table(table_name, repo) do
-          # Implementation
+          # Your database-specific introspection logic
+          with {:ok, raw_data} <- query_system_tables(table_name, repo) do
+            {:ok, build_ast(raw_data)}
+          end
+        end
+
+        # Private helper functions for introspection
+        defp query_system_tables(table_name, repo) do
+          # Implementation specific to your database
+        end
+
+        defp build_ast(raw_data) do
+          # Convert raw database data to AST format
         end
       end
+
+  ## Implementation Requirements
+
+  After using this macro, you must implement:
+  - `introspect_table/2` callback - The core introspection logic for your database
+
+  ## Generated table/2 Function
+
+  The generated `table/2` function provides a complete introspection and compilation pipeline:
+
+      {:ok, table} = MyAdapter.table("users", MyApp.Repo)
+      # This internally calls:
+      # 1. MyAdapter.introspect_table("users", MyApp.Repo)
+      # 2. Drops.SQL.Database.compile_table(compiler, ast, opts)
   """
   defmacro __using__(opts) do
     quote location: :keep do
@@ -177,33 +242,78 @@ defmodule Drops.SQL.Database do
 
       @opts unquote(opts)
       @doc """
-      Returns the adapter configuration options.
+      Returns the complete adapter configuration options.
+
+      This function provides access to all configuration options passed to the
+      `use Drops.SQL.Database` macro, including the adapter identifier and compiler module.
+
+      ## Returns
+
+      A keyword list containing all adapter configuration options.
+
+      ## Examples
+
+          MyAdapter.opts()
+          # => [adapter: :postgres, compiler: Drops.SQL.Compilers.Postgres]
       """
       @spec opts() :: keyword()
       def opts, do: @opts
 
       @adapter unquote(opts[:adapter])
       @doc """
-      Returns the adapter identifier.
+      Returns the database adapter identifier.
+
+      This function provides quick access to the adapter identifier atom that
+      was specified in the `use Drops.SQL.Database` configuration.
+
+      ## Returns
+
+      The adapter identifier atom.
+
+      ## Examples
+
+          MyAdapter.adapter()
+          # => :postgres
       """
       @spec adapter() :: atom()
       def adapter, do: @adapter
 
       @doc """
-      Introspects and compiles a database table.
+      Introspects and compiles a database table into a structured representation.
 
-      This function combines the introspection and compilation steps,
-      returning a fully structured `Drops.SQL.Database.Table` struct.
+      This function provides the main interface for the adapter, combining both
+      introspection and compilation steps into a single operation. It calls the
+      adapter's `introspect_table/2` implementation and then processes the resulting
+      AST through the configured compiler.
 
       ## Parameters
 
-      - `name` - The table name to introspect
-      - `repo` - The Ecto repository module
+      - `name` - The name of the database table to introspect (as a string)
+      - `repo` - The Ecto repository module configured for database access
 
       ## Returns
 
-      - `{:ok, Table.t()}` - Successfully compiled table
+      - `{:ok, Table.t()}` - Successfully compiled table with complete metadata
       - `{:error, term()}` - Error during introspection or compilation
+
+      ## Examples
+
+          # Introspect a users table
+          {:ok, table} = MyAdapter.table("users", MyApp.Repo)
+
+          # Access the compiled table data
+          table.name          # :users
+          table.columns       # [%Column{...}, ...]
+          table.primary_key   # %PrimaryKey{...}
+
+      ## Error Handling
+
+          case MyAdapter.table("users", MyApp.Repo) do
+            {:ok, table} ->
+              process_table(table)
+            {:error, reason} ->
+              Logger.error("Failed to introspect table: \#{inspect(reason)}")
+          end
       """
       @spec table(String.t(), module()) :: {:ok, Table.t()} | {:error, term()}
       def table(name, repo) do
@@ -216,37 +326,59 @@ defmodule Drops.SQL.Database do
   end
 
   @doc """
-  Main interface for table introspection and compilation.
+  Introspects and compiles a database table into a structured representation.
 
-  This function automatically detects the database adapter from the repository
-  and delegates to the appropriate adapter module for introspection and compilation.
+  This is the main interface for database table introspection. It automatically
+  detects the database adapter from the repository configuration and delegates
+  to the appropriate adapter module for introspection and compilation.
+
+  The function performs two main operations:
+  1. Introspects the table structure using the database-specific adapter
+  2. Compiles the raw AST into a structured `Drops.SQL.Database.Table` struct
 
   ## Parameters
 
-  - `name` - The table name to introspect
-  - `repo` - The Ecto repository module
+  - `name` - The name of the database table to introspect (as a string)
+  - `repo` - The Ecto repository module configured for your database
 
   ## Returns
 
-  - `{:ok, Table.t()}` - Successfully compiled table structure
-  - `{:error, term()}` - Error during introspection, compilation, or unsupported adapter
+  - `{:ok, Table.t()}` - Successfully compiled table structure with all metadata
+  - `{:error, {:unsupported_adapter, module()}}` - Repository uses unsupported adapter
+  - `{:error, term()}` - Database error during introspection or compilation error
 
   ## Examples
 
       # Introspect a users table
       {:ok, table} = Drops.SQL.Database.table("users", MyApp.Repo)
 
-      # Access table components
-      table.name          # :users
-      table.columns       # [%Column{...}, ...]
-      table.primary_key   # %PrimaryKey{...}
-      table.foreign_keys  # [%ForeignKey{...}, ...]
-      table.indices       # [%Index{...}, ...]
+      # Access table metadata
+      table.name          # :users (converted to atom)
+      table.columns       # [%Column{name: :id, type: :integer, ...}, ...]
+      table.primary_key   # %PrimaryKey{fields: [:id]}
+      table.foreign_keys  # [%ForeignKey{field: :user_id, ...}, ...]
+      table.indices       # [%Index{name: :users_email_index, ...}, ...]
 
-  ## Errors
+      # Handle errors
+      case Drops.SQL.Database.table("nonexistent", MyApp.Repo) do
+        {:ok, result} ->
+          IO.puts("Found table: \#{result.name}")
+        {:error, reason} ->
+          IO.puts("Error: \#{inspect(reason)}")
+      end
 
-  Returns `{:error, {:unsupported_adapter, adapter}}` if the repository uses
-  an unsupported database adapter.
+  ## Supported Adapters
+
+  - PostgreSQL via `Ecto.Adapters.Postgres`
+  - SQLite via `Ecto.Adapters.SQLite3`
+
+  ## Error Cases
+
+  The function can return errors in several scenarios:
+  - Unsupported database adapter
+  - Table does not exist in the database
+  - Database connection issues
+  - Permission issues accessing table metadata
   """
   @spec table(String.t(), module()) :: {:ok, Table.t()} | {:error, term()}
   def table(name, repo) do
@@ -262,19 +394,23 @@ defmodule Drops.SQL.Database do
   @doc """
   Compiles a database table AST into a structured Table struct.
 
-  This function takes the AST returned by adapter introspection and processes
-  it through the specified compiler to produce a `Drops.SQL.Database.Table` struct.
+  This function processes the raw AST (Abstract Syntax Tree) returned by database
+  adapter introspection through the specified compiler module to produce a fully
+  structured `Drops.SQL.Database.Table` struct with normalized data types and metadata.
+
+  This is typically called internally by adapter modules after introspection, but
+  can be used directly if you have a pre-built AST from another source.
 
   ## Parameters
 
-  - `compiler` - The compiler module to use (e.g., `Drops.SQL.Compilers.Postgres`)
-  - `ast` - The table AST returned by introspection
-  - `opts` - Compilation options (typically includes adapter information)
+  - `compiler` - The compiler module to use for processing the AST (e.g., `Drops.SQL.Compilers.Postgres`)
+  - `ast` - The table AST returned by introspection, following the `table()` type specification
+  - `opts` - Compilation options map, typically includes adapter information and other metadata
 
   ## Returns
 
-  - `{:ok, Table.t()}` - Successfully compiled table
-  - `{:error, term()}` - Error during compilation
+  - `{:ok, Table.t()}` - Successfully compiled table with normalized types and metadata
+  - `{:error, term()}` - Error during compilation, such as invalid AST structure or compiler issues
 
   ## Examples
 
@@ -283,8 +419,24 @@ defmodule Drops.SQL.Database do
       {:ok, table} = Drops.SQL.Database.compile_table(
         Drops.SQL.Compilers.Postgres,
         ast,
-        adapter: :postgres
+        %{adapter: :postgres}
       )
+
+      # The resulting table struct contains normalized data
+      table.name          # :users (atom)
+      table.columns       # [%Column{...}] with normalized types
+      table.primary_key   # %PrimaryKey{...}
+
+  ## AST Structure
+
+  The AST must follow the `table()` type specification:
+  - `{:table, {name, columns, foreign_keys, indices}}`
+  - Where each component follows its respective AST type definition
+
+  ## Compiler Requirements
+
+  The compiler module must implement a `process/2` function that accepts
+  the AST and options, returning either a `Table.t()` struct or an error.
   """
   @spec compile_table(module(), table(), map()) :: {:ok, Table.t()} | {:error, term()}
   def compile_table(compiler, ast, opts) do

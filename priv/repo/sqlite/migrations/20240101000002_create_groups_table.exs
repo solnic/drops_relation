@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Repos.Sqlite.Migrations.CreateGroupsTable do
+defmodule Test.Repos.Sqlite.Migrations.CreateGroupsTable do
   use Ecto.Migration
 
   def change do

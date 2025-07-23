@@ -5,8 +5,8 @@ defmodule Drops.RelationCase do
     quote do
       use Drops.Relation.DoctestCase
 
-      alias Drops.Relation.Repos.Sqlite
-      alias Drops.Relation.Repos.Postgres
+      alias Test.Repos.Sqlite
+      alias Test.Repos.Postgres
 
       import Drops.RelationCase
     end
@@ -119,12 +119,12 @@ defmodule Drops.RelationCase do
   end
 
   def setup_sandbox(tags, adapter) do
-    Drops.Relation.Repos.start_owner!(adapter, shared: not tags[:async])
-    on_exit(fn -> Drops.Relation.Repos.stop_owner(adapter) end)
+    Test.Repos.start_owner!(adapter, shared: not tags[:async])
+    on_exit(fn -> Test.Repos.stop_owner(adapter) end)
   end
 
-  def repo(:sqlite), do: Drops.Relation.Repos.Sqlite
-  def repo(:postgres), do: Drops.Relation.Repos.Postgres
+  def repo(:sqlite), do: Test.Repos.Sqlite
+  def repo(:postgres), do: Test.Repos.Postgres
 
   @doc """
   Helper for asserting column properties in SQL Database tables.

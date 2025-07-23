@@ -1,11 +1,5 @@
 defmodule Drops.Relation.Generator do
-  @moduledoc """
-  Generates Ecto schema module content from database table introspection.
-
-  This module handles the conversion of database table metadata into
-  properly formatted Ecto schema definitions with field types, primary keys,
-  and other schema attributes.
-  """
+  @moduledoc false
 
   alias Drops.Relation.Schema
   alias Drops.Relation.Schema.Patcher

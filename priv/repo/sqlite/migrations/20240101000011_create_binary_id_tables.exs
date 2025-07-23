@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Repos.Sqlite.Migrations.CreateBinaryIdTables do
+defmodule Test.Repos.Sqlite.Migrations.CreateBinaryIdTables do
   use Ecto.Migration
 
   def change do

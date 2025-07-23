@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Repos.Sqlite.Migrations.CreateBasicTypesTable do
+defmodule Test.Repos.Sqlite.Migrations.CreateBasicTypesTable do
   use Ecto.Migration
 
   def change do

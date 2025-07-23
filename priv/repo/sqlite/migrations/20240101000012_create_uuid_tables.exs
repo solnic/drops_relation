@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Repos.Sqlite.Migrations.CreateUuidTables do
+defmodule Test.Repos.Sqlite.Migrations.CreateUuidTables do
   use Ecto.Migration
 
   def change do

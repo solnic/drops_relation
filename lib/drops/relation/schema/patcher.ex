@@ -1,26 +1,5 @@
 defmodule Drops.Relation.Schema.Patcher do
-  @moduledoc """
-  Sophisticated schema patching using Sourceror.Zipper for selective updates.
-
-  This module provides functions to surgically update existing Ecto schema modules
-  while preserving custom code like functions, associations, and validations.
-
-  ## Features
-
-  - **Selective Updates**: Only modify schema-related parts
-  - **Code Preservation**: Keep custom functions and associations
-  - **Robust Handling**: Deal with various module structures
-  - **Extensible**: Easy to add new patching capabilities
-
-  ## Usage
-
-      # Patch an existing schema module
-      zipper = Sourceror.Zipper.zip(existing_ast)
-      compiled_parts = CodeCompiler.visit(schema, grouped: true)
-
-      {:ok, updated_zipper} = Patcher.patch_schema_module(zipper, compiled_parts, "users")
-      updated_ast = Sourceror.Zipper.root(updated_zipper)
-  """
+  @moduledoc false
 
   alias Sourceror.Zipper
 

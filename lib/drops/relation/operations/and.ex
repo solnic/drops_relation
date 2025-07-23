@@ -1,4 +1,6 @@
 defmodule Drops.Relation.Operations.And do
+  @moduledoc false
+
   defstruct [:left, :right, :relation_module]
 
   @type t :: %__MODULE__{

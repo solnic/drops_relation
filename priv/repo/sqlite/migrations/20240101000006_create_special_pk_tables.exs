@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Repos.Sqlite.Migrations.CreateSpecialPkTables do
+defmodule Test.Repos.Sqlite.Migrations.CreateSpecialPkTables do
   use Ecto.Migration
 
   def change do

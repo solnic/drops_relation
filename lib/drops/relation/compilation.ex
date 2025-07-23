@@ -1,7 +1,11 @@
 defmodule Drops.Relation.Compilation do
+  @moduledoc false
+
   alias Drops.Relation.Config
 
   defmodule Context do
+    @moduledoc false
+
     defstruct [:relation, :config, macros: %{}]
 
     def new(relation, config) do

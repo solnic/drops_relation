@@ -1,4 +1,6 @@
 defmodule Drops.Relation.Plugins.Queryable.Operations.Restrict.Compiler do
+  @moduledoc false
+
   use Drops.Relation.Plugins.Queryable.Operations.Compiler
 
   @spec visit(map(), map()) :: {:ok, Ecto.Query.t()} | {:error, [String.t()]}

@@ -64,7 +64,7 @@ defmodule Drops.Relation.ConfigurablePluginsTest do
   describe "integration test" do
     test "plugins option is properly passed through to relation definition" do
       opts_with_plugins = [
-        repo: Drops.Relation.Repos.Sqlite,
+        repo: Test.Repos.Sqlite,
         name: "users",
         plugins: [Drops.Relation.Plugins.Schema]
       ]
@@ -72,7 +72,7 @@ defmodule Drops.Relation.ConfigurablePluginsTest do
       assert opts_with_plugins[:plugins] == [Drops.Relation.Plugins.Schema]
 
       opts_without_plugins = [
-        repo: Drops.Relation.Repos.Sqlite,
+        repo: Test.Repos.Sqlite,
         name: "users"
       ]
 

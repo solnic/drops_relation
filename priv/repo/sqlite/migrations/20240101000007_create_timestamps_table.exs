@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Repos.Sqlite.Migrations.CreateTimestampsTable do
+defmodule Test.Repos.Sqlite.Migrations.CreateTimestampsTable do
   use Ecto.Migration
 
   def change do

@@ -1,4 +1,36 @@
 defmodule Drops.Relation.Plugins.Schema do
+  @moduledoc """
+  Plugin that provides schema definition and automatic inference capabilities.
+
+  This plugin adds the `schema/1` and `schema/2` macros for defining relation schemas.
+  It supports both automatic schema inference from database tables and manual schema
+  definition with Ecto.Schema syntax.
+
+  ## Automatic Schema Inference
+
+      schema("users", infer: true)  # Infers all fields, types, and relationships
+
+  ## Manual Schema Definition
+
+      schema("users") do
+        field(:name, :string)
+        field(:email, :string)
+        field(:active, :boolean, default: true)
+
+        timestamps()
+      end
+
+  ## Field Selection
+
+      schema([:id, :name, :email])  # Only include specific fields from inferred schema
+
+  ## Options
+
+  - `infer: true` - Automatically infer schema from database (default)
+  - `struct: "CustomName"` - Use custom struct module name
+  - Standard Ecto.Schema options are supported in manual definitions
+  """
+
   alias Drops.Relation.Schema
   alias Drops.Relation.Cache
   alias Drops.Relation.Generator
@@ -6,6 +38,8 @@ defmodule Drops.Relation.Plugins.Schema do
   use Drops.Relation.Plugin, imports: [schema: 1, schema: 2]
 
   defmodule Macros.Schema do
+    @moduledoc false
+
     use Drops.Relation.Plugin.MacroStruct,
       key: :schema,
       struct: [:name, block: nil, fields: nil, opts: [], infer: true]

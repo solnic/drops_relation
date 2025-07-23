@@ -4,11 +4,32 @@ defmodule Drops.Relation.Config do
   alias __MODULE__
 
   @moduledoc """
-  Centralized configuration management for Drops.Relation.
+  Configuration management for Drops.Relation.
 
-  This module handles configuration for relation modules, including support for
-  function-based configuration values that are evaluated with the relation module
-  as a parameter.
+  This module handles configuration for relation modules, including:
+  - Default plugin configuration
+  - Schema module naming conventions
+  - Repository settings
+  - Function-based configuration values
+
+  ## Configuration Options
+
+  Configuration can be set at the application level:
+
+      config :my_app, :drops,
+        relation: [
+          default_plugins: [
+            Drops.Relation.Plugins.Schema,
+            Drops.Relation.Plugins.Reading,
+            Drops.Relation.Plugins.Writing
+          ],
+          ecto_schema_module: &MyApp.CustomSchemaModule.for_relation/1
+        ]
+
+  ## Function-based Configuration
+
+  Configuration values can be functions that receive the relation module as a parameter,
+  allowing for dynamic configuration based on the relation being defined.
   """
 
   @config_schema [

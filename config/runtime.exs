@@ -8,7 +8,7 @@ end
 
 config :logger, :default_handler, config: [file: ~c"log/#{env}.log"]
 
-config :drops_relation, Drops.Relation.Repos.Sqlite,
+config :drops_relation, Test.Repos.Sqlite,
   adapter: Ecto.Adapters.SQLite3,
   database: "priv/repo/#{env}.sqlite",
   pool_size: 1,
@@ -18,7 +18,7 @@ config :drops_relation, Drops.Relation.Repos.Sqlite,
   log: :debug,
   priv: "priv/repo/sqlite"
 
-config :drops_relation, Drops.Relation.Repos.Postgres,
+config :drops_relation, Test.Repos.Postgres,
   adapter: Ecto.Adapters.Postgres,
   username: "postgres",
   password: "postgres",

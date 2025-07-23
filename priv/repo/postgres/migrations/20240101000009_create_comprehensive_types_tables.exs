@@ -1,4 +1,4 @@
-defmodule Drops.Relation.Repos.Postgres.Migrations.CreateComprehensiveTypesTables do
+defmodule Test.Repos.Postgres.Migrations.CreateComprehensiveTypesTables do
   use Ecto.Migration
 
   def change do

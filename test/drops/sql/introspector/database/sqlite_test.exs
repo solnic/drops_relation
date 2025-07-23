@@ -209,7 +209,7 @@ defmodule Drops.SQL.SqliteTest do
     test "handles non-existent table gracefully" do
       # SQLite doesn't error on non-existent tables in PRAGMA queries,
       # it just returns empty results, which should result in a table with no columns
-      case Database.table("non_existent_table", Drops.Relation.Repos.Sqlite) do
+      case Database.table("non_existent_table", Test.Repos.Sqlite) do
         # This is fine
         {:error, _reason} ->
           :ok

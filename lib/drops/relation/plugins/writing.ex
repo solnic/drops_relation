@@ -1,4 +1,36 @@
 defmodule Drops.Relation.Plugins.Writing do
+  @moduledoc """
+  Plugin that provides writing operations for relation modules.
+
+  This plugin adds Ecto.Repo-like functions for creating, updating, and deleting data:
+  - Insert operations (`insert/2`, `insert!/2`, `insert_all/2`)
+  - Update operations (`update/2`, `update!/2`)
+  - Delete operations (`delete/2`, `delete!/2`)
+  - Changeset operations (`changeset/2`)
+  - Reload operations (`reload/2`, `reload!/2`)
+
+  All functions delegate to the corresponding Ecto.Repo functions with automatic
+  repository and relation configuration.
+
+  ## Examples
+
+      # Insert with map
+      {:ok, user} = Users.insert(%{name: "John", email: "john@example.com"})
+
+      # Insert with changeset
+      changeset = Users.changeset(%{name: "Jane"})
+      {:ok, user} = Users.insert(changeset)
+
+      # Update
+      {:ok, updated_user} = Users.update(user, %{name: "Johnny"})
+
+      # Delete
+      {:ok, deleted_user} = Users.delete(user)
+
+      # Bulk operations
+      Users.insert_all([%{name: "Alice"}, %{name: "Bob"}])
+  """
+
   use Drops.Relation.Plugin
 
   def on(:before_compile, _relation, _) do
@@ -26,19 +58,72 @@ defmodule Drops.Relation.Plugins.Writing do
   end
 
   @doc """
-  Inserts a struct, changeset, or plain map.
+  Inserts a new record into the database.
 
-  Delegates to `Ecto.Repo.insert/2`. The `:repo` and `:relation` options are automatically set
-  based on the repository and relation module configured in the `use` macro, but can be overridden.
+  This function accepts a struct, changeset, or plain map and inserts it into the database.
+  When given a plain map, it automatically creates a struct using the relation's schema.
+  Returns a tuple with the operation result.
+
+  ## Parameters
+
+  - `struct_or_changeset` - The data to insert (struct, changeset, or plain map)
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Options
+
+  - `:repo` - Override the default repository
+  - `:timeout` - Query timeout in milliseconds
+  - `:log` - Override logging configuration
+  - `:returning` - Fields to return from the inserted record
+  - `:on_conflict` - How to handle conflicts (e.g., `:raise`, `:nothing`, `:replace_all`)
+
+  ## Returns
+
+  - `{:ok, struct}` - Successfully inserted record
+  - `{:error, changeset}` - Validation or database errors
 
   ## Examples
 
-      {:ok, user} = MyRelation.insert(%{name: "John", email: "john@example.com"})
-      {:ok, user} = MyRelation.insert(changeset, repo: AnotherRepo)
+      # Insert with plain map
+      {:ok, user} = Users.insert(%{name: "John", email: "john@example.com"})
+      # => {:ok, %Users.Struct{id: 1, name: "John", email: "john@example.com"}}
 
-  See [Ecto.Repo.insert/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:insert/2) for more details.
+      # Insert with changeset
+      changeset = Users.changeset(%{name: "Jane", email: "jane@example.com"})
+      {:ok, user} = Users.insert(changeset)
+
+      # Insert with struct
+      user_struct = %Users.Struct{name: "Bob", email: "bob@example.com"}
+      {:ok, user} = Users.insert(user_struct)
+
+      # Handle validation errors
+      case Users.insert(%{name: "", email: "invalid"}) do
+        {:ok, user} ->
+          IO.puts("Created user: \#{user.name}")
+        {:error, changeset} ->
+          IO.puts("Validation errors: \#{inspect(changeset.errors)}")
+      end
+
+      # Override repository
+      {:ok, user} = Users.insert(%{name: "Alice"}, repo: AnotherRepo)
+
+      # With conflict handling
+      {:ok, user} = Users.insert(%{email: "john@example.com"},
+                                 on_conflict: :nothing)
+
+  ## Validation
+
+  If the data fails validation, returns `{:error, changeset}` with detailed error information:
+
+      {:error, changeset} = Users.insert(%{email: "invalid-email"})
+      changeset.errors
+      # => [email: {"has invalid format", [validation: :format]}]
+
+  See `Ecto.Repo.insert/2` for more details on the underlying implementation.
   """
-  def insert(struct_or_changeset, opts) do
+  @spec insert(struct() | Ecto.Changeset.t() | map(), keyword()) ::
+          {:ok, struct()} | {:error, Ecto.Changeset.t()}
+  def insert(struct_or_changeset, opts \\ []) do
     actual_struct =
       case struct_or_changeset do
         %{__struct__: _} ->

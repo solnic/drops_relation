@@ -1,25 +1,5 @@
 defmodule Drops.Relation.Compilers.EctoCompiler do
-  @moduledoc """
-  Compiler for converting compiled Ecto schema modules to Relation Schema structures.
-
-  This module follows the same pattern as Drops.Relation.Compilers.SchemaCompiler but works with
-  compiled Ecto schema modules and uses Ecto's reflection functions to extract schema
-  information.
-
-  The compiler is used to infer schema information from custom field definitions
-  provided via the `schema` macro in relation modules.
-
-  ## Usage
-
-      # Convert a compiled Ecto schema module to a Relation Schema
-      schema = Drops.Relation.Compilers.EctoCompiler.visit(MyApp.UserSchema, %{})
-
-  ## Examples
-
-      iex> schema = Drops.Relation.Compilers.EctoCompiler.visit(MyApp.UserSchema, %{})
-      iex> schema.source
-      "users"
-  """
+  @moduledoc false
 
   alias Drops.Relation.Schema
   alias Drops.Relation.Schema.{Field, PrimaryKey}

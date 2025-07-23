@@ -1,4 +1,34 @@
 defmodule Drops.Relation.Plugins.Queryable do
+  @moduledoc """
+  Plugin that provides composable query operations for relation modules.
+
+  This plugin implements the Ecto.Queryable protocol and provides operations like:
+  - `restrict/2` - Add WHERE conditions
+  - `order/2` - Add ORDER BY clauses
+  - `preload/2` - Add preload associations
+
+  Operations can be chained together and are compiled into Ecto queries when executed.
+
+  ## Examples
+
+      # Single operation
+      active_users = Users.restrict(active: true)
+
+      # Chained operations
+      sorted_active_users = Users
+                            |> Users.restrict(active: true)
+                            |> Users.order(:name)
+
+      # Complex restrictions
+      filtered_users = Users.restrict(active: true, role: ["admin", "user"])
+
+      # Ordering
+      ordered_users = Users.order([:name, {:age, :desc}])
+
+      # Preloading associations
+      users_with_posts = Users.preload(:posts)
+  """
+
   alias Drops.Relation.Generator
   alias Drops.Relation.Plugins.Queryable.Operations
 
@@ -26,11 +56,20 @@ defmodule Drops.Relation.Plugins.Queryable do
     quote do
       unquote(ecto_funcs)
 
+      @type t :: __MODULE__
+
       @spec repo() :: module()
       def repo, do: unquote(opts[:repo])
 
-      def new(opts \\ []), do: new(queryable(), opts)
+      def new(opts \\ [])
 
+      @spec new(keyword()) :: t()
+      def new(opts) when is_list(opts), do: new(queryable(), opts)
+
+      @spec new(Ecto.Queryable.t()) :: t()
+      def new(queryable) when is_atom(queryable) or is_struct(queryable), do: new(queryable, [])
+
+      @spec new(Ecto.Queryable.t(), keyword()) :: t()
       def new(queryable, opts) do
         Kernel.struct(__MODULE__, %{
           queryable: queryable,
@@ -42,10 +81,11 @@ defmodule Drops.Relation.Plugins.Queryable do
         })
       end
 
+      @spec queryable() :: Ecto.Queryable.t()
       def queryable(), do: __schema_module__()
       defoverridable queryable: 0
 
-      defp add_operation(%__MODULE__{operations: operations} = relation, name, opts \\ []) do
+      def add_operation(%__MODULE__{operations: operations} = relation, name, opts \\ []) do
         relation_opts = relation.opts
 
         if name in operations do

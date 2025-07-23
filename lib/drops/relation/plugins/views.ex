@@ -1,7 +1,59 @@
 defmodule Drops.Relation.Plugins.Views do
+  @moduledoc """
+  Plugin for defining relation views with custom schemas and derived queries.
+
+  Views allow you to create specialized versions of a relation with:
+  - Custom field selection (subset of original fields)
+  - Derived query operations (automatic filtering/restrictions)
+  - Separate struct modules for type safety
+
+  ## Usage
+
+      defmodule Users do
+        use Drops.Relation, repo: MyRepo
+
+        schema("users", infer: true)
+
+        view(:active) do
+          schema([:id, :name, :email])  # Only include specific fields
+
+          derive do
+            restrict(active: true)      # Automatically filter active users
+          end
+        end
+      end
+
+      # Use the view
+      active_users = Users.active().all()  # Returns only active users with limited fields
+
+  ## Examples
+
+      # View with custom struct name
+      view(:public_profile) do
+        schema([:id, :name], struct: "PublicUser")
+
+        derive do
+          restrict(active: true)
+          |> restrict(public_profile: true)
+        end
+      end
+
+      # View for admin data
+      view(:admin_view) do
+        schema([:id, :name, :email, :role, :last_login])
+
+        derive do
+          restrict(role: ["admin", "super_admin"])
+          |> order(:last_login)
+        end
+      end
+  """
+
   use Drops.Relation.Plugin, imports: [view: 2, derive: 1]
 
   defmodule Macros.View do
+    @moduledoc false
+
     use Drops.Relation.Plugin.MacroStruct,
       key: :views,
       accumulate: true,
@@ -13,6 +65,8 @@ defmodule Drops.Relation.Plugins.Views do
   end
 
   defmodule Macros.Derive do
+    @moduledoc false
+
     use Drops.Relation.Plugin.MacroStruct,
       key: :derive,
       struct: [:block]

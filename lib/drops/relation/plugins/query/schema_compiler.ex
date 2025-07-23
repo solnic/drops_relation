@@ -1,17 +1,5 @@
 defmodule Drops.Relation.Plugins.AutoRestrict.SchemaCompiler do
-  @moduledoc """
-  Compiler for generating get_by_* finder functions from Drops.Relation.Schema structures.
-
-  This module follows the visitor pattern similar to CodeCompiler but focuses specifically
-  on generating quoted expressions for index-based finder functions. It supports both
-  single field and composite index finders.
-
-  ## Usage
-
-      # Generate finder functions from a schema
-      schema = %Drops.Relation.Schema{...}
-      finder_asts = Drops.Relation.Query.SchemaCompiler.visit(schema, %{repo: MyRepo})
-  """
+  @moduledoc false
 
   alias Drops.Relation.Schema
 

@@ -256,7 +256,7 @@ defmodule Drops.SQL.PostgresTest do
 
     @tag relations: [:custom_pk], adapter: :postgres
     test "correctly handles UUID primary key" do
-      {:ok, table} = Database.table("custom_pk", Drops.Relation.Repos.Postgres)
+      {:ok, table} = Database.table("custom_pk", Test.Repos.Postgres)
 
       primary_key = table.primary_key
       primary_key_column_names = Enum.map(primary_key.columns, & &1.name)
@@ -266,7 +266,7 @@ defmodule Drops.SQL.PostgresTest do
 
     @tag relations: [:postgres_array_types], adapter: :postgres
     test "correctly handles PostgreSQL array types including character varying[]" do
-      {:ok, table} = Database.table("postgres_array_types", Drops.Relation.Repos.Postgres)
+      {:ok, table} = Database.table("postgres_array_types", Test.Repos.Postgres)
 
       # Verify table structure
       assert %Database.Table{} = table
@@ -296,7 +296,7 @@ defmodule Drops.SQL.PostgresTest do
 
     @tag relations: [:postgres_array_types], adapter: :postgres
     test "correctly converts character varying[] to {:array, :string}" do
-      {:ok, table} = Database.table("postgres_array_types", Drops.Relation.Repos.Postgres)
+      {:ok, table} = Database.table("postgres_array_types", Test.Repos.Postgres)
 
       # Find the text_array column which should be created as {:array, :string} in migration
       # but stored as "character varying[]" in PostgreSQL

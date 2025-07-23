@@ -1,9 +1,13 @@
 defmodule Drops.Relation.Plugin do
+  @moduledoc false
+
   alias Drops.Relation.Compilation
 
   alias __MODULE__
 
   defmodule MacroStruct do
+    @moduledoc false
+
     defmacro __using__(opts) do
       quote location: :keep do
         defstruct unquote(opts[:struct])

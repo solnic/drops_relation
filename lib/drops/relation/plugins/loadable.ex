@@ -1,4 +1,35 @@
 defmodule Drops.Relation.Plugins.Loadable do
+  @moduledoc """
+  Plugin that implements the Enumerable protocol for relation modules.
+
+  This plugin allows relation structs to be used with Enum functions by
+  implementing the Enumerable protocol. When enumerated, the relation
+  is executed and the results are loaded into memory.
+
+  ## Examples
+
+      # Use Enum functions directly on relations
+      users = Users.restrict(active: true)
+
+      # Count without executing a separate query
+      count = Enum.count(users)
+
+      # Map over results
+      names = Enum.map(users, & &1.name)
+
+      # Filter results (after loading)
+      admins = Enum.filter(users, & &1.role == "admin")
+
+      # Convert to list
+      user_list = Enum.to_list(users)
+
+  ## Performance Note
+
+  This plugin loads all matching records into memory when any Enum function
+  is called. For large datasets, consider using the query functions directly
+  or implementing pagination.
+  """
+
   use Drops.Relation.Plugin
 
   def on(:before_compile, _, _) do
