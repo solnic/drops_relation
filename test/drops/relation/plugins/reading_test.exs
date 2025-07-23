@@ -656,4 +656,201 @@ defmodule Drops.Relations.Plugins.ReadingTest do
       end
     end
   end
+
+  describe "relation struct support for query functions" do
+    @tag relations: [:users]
+    test "count/2 works with relation structs", %{users: users} do
+      # Insert test data
+      {:ok, _user1} =
+        users.insert(%{name: "Active User", email: "active@example.com", active: true})
+
+      {:ok, _user2} =
+        users.insert(%{name: "Inactive User", email: "inactive@example.com", active: false})
+
+      # Test count with relation struct
+      active_query = users.restrict(active: true)
+      count = users.count(active_query)
+      assert count == 1
+
+      # Test count with piped syntax
+      count_piped = users.restrict(active: true) |> users.count()
+      assert count_piped == 1
+    end
+
+    @tag relations: [:users]
+    test "first/2 works with relation structs", %{users: users} do
+      # Insert test data in specific order
+      {:ok, _user1} = users.insert(%{name: "Alice", email: "alice@example.com", active: true})
+      {:ok, _user2} = users.insert(%{name: "Bob", email: "bob@example.com", active: true})
+
+      # Test first with relation struct
+      active_query = users.restrict(active: true) |> users.order(:name)
+      first_user = users.first(active_query)
+      assert first_user.name == "Alice"
+
+      # Test first with piped syntax
+      first_piped = users.restrict(active: true) |> users.order(:name) |> users.first()
+      assert first_piped.name == "Alice"
+    end
+
+    @tag relations: [:users]
+    test "last/2 works with relation structs", %{users: users} do
+      # Insert test data in specific order
+      {:ok, _user1} = users.insert(%{name: "Alice", email: "alice@example.com", active: true})
+      {:ok, _user2} = users.insert(%{name: "Bob", email: "bob@example.com", active: true})
+
+      # Test last with relation struct
+      active_query = users.restrict(active: true) |> users.order(:name)
+      last_user = users.last(active_query)
+      assert last_user.name == "Bob"
+
+      # Test last with piped syntax
+      last_piped = users.restrict(active: true) |> users.order(:name) |> users.last()
+      assert last_piped.name == "Bob"
+    end
+
+    @tag relations: [:users]
+    test "one/2 works with relation structs", %{users: users} do
+      # Insert single matching record
+      {:ok, _user1} =
+        users.insert(%{name: "Unique User", email: "unique@example.com", active: true})
+
+      {:ok, _user2} =
+        users.insert(%{name: "Other User", email: "other@example.com", active: false})
+
+      # Test one with relation struct
+      unique_query = users.restrict(active: true)
+      user = users.one(unique_query)
+      assert user.name == "Unique User"
+
+      # Test one with piped syntax
+      user_piped = users.restrict(active: true) |> users.one()
+      assert user_piped.name == "Unique User"
+    end
+
+    @tag relations: [:users]
+    test "one!/2 works with relation structs", %{users: users} do
+      # Insert single matching record
+      {:ok, _user1} =
+        users.insert(%{name: "Unique User", email: "unique@example.com", active: true})
+
+      {:ok, _user2} =
+        users.insert(%{name: "Other User", email: "other@example.com", active: false})
+
+      # Test one! with relation struct
+      unique_query = users.restrict(active: true)
+      user = users.one!(unique_query)
+      assert user.name == "Unique User"
+
+      # Test one! with piped syntax
+      user_piped = users.restrict(active: true) |> users.one!()
+      assert user_piped.name == "Unique User"
+    end
+  end
+
+  describe "aggregation shortcut functions" do
+    @tag relations: [:users]
+    test "min/2 and min/3 work correctly", %{users: users} do
+      # Insert test data with ages
+      {:ok, _user1} =
+        users.insert(%{name: "User 1", email: "user1@example.com", age: 25, active: true})
+
+      {:ok, _user2} =
+        users.insert(%{name: "User 2", email: "user2@example.com", age: 30, active: true})
+
+      {:ok, _user3} =
+        users.insert(%{name: "User 3", email: "user3@example.com", age: 35, active: false})
+
+      # Test min without relation struct
+      min_age = users.min(:age)
+      assert min_age == 25
+
+      # Test min with relation struct
+      active_query = users.restrict(active: true)
+      min_active_age = users.min(active_query, :age)
+      assert min_active_age == 25
+
+      # Test min with piped syntax
+      min_piped = users.restrict(active: true) |> users.min(:age)
+      assert min_piped == 25
+    end
+
+    @tag relations: [:users]
+    test "max/2 and max/3 work correctly", %{users: users} do
+      # Insert test data with ages
+      {:ok, _user1} =
+        users.insert(%{name: "User 1", email: "user1@example.com", age: 25, active: true})
+
+      {:ok, _user2} =
+        users.insert(%{name: "User 2", email: "user2@example.com", age: 30, active: true})
+
+      {:ok, _user3} =
+        users.insert(%{name: "User 3", email: "user3@example.com", age: 35, active: false})
+
+      # Test max without relation struct
+      max_age = users.max(:age)
+      assert max_age == 35
+
+      # Test max with relation struct
+      active_query = users.restrict(active: true)
+      max_active_age = users.max(active_query, :age)
+      assert max_active_age == 30
+
+      # Test max with piped syntax
+      max_piped = users.restrict(active: true) |> users.max(:age)
+      assert max_piped == 30
+    end
+
+    @tag relations: [:users]
+    test "sum/2 and sum/3 work correctly", %{users: users} do
+      # Insert test data with ages
+      {:ok, _user1} =
+        users.insert(%{name: "User 1", email: "user1@example.com", age: 25, active: true})
+
+      {:ok, _user2} =
+        users.insert(%{name: "User 2", email: "user2@example.com", age: 30, active: true})
+
+      {:ok, _user3} =
+        users.insert(%{name: "User 3", email: "user3@example.com", age: 35, active: false})
+
+      # Test sum without relation struct
+      sum_age = users.sum(:age)
+      assert sum_age == 90
+
+      # Test sum with relation struct
+      active_query = users.restrict(active: true)
+      sum_active_age = users.sum(active_query, :age)
+      assert sum_active_age == 55
+
+      # Test sum with piped syntax
+      sum_piped = users.restrict(active: true) |> users.sum(:age)
+      assert sum_piped == 55
+    end
+
+    @tag relations: [:users]
+    test "avg/2 and avg/3 work correctly", %{users: users} do
+      # Insert test data with ages
+      {:ok, _user1} =
+        users.insert(%{name: "User 1", email: "user1@example.com", age: 25, active: true})
+
+      {:ok, _user2} =
+        users.insert(%{name: "User 2", email: "user2@example.com", age: 30, active: true})
+
+      {:ok, _user3} =
+        users.insert(%{name: "User 3", email: "user3@example.com", age: 35, active: false})
+
+      # Test avg without relation struct
+      avg_age = users.avg(:age)
+      assert avg_age == 30.0
+
+      # Test avg with relation struct
+      active_query = users.restrict(active: true)
+      avg_active_age = users.avg(active_query, :age)
+      assert avg_active_age == 27.5
+
+      # Test avg with piped syntax
+      avg_piped = users.restrict(active: true) |> users.avg(:age)
+      assert avg_piped == 27.5
+    end
+  end
 end

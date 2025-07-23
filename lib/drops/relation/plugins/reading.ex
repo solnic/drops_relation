@@ -76,10 +76,15 @@ defmodule Drops.Relation.Plugins.Reading do
       delegate_to(all(opts), to: Reading)
       delegate_to(all_by(clauses), to: Reading)
       delegate_to(one(), to: Reading)
+      delegate_to(one(relation), to: Reading)
       delegate_to(one!(), to: Reading)
+      delegate_to(one!(relation), to: Reading)
       delegate_to(count(), to: Reading)
+      delegate_to(count(relation), to: Reading)
       delegate_to(first(), to: Reading)
+      delegate_to(first(relation), to: Reading)
       delegate_to(last(), to: Reading)
+      delegate_to(last(relation), to: Reading)
       delegate_to(exists?(), to: Reading)
       delegate_to(stream(), to: Reading)
       delegate_to(aggregate(aggregate), to: Reading)
@@ -89,6 +94,16 @@ defmodule Drops.Relation.Plugins.Reading do
       delegate_to(transaction(fun_or_multi), to: Reading)
       delegate_to(in_transaction?(), to: Reading)
       delegate_to(checkout(fun), to: Reading)
+
+      # Aggregation shortcuts
+      delegate_to(min(field), to: Reading)
+      delegate_to(min(relation, field), to: Reading)
+      delegate_to(max(field), to: Reading)
+      delegate_to(max(relation, field), to: Reading)
+      delegate_to(sum(field), to: Reading)
+      delegate_to(sum(relation, field), to: Reading)
+      delegate_to(avg(field), to: Reading)
+      delegate_to(avg(relation, field), to: Reading)
 
       # Composable function interface
       delegate_to(restrict(spec), to: Reading)
@@ -623,8 +638,40 @@ defmodule Drops.Relation.Plugins.Reading do
   See [`Ecto.Repo.one/2`](https://hexdocs.pm/ecto/Ecto.Repo.html#c:one/2) for more details.
   """
   @doc group: "Query API"
-  def one(opts) do
+  def one(opts \\ []) do
     read(:one, [], opts)
+  end
+
+  @doc """
+  Fetches a single result from a composable relation query.
+
+  This function head handles the case where a composable relation struct is passed
+  as the first argument, allowing you to execute queries built with `restrict/2`, `order/2`, etc.
+
+  ## Parameters
+
+  - `relation` - A composable relation struct built with query functions
+  - `opts` - Additional options (automatically provided by delegate_to)
+
+  ## Returns
+
+  A single record struct matching the relation query, or `nil` if no record is found.
+
+  ## Examples
+
+      # Build and execute a composable query
+      query = Users.restrict(active: true)
+      user = Users.one(query)
+
+      # Equivalent to:
+      user = Users
+             |> Users.restrict(active: true)
+             |> Users.one()
+  """
+  @doc group: "Query API"
+  @spec one(struct(), keyword()) :: struct() | nil
+  def one(%{__struct__: relation_module} = relation, opts) do
+    read(:one, [], Keyword.merge(opts, relation: relation_module, queryable: relation))
   end
 
   @doc """
@@ -641,8 +688,41 @@ defmodule Drops.Relation.Plugins.Reading do
   See [Ecto.Repo.one!/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:one!/2) for more details.
   """
   @doc group: "Query API"
-  def one!(opts) do
+  def one!(opts \\ []) do
     read(:one!, [], opts)
+  end
+
+  @doc """
+  Fetches a single result from a composable relation query, raises if not found or more than one.
+
+  This function head handles the case where a composable relation struct is passed
+  as the first argument, allowing you to execute queries built with `restrict/2`, `order/2`, etc.
+
+  ## Parameters
+
+  - `relation` - A composable relation struct built with query functions
+  - `opts` - Additional options (automatically provided by delegate_to)
+
+  ## Returns
+
+  A single record struct matching the relation query. Raises `Ecto.NoResultsError` if no record
+  is found, or `Ecto.MultipleResultsError` if more than one record is found.
+
+  ## Examples
+
+      # Build and execute a composable query
+      query = Users.restrict(active: true)
+      user = Users.one!(query)
+
+      # Equivalent to:
+      user = Users
+             |> Users.restrict(active: true)
+             |> Users.one!()
+  """
+  @doc group: "Query API"
+  @spec one!(struct(), keyword()) :: struct()
+  def one!(%{__struct__: relation_module} = relation, opts) do
+    read(:one!, [], Keyword.merge(opts, relation: relation_module, queryable: relation))
   end
 
   @doc """
@@ -659,8 +739,44 @@ defmodule Drops.Relation.Plugins.Reading do
   See [`Ecto.Repo.aggregate/3`](https://hexdocs.pm/ecto/Ecto.Repo.html#c:aggregate/3) for more details.
   """
   @doc group: "Query API"
-  def count(opts) do
+  def count(opts \\ []) do
     read(:aggregate, [:count], opts)
+  end
+
+  @doc """
+  Returns the count of records from a composable relation query.
+
+  This function head handles the case where a composable relation struct is passed
+  as the first argument, allowing you to count records from queries built with `restrict/2`, `order/2`, etc.
+
+  ## Parameters
+
+  - `relation` - A composable relation struct built with query functions
+  - `opts` - Additional options (automatically provided by delegate_to)
+
+  ## Returns
+
+  An integer representing the count of records matching the relation query.
+
+  ## Examples
+
+      # Build and execute a composable query
+      query = Users.restrict(active: true)
+      count = Users.count(query)
+
+      # Equivalent to:
+      count = Users
+              |> Users.restrict(active: true)
+              |> Users.count()
+  """
+  @doc group: "Query API"
+  @spec count(struct(), keyword()) :: non_neg_integer()
+  def count(%{__struct__: relation_module} = relation, opts) do
+    read(
+      :aggregate,
+      [:count],
+      Keyword.merge(opts, relation: relation_module, queryable: relation)
+    )
   end
 
   @doc """
@@ -678,8 +794,42 @@ defmodule Drops.Relation.Plugins.Reading do
   [Ecto.Query.first/1](https://hexdocs.pm/ecto/Ecto.Query.html#first/1) for more details.
   """
   @doc group: "Query API"
-  def first(opts) do
+  def first(opts \\ []) do
     read(:one, [], Keyword.merge(opts, queryable: Ecto.Query.first(opts[:relation])))
+  end
+
+  @doc """
+  Returns the first record from a composable relation query.
+
+  This function head handles the case where a composable relation struct is passed
+  as the first argument, allowing you to get the first record from queries built with `restrict/2`, `order/2`, etc.
+
+  ## Parameters
+
+  - `relation` - A composable relation struct built with query functions
+  - `opts` - Additional options (automatically provided by delegate_to)
+
+  ## Returns
+
+  The first record struct matching the relation query, or `nil` if no records are found.
+
+  ## Examples
+
+      # Build and execute a composable query
+      query = Users.restrict(active: true) |> Users.order(:name)
+      user = Users.first(query)
+
+      # Equivalent to:
+      user = Users
+             |> Users.restrict(active: true)
+             |> Users.order(:name)
+             |> Users.first()
+  """
+  @doc group: "Query API"
+  @spec first(struct(), keyword()) :: struct() | nil
+  def first(%{__struct__: relation_module} = relation, opts) do
+    queryable = Ecto.Query.first(relation)
+    read(:one, [], Keyword.merge(opts, relation: relation_module, queryable: queryable))
   end
 
   @doc """
@@ -697,8 +847,42 @@ defmodule Drops.Relation.Plugins.Reading do
   [Ecto.Query.last/1](https://hexdocs.pm/ecto/Ecto.Query.html#last/1) for more details.
   """
   @doc group: "Query API"
-  def last(opts) do
+  def last(opts \\ []) do
     read(:one, [], Keyword.merge(opts, queryable: Ecto.Query.last(opts[:relation])))
+  end
+
+  @doc """
+  Returns the last record from a composable relation query.
+
+  This function head handles the case where a composable relation struct is passed
+  as the first argument, allowing you to get the last record from queries built with `restrict/2`, `order/2`, etc.
+
+  ## Parameters
+
+  - `relation` - A composable relation struct built with query functions
+  - `opts` - Additional options (automatically provided by delegate_to)
+
+  ## Returns
+
+  The last record struct matching the relation query, or `nil` if no records are found.
+
+  ## Examples
+
+      # Build and execute a composable query
+      query = Users.restrict(active: true) |> Users.order(:name)
+      user = Users.last(query)
+
+      # Equivalent to:
+      user = Users
+             |> Users.restrict(active: true)
+             |> Users.order(:name)
+             |> Users.last()
+  """
+  @doc group: "Query API"
+  @spec last(struct(), keyword()) :: struct() | nil
+  def last(%{__struct__: relation_module} = relation, opts) do
+    queryable = Ecto.Query.last(relation)
+    read(:one, [], Keyword.merge(opts, relation: relation_module, queryable: queryable))
   end
 
   @doc """
@@ -760,6 +944,186 @@ defmodule Drops.Relation.Plugins.Reading do
   @doc group: "Query API"
   def aggregate(aggregate, field, opts) do
     read(:aggregate, [aggregate, field], opts)
+  end
+
+  @doc """
+  Returns the minimum value for the given field.
+
+  This is a convenience function that delegates to `aggregate/3` with `:min`.
+
+  ## Parameters
+
+  - `field` - The field to calculate the minimum value for
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Examples
+
+      min_age = Users.min(:age)
+      min_age = Users.min(:age, repo: AnotherRepo)
+
+  See `aggregate/3` for more details.
+  """
+  @doc group: "Query API"
+  def min(field, opts \\ []) do
+    read(:aggregate, [:min, field], opts)
+  end
+
+  @doc """
+  Returns the minimum value for the given field from a composable relation query.
+
+  ## Parameters
+
+  - `relation` - A composable relation struct built with query functions
+  - `field` - The field to calculate the minimum value for
+  - `opts` - Additional options (automatically provided by delegate_to)
+
+  ## Examples
+
+      query = Users.restrict(active: true)
+      min_age = Users.min(query, :age)
+  """
+  @doc group: "Query API"
+  def min(%{__struct__: relation_module} = relation, field, opts) do
+    read(
+      :aggregate,
+      [:min, field],
+      Keyword.merge(opts, relation: relation_module, queryable: relation)
+    )
+  end
+
+  @doc """
+  Returns the maximum value for the given field.
+
+  This is a convenience function that delegates to `aggregate/3` with `:max`.
+
+  ## Parameters
+
+  - `field` - The field to calculate the maximum value for
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Examples
+
+      max_age = Users.max(:age)
+      max_age = Users.max(:age, repo: AnotherRepo)
+
+  See `aggregate/3` for more details.
+  """
+  @doc group: "Query API"
+  def max(field, opts \\ []) do
+    read(:aggregate, [:max, field], opts)
+  end
+
+  @doc """
+  Returns the maximum value for the given field from a composable relation query.
+
+  ## Parameters
+
+  - `relation` - A composable relation struct built with query functions
+  - `field` - The field to calculate the maximum value for
+  - `opts` - Additional options (automatically provided by delegate_to)
+
+  ## Examples
+
+      query = Users.restrict(active: true)
+      max_age = Users.max(query, :age)
+  """
+  @doc group: "Query API"
+  def max(%{__struct__: relation_module} = relation, field, opts) do
+    read(
+      :aggregate,
+      [:max, field],
+      Keyword.merge(opts, relation: relation_module, queryable: relation)
+    )
+  end
+
+  @doc """
+  Returns the sum of values for the given field.
+
+  This is a convenience function that delegates to `aggregate/3` with `:sum`.
+
+  ## Parameters
+
+  - `field` - The field to calculate the sum for
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Examples
+
+      total_age = Users.sum(:age)
+      total_age = Users.sum(:age, repo: AnotherRepo)
+
+  See `aggregate/3` for more details.
+  """
+  @doc group: "Query API"
+  def sum(field, opts \\ []) do
+    read(:aggregate, [:sum, field], opts)
+  end
+
+  @doc """
+  Returns the sum of values for the given field from a composable relation query.
+
+  ## Parameters
+
+  - `relation` - A composable relation struct built with query functions
+  - `field` - The field to calculate the sum for
+  - `opts` - Additional options (automatically provided by delegate_to)
+
+  ## Examples
+
+      query = Users.restrict(active: true)
+      total_age = Users.sum(query, :age)
+  """
+  @doc group: "Query API"
+  def sum(%{__struct__: relation_module} = relation, field, opts) do
+    read(
+      :aggregate,
+      [:sum, field],
+      Keyword.merge(opts, relation: relation_module, queryable: relation)
+    )
+  end
+
+  @doc """
+  Returns the average value for the given field.
+
+  This is a convenience function that delegates to `aggregate/3` with `:avg`.
+
+  ## Parameters
+
+  - `field` - The field to calculate the average for
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Examples
+
+      avg_age = Users.avg(:age)
+      avg_age = Users.avg(:age, repo: AnotherRepo)
+
+  See `aggregate/3` for more details.
+  """
+  @doc group: "Query API"
+  def avg(field, opts \\ []) do
+    read(:aggregate, [:avg, field], opts)
+  end
+
+  @doc """
+  Returns the average value for the given field from a composable relation query.
+
+  ## Parameters
+
+  - `relation` - A composable relation struct built with query functions
+  - `field` - The field to calculate the average for
+  - `opts` - Additional options (automatically provided by delegate_to)
+
+  ## Examples
+
+      query = Users.restrict(active: true)
+      avg_age = Users.avg(query, :age)
+  """
+  @doc group: "Query API"
+  def avg(%{__struct__: relation_module} = relation, field, opts) do
+    read(
+      :aggregate,
+      [:avg, field],
+      Keyword.merge(opts, relation: relation_module, queryable: relation)
+    )
   end
 
   @doc """
