@@ -13,6 +13,7 @@ defmodule Drops.Relation.ConfigurablePluginsTest do
         Drops.Relation.Plugins.Views,
         Drops.Relation.Plugins.Queryable,
         Drops.Relation.Plugins.AutoRestrict,
+        Drops.Relation.Plugins.Pagination,
         Drops.Relation.Plugins.Ecto.Query
       ]
 

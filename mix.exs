@@ -88,7 +88,8 @@ defmodule Drops.Relation.MixProject do
         "Query API": [
           Drops.Relation.Plugins.Reading,
           Drops.Relation.Plugins.Writing,
-          Drops.Relation.Plugins.AutoRestrict
+          Drops.Relation.Plugins.AutoRestrict,
+          Drops.Relation.Plugins.Pagination
         ],
         "Advanced Composition": [
           Drops.Relation.Query,

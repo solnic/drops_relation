@@ -48,6 +48,10 @@ defmodule Drops.Relations.Plugins.Ecto.QueryTest do
       defquery order(field) do
         from(u in relation(), order_by: [^field])
       end
+
+      defquery paginate(offset, per_page) do
+        from(q in relation(), offset: ^offset, limit: ^per_page)
+      end
     end
 
     test "defines a custom query with args", %{users: users} do
@@ -71,6 +75,40 @@ defmodule Drops.Relations.Plugins.Ecto.QueryTest do
                |> users.by_age(42)
                |> users.order(:name)
                |> Enum.to_list()
+    end
+  end
+
+  describe "query/1 with multiple args" do
+    relation(:users) do
+      schema("users", infer: true)
+
+      defquery by_age(age) do
+        from(u in relation(), where: u.age == ^age)
+      end
+
+      defquery paginate(offset, per_page) do
+        from(q in relation(), offset: ^offset, limit: ^per_page)
+      end
+    end
+
+    test "defines a custom query with multiple args", %{users: users} do
+      Enum.each(1..25, fn i ->
+        users.insert(%{name: "User #{i}", active: true, age: 20 + i})
+      end)
+
+      result = users.paginate(5, 10) |> Enum.to_list()
+      assert length(result) == 10
+    end
+
+    test "composes with other relations (multiple args)", %{users: users} do
+      Enum.each(1..25, fn i ->
+        users.insert(%{name: "User #{i}", active: true, age: 20 + i})
+      end)
+
+      base_query = users.by_age(25)
+      result = users.paginate(base_query, 0, 5) |> Enum.to_list()
+      assert length(result) == 1
+      assert [%{age: 25}] = result
     end
   end
 end

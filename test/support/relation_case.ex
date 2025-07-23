@@ -1,6 +1,8 @@
 defmodule Drops.RelationCase do
   use ExUnit.CaseTemplate
 
+  alias Drops.Relation.Loadable
+
   using do
     quote do
       use Drops.Relation.DoctestCase
@@ -102,7 +104,7 @@ defmodule Drops.RelationCase do
           relation_module.__schema_module__()
         ],
         fn module ->
-          for protocol <- [Enumerable, Ecto.Queryable] do
+          for protocol <- [Enumerable, Ecto.Queryable, Loadable] do
             impl_module = Module.concat([protocol, module])
 
             if Code.ensure_loaded?(impl_module) do

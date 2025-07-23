@@ -1,39 +1,11 @@
 defmodule Drops.Relation.Plugins.Queryable do
-  @moduledoc """
-  Plugin that provides composable query operations for relation modules.
-
-  This plugin implements the Ecto.Queryable protocol and provides operations like:
-  - `restrict/2` - Add WHERE conditions
-  - `order/2` - Add ORDER BY clauses
-  - `preload/2` - Add preload associations
-
-  Operations can be chained together and are compiled into Ecto queries when executed.
-
-  ## Examples
-
-      # Single operation
-      active_users = Users.restrict(active: true)
-
-      # Chained operations
-      sorted_active_users = Users
-                            |> Users.restrict(active: true)
-                            |> Users.order(:name)
-
-      # Complex restrictions
-      filtered_users = Users.restrict(active: true, role: ["admin", "user"])
-
-      # Ordering
-      ordered_users = Users.order([:name, {:age, :desc}])
-
-      # Preloading associations
-      users_with_posts = Users.preload(:posts)
-  """
+  @moduledoc false
 
   alias Drops.Relation.Generator
   alias Drops.Relation.Plugins.Queryable.Operations
 
   use Drops.Relation.Plugin do
-    defstruct([:repo, :schema, :queryable, :associations, operations: [], opts: []])
+    defstruct([:repo, :schema, :queryable, :associations, operations: [], opts: [], meta: %{}])
   end
 
   def on(:before_compile, relation, %{opts: opts}) do
@@ -77,7 +49,8 @@ defmodule Drops.Relation.Plugins.Queryable do
           associations: __associations__(),
           repo: repo(),
           operations: [],
-          opts: opts
+          opts: opts,
+          meta: %{}
         })
       end
 
@@ -126,12 +99,18 @@ defmodule Drops.Relation.Plugins.Queryable do
 
         def to_query(%{operations: operations, queryable: queryable, opts: opts} = relation) do
           Enum.reduce(operations, Ecto.Queryable.to_query(queryable), fn name, query ->
-            case @compilers[name].visit(relation, %{query: query, opts: opts}) do
-              {:ok, result_query} ->
-                result_query
+            case @compilers[name] do
+              nil ->
+                query
 
-              {:error, errors} ->
-                raise Drops.Relation.Plugins.Queryable.InvalidQueryError, errors: errors
+              compiler ->
+                case compiler.visit(relation, %{query: query, opts: opts}) do
+                  {:ok, result_query} ->
+                    result_query
+
+                  {:error, errors} ->
+                    raise Drops.Relation.Plugins.Queryable.InvalidQueryError, errors: errors
+                end
             end
           end)
         end
