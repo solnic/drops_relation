@@ -70,7 +70,6 @@ defimpl Drops.Relation.Schema.Serializable.Dumper, for: Any do
 
   def dump(value) when is_tuple(value) do
     elements = @protocol.dump(Tuple.to_list(value))
-    IO.inspect(elements)
     [:tuple, elements]
   end
 
@@ -94,6 +93,10 @@ defimpl Drops.Relation.Schema.Serializable.Loader, for: Map do
     Enum.reduce(map, %{}, fn {key, value}, acc ->
       Map.put(acc, String.to_atom(key), @protocol.load(value))
     end)
+  end
+
+  def load(%{"__struct__" => "Schema", "attributes" => attributes}) do
+    @protocol.load(attributes, Drops.Relation.Schema)
   end
 
   def load(%{"__struct__" => module, "attributes" => attributes}) when module != "Schema" do

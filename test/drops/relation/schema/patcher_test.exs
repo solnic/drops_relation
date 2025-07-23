@@ -368,7 +368,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
           defmodule SampleApp.Relations.Posts do
             use Ecto.Schema
 
-            schema(:posts) do
+            schema("posts") do
               field(:title, :string)
               field(:body, :text)
               timestamps()

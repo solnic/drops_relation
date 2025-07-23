@@ -18,7 +18,7 @@ defmodule Drops.Relation.Schema do
         }
 
   @type t :: %__MODULE__{
-          source: String.t(),
+          source: atom(),
           primary_key: PrimaryKey.t() | nil,
           foreign_keys: [ForeignKey.t()],
           fields: [Field.t()],
@@ -56,7 +56,7 @@ defmodule Drops.Relation.Schema do
   - `fields` - List of field metadata
   - `indices` - Index information
   """
-  @spec new(atom(), keyword()) :: t()
+  @spec new(String.t()) :: t()
   def new(source) when is_atom(source) do
     new(%{source: source})
   end
@@ -65,18 +65,8 @@ defmodule Drops.Relation.Schema do
     struct(__MODULE__, attributes)
   end
 
-  @doc """
-  Creates an empty schema with the given source.
-
-  This is an alias for `new/1` for backward compatibility.
-  """
-  @spec empty(atom()) :: t()
-  def empty(source) when is_atom(source) do
-    new(source)
-  end
-
   @spec new(String.t(), [Field.t()], keyword()) :: t()
-  def new(source, fields, rest \\ []) do
+  def new(source, fields, rest \\ []) when is_atom(source) do
     new(Map.merge(%{source: source, fields: fields}, Enum.into(rest, %{})))
   end
 
@@ -87,7 +77,7 @@ defmodule Drops.Relation.Schema do
           [Field.t()],
           [Index.t()]
         ) :: t()
-  def new(source, primary_key, foreign_keys, fields, indices \\ []) do
+  def new(source, primary_key, foreign_keys, fields, indices \\ []) when is_atom(source) do
     %__MODULE__{
       source: source,
       primary_key: primary_key,
@@ -146,7 +136,14 @@ defmodule Drops.Relation.Schema do
       2
   """
   @spec merge(t(), t()) :: t()
-  def merge(%__MODULE__{source: source} = left, %__MODULE__{source: source} = right) do
+  def merge(%__MODULE__{source: left_source} = left, %__MODULE__{source: right_source} = right) do
+    if left_source != right_source do
+      raise ArgumentError,
+            "Cannot merge schemas with different sources: #{inspect(left_source)} != #{inspect(right_source)}"
+    end
+
+    # Use the normalized string source
+    source = left_source
     # Merge primary keys (right takes precedence if not nil)
     merged_primary_key =
       if right.primary_key != nil do
@@ -171,11 +168,6 @@ defmodule Drops.Relation.Schema do
       fields: merged_fields,
       indices: merged_indices
     }
-  end
-
-  def merge(%__MODULE__{source: left_source}, %__MODULE__{source: right_source}) do
-    raise ArgumentError,
-          "Cannot merge schemas with different sources: #{left_source} != #{right_source}"
   end
 
   # Merge fields by name, with right taking precedence

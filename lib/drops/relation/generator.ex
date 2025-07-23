@@ -44,7 +44,7 @@ defmodule Drops.Relation.Generator do
   """
   @spec generate_module_content(Schema.t(), [Macro.t()]) :: Macro.t()
   def generate_module_content(schema, custom_block \\ []) do
-    table_name = Atom.to_string(schema.source)
+    table_name = if is_atom(schema.source), do: Atom.to_string(schema.source), else: schema.source
     compiled_parts = CodeCompiler.visit(schema)
 
     filtered_custom_block = filter_fields(custom_block, schema)

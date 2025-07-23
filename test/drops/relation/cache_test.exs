@@ -59,7 +59,7 @@ defmodule Drops.Relation.CacheTest do
 
   describe "get_cached_schema/2" do
     test "returns cached schema on cache hit" do
-      test_schema = Schema.empty(:users)
+      test_schema = Schema.new(:users)
       :ok = Cache.cache_schema(TestRepo, "users", test_schema)
 
       schema = Cache.get_cached_schema(TestRepo, "users")
@@ -73,7 +73,7 @@ defmodule Drops.Relation.CacheTest do
     end
 
     test "invalidates cache when migration digest changes" do
-      test_schema = Schema.empty(:users)
+      test_schema = Schema.new(:users)
       Cache.cache_schema(TestRepo, "users", test_schema)
 
       result1 = Cache.get_cached_schema(TestRepo, "users")
@@ -92,7 +92,7 @@ defmodule Drops.Relation.CacheTest do
 
     test "handles repository with no migrations" do
       # Cache a schema for empty repo
-      test_schema = Schema.empty(:users)
+      test_schema = Schema.new(:users)
       Cache.cache_schema(EmptyRepo, "users", test_schema)
 
       result = Cache.get_cached_schema(EmptyRepo, "users")
@@ -102,7 +102,7 @@ defmodule Drops.Relation.CacheTest do
 
   describe "cache_schema/3" do
     test "caches schema successfully" do
-      test_schema = Schema.empty(:users)
+      test_schema = Schema.new(:users)
       Cache.cache_schema(TestRepo, "users", test_schema)
 
       result = Cache.get_cached_schema(TestRepo, "users")
@@ -113,7 +113,7 @@ defmodule Drops.Relation.CacheTest do
   describe "clear_repo_cache/1" do
     test "clears cache for specific repository" do
       # Cache schemas for both repos
-      test_schema = Schema.empty(:users)
+      test_schema = Schema.new(:users)
       Cache.cache_schema(TestRepo, "users", test_schema)
       Cache.cache_schema(TestRepo2, "users", test_schema)
 
@@ -133,8 +133,8 @@ defmodule Drops.Relation.CacheTest do
   describe "clear_all/0" do
     test "clears entire cache" do
       # Cache multiple schemas
-      users_schema = Schema.empty(:users)
-      posts_schema = Schema.empty(:posts)
+      users_schema = Schema.new(:users)
+      posts_schema = Schema.new(:posts)
       Cache.cache_schema(TestRepo, "users", users_schema)
       Cache.cache_schema(TestRepo, "posts", posts_schema)
       Cache.cache_schema(TestRepo2, "users", users_schema)
@@ -162,7 +162,7 @@ defmodule Drops.Relation.CacheTest do
 
   describe "refresh/2" do
     test "clears and optionally warms up cache" do
-      test_schema = Schema.empty(:users)
+      test_schema = Schema.new(:users)
       Cache.cache_schema(TestRepo, "users", test_schema)
 
       assert Cache.get_cached_schema(TestRepo, "users").source == :users
