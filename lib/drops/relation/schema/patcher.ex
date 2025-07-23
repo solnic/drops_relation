@@ -288,10 +288,7 @@ defmodule Drops.Relation.Schema.Patcher do
   # Finds the end of the schema block for field insertion
   defp find_schema_block_end(zipper) do
     # Navigate to the rightmost position in the current level
-    case Zipper.rightmost(zipper) do
-      nil -> zipper
-      rightmost -> rightmost
-    end
+    Zipper.rightmost(zipper)
   end
 
   # Creates a new schema block if one doesn't exist
@@ -347,7 +344,7 @@ defmodule Drops.Relation.Schema.Patcher do
 
       body_zipper ->
         # Find the rightmost position in the module body
-        rightmost = Zipper.rightmost(body_zipper) || body_zipper
+        rightmost = Zipper.rightmost(body_zipper)
 
         Zipper.insert_right(rightmost, content)
         |> Zipper.up()

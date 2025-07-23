@@ -8,7 +8,8 @@ defmodule Test.Repos do
 
   def start(repo, mode) do
     {:ok, pid} = repo.start_link()
-    Ecto.Adapters.SQL.Sandbox.mode(repo, mode || mode(Mix.env()))
+    env = Application.get_env(:drops_relation, :env, :test)
+    Ecto.Adapters.SQL.Sandbox.mode(repo, mode || mode(env))
     :persistent_term.put({:repos, repo}, pid)
   end
 

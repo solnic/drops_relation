@@ -57,8 +57,8 @@ defmodule Drops.Relation do
 
       config :my_app, :drops,
         relation: [
-          default_plugins: [...],
-          schema_module: MyApp.CustomSchemaModule
+          repo: MyApp.Repo,
+          default_plugins: [...]
         ]
 
   All query functions accept an optional `:repo` option to override the default repository.

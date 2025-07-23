@@ -88,22 +88,24 @@ defmodule Drops.Relation.Schema do
   - `fields` - List of field metadata
   - `indices` - Index information
   """
-  @spec new(String.t()) :: t()
+  @spec new(atom()) :: t()
   def new(source) when is_atom(source) do
     new(%{source: source})
   end
 
+  @spec new(map()) :: t()
   def new(attributes) when is_map(attributes) do
     struct(__MODULE__, attributes)
   end
 
-  @spec new(String.t(), [Field.t()], keyword()) :: t()
+  @spec new(atom(), [Field.t()]) :: t()
+  @spec new(atom(), [Field.t()], keyword()) :: t()
   def new(source, fields, rest \\ []) when is_atom(source) do
     new(Map.merge(%{source: source, fields: fields}, Enum.into(rest, %{})))
   end
 
   @spec new(
-          String.t(),
+          atom(),
           PrimaryKey.t(),
           [ForeignKey.t()],
           [Field.t()],
@@ -119,7 +121,7 @@ defmodule Drops.Relation.Schema do
     }
   end
 
-  @spec project(Schema.t(), [atom()]) :: Schema.t()
+  @spec project(t(), [atom()]) :: t()
   def project(schema, fields) when is_list(fields) do
     # If the source schema has no fields, return an empty schema with the same source
     # This handles the case where we're projecting from a schema that hasn't been

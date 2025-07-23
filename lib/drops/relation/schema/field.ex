@@ -15,14 +15,15 @@ defmodule Drops.Relation.Schema.Field do
   """
 
   @type meta :: %{
-          type: term(),
-          adapter: atom(),
-          source: atom(),
-          nullable: boolean() | nil,
-          default: term() | nil,
-          check_constraints: [String.t()] | nil,
-          primary_key: boolean() | nil,
-          foreign_key: boolean() | nil
+          optional(:type) => term(),
+          optional(:adapter) => atom(),
+          optional(:source) => atom(),
+          optional(:nullable) => boolean() | nil,
+          optional(:default) => term() | nil,
+          optional(:check_constraints) => [String.t()] | nil,
+          optional(:primary_key) => boolean() | nil,
+          optional(:foreign_key) => boolean() | nil,
+          optional(:association) => boolean() | nil
         }
 
   @type t :: %__MODULE__{
@@ -68,11 +69,14 @@ defmodule Drops.Relation.Schema.Field do
         meta: %{nullable: false, default: "active"}
       }
   """
-  @spec new(atom(), atom(), meta()) :: t()
+  @spec new(atom(), any()) :: t()
+  @spec new(atom(), any(), meta()) :: t()
   def new(name, type, meta \\ %{}) do
     %__MODULE__{name: name, source: name, type: type, meta: meta}
   end
 
+  @spec new(atom(), any(), any(), atom()) :: t()
+  @spec new(atom(), any(), any(), atom(), meta()) :: t()
   def new(name, db_type, ecto_type, source, meta \\ %{}) do
     __MODULE__.new(name, ecto_type, Map.merge(%{source: source, type: db_type}, meta))
   end

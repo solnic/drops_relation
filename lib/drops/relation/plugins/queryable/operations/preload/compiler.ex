@@ -24,31 +24,51 @@ defmodule Drops.Relation.Plugins.Queryable.Operations.Preload.Compiler do
   end
 
   def visit(spec, %{associations: associations, names: names} = opts)
-      when is_list(spec) or is_atom(spec) do
-    {name, nested} =
-      case spec do
-        name when is_atom(name) ->
-          {name, nil}
-
-        {_, _} = result ->
-          result
-      end
+      when is_atom(spec) do
+    name = spec
+    nested = nil
 
     if name in names do
       assoc = associations[name]
 
-      if nested, do: visit({assoc, nested}, opts), else: visit(assoc, opts)
+      if nested, do: visit_preload({assoc, nested}, opts), else: visit_preload(assoc, opts)
     else
       error(:custom, "association #{inspect(name)} is not defined")
     end
   end
 
-  def visit(%{field: name}, %{query: query}) do
+  def visit({name, nested}, %{associations: associations, names: names} = opts)
+      when is_atom(name) do
+    if name in names do
+      assoc = associations[name]
+
+      if nested, do: visit_preload({assoc, nested}, opts), else: visit_preload(assoc, opts)
+    else
+      error(:custom, "association #{inspect(name)} is not defined")
+    end
+  end
+
+  def visit(spec, %{associations: _associations, names: _names} = opts)
+      when is_list(spec) do
+    # Handle list of preload specs
+    case spec do
+      [] ->
+        error(:custom, "empty preload list")
+
+      [first | _] ->
+        # For now, just handle the first item in the list
+        # This could be expanded to handle multiple preloads
+        visit(first, opts)
+    end
+  end
+
+  defp visit_preload(%{field: name}, %{query: query}) do
     from(q in query, preload: ^name)
   end
 
   # TODO: add recursive handling of nested so that we can validate their syntax too
-  def visit({%{field: name}, nested}, %{query: query}) when is_atom(nested) or is_list(nested) do
+  defp visit_preload({%{field: name}, nested}, %{query: query})
+       when is_atom(nested) or is_list(nested) do
     from(q in query, preload: ^[{name, nested}])
   end
 end

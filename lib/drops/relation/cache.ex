@@ -385,14 +385,17 @@ defmodule Drops.Relation.Cache do
   end
 
   defp cache_relative_dir do
-    Path.join(["tmp", "cache", Mix.env() |> Atom.to_string(), "drops_relation_schema"])
+    env = Application.get_env(:drops_relation, :env, :dev) |> Atom.to_string()
+    Path.join(["tmp", "cache", env, "drops_relation_schema"])
   end
 
   ## Private Helpers
 
   # Log cache events to appropriate logger based on environment
   defp log_cache_event(message, level) do
-    case Mix.env() do
+    env = Application.get_env(:drops_relation, :env, :dev)
+
+    case env do
       :test ->
         # In test environment, log to drops_relation_test logger (file)
         Logger.log(level, message, logger: :drops_relation_test)

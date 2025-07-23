@@ -9,7 +9,7 @@ defmodule Drops.Relation.Plugins.Queryable.Operations.Order.Compiler do
 
     result =
       Enum.reduce(order_list, Result.new(query), fn value, result ->
-        case visit(value, %{schema: schema, query: result.query}) do
+        case visit_order_spec(value, %{schema: schema, query: result.query}) do
           {:error, error} ->
             %{result | errors: [error | result.errors]}
 
@@ -21,33 +21,37 @@ defmodule Drops.Relation.Plugins.Queryable.Operations.Order.Compiler do
     if result.errors == [], do: Result.to_success(result), else: Result.to_error(result)
   end
 
-  def visit(names, %{query: query}) when is_list(names) do
-    order_by(query, [{:asc, ^names}])
+  defp visit_order_spec(names, %{query: query}) when is_list(names) do
+    # Handle list of field names by creating multiple order_by clauses
+    Enum.reduce(names, query, fn name, acc_query ->
+      order_by(acc_query, [{:asc, ^name}])
+    end)
   end
 
-  def visit({direction, name}, %{schema: schema} = opts) when direction in [:asc, :desc] do
+  defp visit_order_spec({direction, name}, %{schema: schema} = opts)
+       when direction in [:asc, :desc] do
     case schema[name] do
       nil -> error(:field_not_found, name)
-      field -> visit({field, direction}, opts)
+      field -> visit_order_spec({field, direction}, opts)
     end
   end
 
-  def visit(name, %{schema: schema} = opts) when is_atom(name) do
+  defp visit_order_spec(name, %{schema: schema} = opts) when is_atom(name) do
     case schema[name] do
       nil -> error(:field_not_found, name)
-      field -> visit(field, opts)
+      field -> visit_order_spec(field, opts)
     end
   end
 
-  def visit(%{name: name}, %{query: query}) do
+  defp visit_order_spec(%{name: name}, %{query: query}) do
     order_by(query, [{:asc, ^name}])
   end
 
-  def visit({%{name: name}, direction}, %{query: query}) do
+  defp visit_order_spec({%{name: name}, direction}, %{query: query}) do
     order_by(query, [{^direction, ^name}])
   end
 
-  def visit(invalid, _opts) do
+  defp visit_order_spec(invalid, _opts) do
     error(:custom, "invalid order specification: #{inspect(invalid)}")
   end
 end

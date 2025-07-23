@@ -9,7 +9,7 @@ defmodule Drops.Relation.Schema.Serializable do
     @spec load(any()) :: any()
     def load(value)
 
-    @spec load(any(), module()) :: struct()
+    @spec load(any(), module()) :: any()
     def load(value, module)
   end
 
@@ -18,7 +18,7 @@ defmodule Drops.Relation.Schema.Serializable do
 
     @fallback_to_any true
 
-    @spec dump(struct()) :: map()
+    @spec dump(any()) :: any()
     def dump(component)
 
     @spec dump(atom(), any()) :: any()

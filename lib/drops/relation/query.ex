@@ -7,9 +7,15 @@ defmodule Drops.Relation.Query do
   and function call transformations within query contexts.
 
   ## Usage
+      defmodule Users do
+        use Drops.Relation, repo: MyApp.Repo
 
-  This module is primarily used internally by the query system, but can be
-  used directly for advanced query composition scenarios.
+        schema("users", infer: true)
+
+        defquery active(), do: from(u in relation(), where: u.active == true)
+
+        defquery by_role(role), do: from(u in relation(), where: u.role == ^role)
+      end
 
       query(Users, [u], u.active() and u.by_role("admin"))
 

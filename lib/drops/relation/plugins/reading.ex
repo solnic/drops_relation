@@ -876,13 +876,6 @@ defmodule Drops.Relation.Plugins.Reading do
     relation.add_operation(queryable, name, operation_opts)
   end
 
-  defp operation(name, opts) when is_atom(name) do
-    {relation, _repo, queryable, rest_opts} = clean_opts(opts)
-    operation_opts = Keyword.get(rest_opts, name, rest_opts)
-
-    relation.add_operation(queryable, name, operation_opts)
-  end
-
   defp operation(other, name, opts) when is_struct(other) and is_map_key(other, :queryable) do
     {relation, _repo, _queryable, rest_opts} = clean_opts(opts)
     operation_opts = Keyword.get(rest_opts, name, rest_opts)
