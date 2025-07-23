@@ -72,29 +72,38 @@ defmodule Drops.Relation.MixProject do
       extras: [
         "README.md"
       ],
+      nest_modules_by_prefix: [
+        Drops.Relation.Plugins,
+        Drops.Relation.Schema,
+        Drops.SQL.Database,
+        Drops.SQL.Compilers
+      ],
       groups_for_modules: [
-        Relation: [
+        "Core API": [
           Drops.Relation,
           Drops.Relation.Config,
-          Drops.Relation.Query,
           Drops.Relation.Plugins.Schema,
-          Drops.Relation.Plugins.Queryable,
-          Drops.Relation.Plugins.Queryable.InvalidQueryError,
-          Drops.Relation.Plugins.Reading,
-          Drops.Relation.Plugins.Ecto.Query,
-          Drops.Relation.Plugins.Writing,
           Drops.Relation.Plugins.Views,
-          Drops.Relation.Plugins.AutoRestrict,
           Drops.Relation.Plugins.Loadable
         ],
-        Schema: [
+        "Query API": [
+          Drops.Relation.Plugins.Reading,
+          Drops.Relation.Plugins.Writing,
+          Drops.Relation.Plugins.AutoRestrict,
+          Drops.Relation.Plugins.Queryable
+        ],
+        "Advanced Composition": [
+          Drops.Relation.Query,
+          Drops.Relation.Plugins.Ecto.Query
+        ],
+        "Relation Schema": [
           Drops.Relation.Schema,
           Drops.Relation.Schema.Field,
           Drops.Relation.Schema.PrimaryKey,
           Drops.Relation.Schema.ForeignKey,
           Drops.Relation.Schema.Index
         ],
-        SQL: [
+        "Database Introspection": [
           Drops.SQL.Database,
           Drops.SQL.Database.Table,
           Drops.SQL.Database.Column,
@@ -107,7 +116,7 @@ defmodule Drops.Relation.MixProject do
           Drops.SQL.Compilers.Postgres,
           Drops.SQL.Compilers.Sqlite
         ],
-        Cache: [
+        "Schema Cache": [
           Drops.Relation.Cache
         ]
       ]
