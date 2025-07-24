@@ -64,46 +64,6 @@ defmodule Drops.Relation.Schema.PrimaryKey do
   end
 
   @doc """
-  Checks if the primary key is composite (has multiple fields).
-
-  ## Examples
-
-      iex> field = Drops.Relation.Schema.Field.new(:id, :integer, :id, :id)
-      iex> pk = Drops.Relation.Schema.PrimaryKey.new([field])
-      iex> Drops.Relation.Schema.PrimaryKey.composite?(pk)
-      false
-
-      iex> field1 = Drops.Relation.Schema.Field.new(:user_id, :integer, :id, :user_id)
-      iex> field2 = Drops.Relation.Schema.Field.new(:role_id, :integer, :id, :role_id)
-      iex> pk = Drops.Relation.Schema.PrimaryKey.new([field1, field2])
-      iex> Drops.Relation.Schema.PrimaryKey.composite?(pk)
-      true
-  """
-  @spec composite?(t()) :: boolean()
-  def composite?(%__MODULE__{meta: %{composite: composite}}) do
-    composite
-  end
-
-  @doc """
-  Checks if the schema has a primary key.
-
-  ## Examples
-
-      iex> field = Drops.Relation.Schema.Field.new(:id, :integer, :id, :id)
-      iex> pk = Drops.Relation.Schema.PrimaryKey.new([field])
-      iex> Drops.Relation.Schema.PrimaryKey.present?(pk)
-      true
-
-      iex> pk = Drops.Relation.Schema.PrimaryKey.new([])
-      iex> Drops.Relation.Schema.PrimaryKey.present?(pk)
-      false
-  """
-  @spec present?(t()) :: boolean()
-  def present?(%__MODULE__{fields: fields}) do
-    fields != []
-  end
-
-  @doc """
   Gets the field names from the primary key.
 
   ## Examples

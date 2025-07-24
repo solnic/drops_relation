@@ -13,22 +13,22 @@ defmodule Drops.Relation.Compilation do
     end
 
     def update(module, type, args) do
-      store(context(module), type, args)
-    end
-
-    def store(context, type, args) do
+      context = context(module)
       macros = context.macros
       struct = apply(type, :new, args)
       key = type.key()
 
-      case type.accumulate() do
-        true ->
-          current_values = Map.get(macros, key, [])
-          Map.put(context, :macros, Map.put(macros, key, current_values ++ [struct]))
+      updated_macros =
+        case type.accumulate() do
+          true ->
+            current_values = Map.get(macros, key, [])
+            Map.put(macros, key, current_values ++ [struct])
 
-        false ->
-          Map.put(context, :macros, Map.put(macros, key, struct))
-      end
+          false ->
+            Map.put(macros, key, struct)
+        end
+
+      Map.put(context, :macros, updated_macros)
     end
 
     def config(relation, key, default \\ nil) do

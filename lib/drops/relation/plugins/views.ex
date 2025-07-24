@@ -180,10 +180,6 @@ defmodule Drops.Relation.Plugins.Views do
     extract_derive_from_expressions(expressions)
   end
 
-  defp extract_derive_block(expression) do
-    extract_derive_from_expressions([expression])
-  end
-
   defp extract_derive_from_expressions(expressions) do
     Enum.find_value(expressions, fn
       {:derive, _meta, [[do: block]]} -> block

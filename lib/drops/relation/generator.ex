@@ -129,11 +129,7 @@ defmodule Drops.Relation.Generator do
 
   @spec filter_fields(Macro.t(), Schema.t()) :: Macro.t()
   defp filter_fields(custom_block, schema) do
-    existing_field_names =
-      schema.fields
-      |> Enum.map(& &1.name)
-      |> MapSet.new()
-
+    existing_field_names = MapSet.new(schema.fields, & &1.name)
     filter_ast_fields(custom_block, existing_field_names)
   end
 
@@ -143,11 +139,7 @@ defmodule Drops.Relation.Generator do
   end
 
   defp filter_ast_fields({:field, _meta, [field_name | _rest]} = field_ast, existing_fields) do
-    if MapSet.member?(existing_fields, field_name) do
-      nil
-    else
-      field_ast
-    end
+    if MapSet.member?(existing_fields, field_name), do: nil, else: field_ast
   end
 
   defp filter_ast_fields(ast, _existing_fields), do: ast

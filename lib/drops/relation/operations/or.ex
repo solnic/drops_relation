@@ -93,13 +93,12 @@ defimpl Enumerable, for: Drops.Relation.Operations.Or do
   end
 
   def member?(or_operation, element) do
-    list = Enum.to_list(or_operation)
-    {:ok, Enum.member?(list, element)}
+    {:ok, element in Enum.to_list(or_operation)}
   end
 
   def slice(or_operation) do
     list = Enum.to_list(or_operation)
-    {:ok, Enum.count(list), &Enum.slice(list, &1, &2)}
+    {:ok, length(list), &Enum.slice(list, &1, &2)}
   end
 
   def reduce(or_operation, acc, fun) do

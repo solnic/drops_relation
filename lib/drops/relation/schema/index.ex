@@ -74,37 +74,4 @@ defmodule Drops.Relation.Schema.Index do
       composite: length(fields) > 1
     }
   end
-
-  @doc """
-  Gets the field names from the index.
-
-  ## Examples
-
-      iex> field = Drops.Relation.Schema.Field.new(:email, :string, :string, :email)
-      iex> index = Drops.Relation.Schema.Index.new("users_email_index", [field], true)
-      iex> Drops.Relation.Schema.Index.field_names(index)
-      [:email]
-  """
-  @spec field_names(t()) :: [atom()]
-  def field_names(%__MODULE__{fields: fields}) do
-    Enum.map(fields, & &1.name)
-  end
-
-  @doc """
-  Checks if the index covers a specific field.
-
-  ## Examples
-
-      iex> field = Drops.Relation.Schema.Field.new(:email, :string, :string, :email)
-      iex> index = Drops.Relation.Schema.Index.new("users_email_index", [field], true)
-      iex> Drops.Relation.Schema.Index.covers_field?(index, :email)
-      true
-
-      iex> Drops.Relation.Schema.Index.covers_field?(index, :name)
-      false
-  """
-  @spec covers_field?(t(), atom()) :: boolean()
-  def covers_field?(%__MODULE__{fields: fields}, field_name) when is_atom(field_name) do
-    Enum.any?(fields, &Field.matches_name?(&1, field_name))
-  end
 end
