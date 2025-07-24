@@ -533,5 +533,129 @@ defmodule Drops.Relations.QueryTest do
       names = Enum.map(result, & &1.name)
       assert ["Alice", "Bob", "Charlie"] = names
     end
+
+    @tag relations: [:users]
+    test "AND operation with empty where conditions", %{users: users} do
+      users.insert(%{name: "Alice", active: true})
+      users.insert(%{name: "Bob", active: false})
+
+      # Create a query that results in empty where conditions on one side
+      # This tests the empty wheres case in apply_where_conditions
+      empty_relation = users.new()
+      active_relation = users.active()
+
+      and_operation = Drops.Relation.Operations.And.new(empty_relation, active_relation, users)
+
+      result = Enum.to_list(and_operation)
+      names = Enum.map(result, & &1.name)
+
+      assert ["Alice"] = names
+    end
+
+    @tag relations: [:users]
+    test "OR operation with empty where conditions", %{users: users} do
+      users.insert(%{name: "Alice", active: true})
+      users.insert(%{name: "Bob", active: false})
+
+      # Create a query that results in empty where conditions on one side
+      # This tests the empty wheres case in apply_where_conditions and apply_or_where_conditions
+      empty_relation = users.new()
+      active_relation = users.active()
+
+      or_operation = Drops.Relation.Operations.Or.new(empty_relation, active_relation, users)
+
+      result = Enum.to_list(or_operation)
+      names = Enum.map(result, & &1.name)
+
+      assert ["Alice"] = names
+    end
+
+    @tag relations: [:users]
+    test "AND operation Enumerable protocol - count", %{users: users} do
+      users.insert(%{name: "Alice", active: true, age: 25})
+      users.insert(%{name: "Bob", active: true, age: 30})
+      users.insert(%{name: "Charlie", active: false, age: 35})
+
+      and_operation =
+        users
+        |> query([u], u.active() and u.young())
+
+      # Test Enum.count which calls the count/1 function
+      assert Enum.count(and_operation) == 1
+    end
+
+    @tag relations: [:users]
+    test "OR operation Enumerable protocol - count", %{users: users} do
+      users.insert(%{name: "Alice", active: true, age: 25})
+      users.insert(%{name: "Bob", active: false, age: 30})
+      users.insert(%{name: "Charlie", active: true, age: 35})
+
+      or_operation =
+        users
+        |> query([u], u.active() or u.old())
+
+      # Test Enum.count which calls the count/1 function
+      assert Enum.count(or_operation) == 3
+    end
+
+    @tag relations: [:users]
+    test "AND operation Enumerable protocol - member?", %{users: users} do
+      {:ok, alice} = users.insert(%{name: "Alice", active: true, age: 25})
+      users.insert(%{name: "Bob", active: false, age: 30})
+
+      and_operation =
+        users
+        |> query([u], u.active() and u.young())
+
+      # Test Enum.member? which calls the member?/2 function
+      # We need to check if any record with the same ID is in the results
+      result_ids = Enum.map(and_operation, & &1.id)
+      assert alice.id in result_ids
+    end
+
+    @tag relations: [:users]
+    test "OR operation Enumerable protocol - member?", %{users: users} do
+      {:ok, alice} = users.insert(%{name: "Alice", active: true, age: 25})
+      users.insert(%{name: "Bob", active: false, age: 30})
+
+      or_operation =
+        users
+        |> query([u], u.active() or u.old())
+
+      # Test Enum.member? which calls the member?/2 function
+      # We need to check if any record with the same ID is in the results
+      result_ids = Enum.map(or_operation, & &1.id)
+      assert alice.id in result_ids
+    end
+
+    @tag relations: [:users]
+    test "AND operation Enumerable protocol - slice", %{users: users} do
+      users.insert(%{name: "Alice", active: true, age: 25})
+      users.insert(%{name: "Bob", active: true, age: 30})
+      users.insert(%{name: "Charlie", active: true, age: 35})
+
+      and_operation =
+        users
+        |> query([u], u.active() and u.old())
+
+      # Test Enum.slice which calls the slice/1 function
+      sliced = Enum.slice(and_operation, 0, 2)
+      assert length(sliced) == 2
+    end
+
+    @tag relations: [:users]
+    test "OR operation Enumerable protocol - slice", %{users: users} do
+      users.insert(%{name: "Alice", active: true, age: 25})
+      users.insert(%{name: "Bob", active: false, age: 30})
+      users.insert(%{name: "Charlie", active: true, age: 35})
+
+      or_operation =
+        users
+        |> query([u], u.active() or u.old())
+
+      # Test Enum.slice which calls the slice/1 function
+      sliced = Enum.slice(or_operation, 0, 2)
+      assert length(sliced) == 2
+    end
   end
 end

@@ -98,7 +98,7 @@ defimpl Enumerable, for: Drops.Relation.Operations.Or do
 
   def slice(or_operation) do
     list = Enum.to_list(or_operation)
-    {:ok, length(list), &Enum.slice(list, &1, &2)}
+    {:ok, length(list), fn start, length, _step -> Enum.slice(list, start, length) end}
   end
 
   def reduce(or_operation, acc, fun) do
