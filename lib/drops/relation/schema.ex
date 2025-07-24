@@ -292,6 +292,7 @@ defmodule Drops.Relation.Schema do
       iex> schema[:id]     # Returns the id field
   """
   @impl Access
+  @doc group: "Access"
   def fetch(%__MODULE__{} = schema, key) when is_atom(key) do
     case find_field(schema, key) do
       nil -> :error
@@ -308,6 +309,7 @@ defmodule Drops.Relation.Schema do
 
       iex> get_and_update(schema, :email, fn field -> {field, %{field | type: :string}} end)
   """
+  @doc group: "Access"
   @impl Access
   def get_and_update(%__MODULE__{} = schema, key, function) when is_atom(key) do
     case find_field(schema, key) do
@@ -344,6 +346,7 @@ defmodule Drops.Relation.Schema do
 
       iex> pop(schema, :email)  # Removes and returns the email field
   """
+  @doc group: "Access"
   @impl Access
   def pop(%__MODULE__{} = schema, key) when is_atom(key) do
     case find_field(schema, key) do

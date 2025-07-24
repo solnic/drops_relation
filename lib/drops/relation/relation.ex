@@ -157,38 +157,7 @@ defmodule Drops.Relation do
     __define_relation__(Macro.expand(opts, __CALLER__))
   end
 
-  @doc """
-  Internal function that performs the actual relation module definition.
-
-  This function is called by the `__using__/1` macro after expanding the options.
-  It sets up the complete relation module infrastructure including configuration,
-  plugin loading, and code generation.
-
-  ## Parameters
-
-  - `opts` - Expanded configuration options from the `__using__/1` macro
-
-  ## Implementation Details
-
-  The function performs these key operations:
-  1. Determines configuration source (from parent relation or application config)
-  2. Loads and applies the specified plugins
-  3. Generates helper functions for accessing configuration
-  4. Sets up the compilation context for schema generation
-  5. Creates delegation functions for plugin operations
-
-  ## Generated Code Structure
-
-  The function generates a quote block that includes:
-  - Configuration setup and accessor functions
-  - Plugin loading and application
-  - Compilation context initialization
-  - Helper functions for accessing options
-  - Nested `__using__/1` macro for creating views
-
-  This function is not intended for direct use - it's called automatically
-  by the `__using__/1` macro during module compilation.
-  """
+  @doc false
   def __define_relation__(opts) do
     config =
       if opts[:source] do
@@ -328,17 +297,6 @@ defmodule Drops.Relation do
     end
   end
 
-  # Determines which plugins to load for the relation module.
-  #
-  # If plugins are explicitly specified in opts[:plugins], uses those.
-  # Otherwise, falls back to the default plugins configured for the repository.
-  # This allows for both global configuration and per-relation customization.
-  #
-  # ## Parameters
-  # - opts - The relation configuration options
-  #
-  # ## Returns
-  # A list of plugin modules to load and apply to the relation.
   defp plugins(opts) do
     case opts[:plugins] do
       nil ->

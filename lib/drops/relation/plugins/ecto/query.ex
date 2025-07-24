@@ -12,9 +12,6 @@ defmodule Drops.Relation.Plugins.Ecto.Query do
   query functions with `Ecto.Query` imported once at the module level. The relation
   module then delegates to these QueryBuilder functions.
 
-  This approach avoids importing `Ecto.Query` in each generated function and provides
-  a clean separation of concerns.
-
   ## Usage
 
       defmodule MyApp.Users do
@@ -30,7 +27,7 @@ defmodule Drops.Relation.Plugins.Ecto.Query do
           from(u in relation(), where: u.role == ^role)
         end
 
-        defquery recent(days \\ 7) do
+        defquery recent(days \\\\ 7) do
           cutoff = DateTime.utc_now() |> DateTime.add(-days, :day)
           from(u in relation(), where: u.inserted_at >= ^cutoff)
         end
@@ -128,6 +125,7 @@ defmodule Drops.Relation.Plugins.Ecto.Query do
     end
   end
 
+  @doc false
   def create_query_builder_module(relation, queries) do
     query_builder_module = query_builder_module_name(relation)
     grouped_queries = Enum.group_by(queries, & &1.name)

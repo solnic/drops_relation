@@ -41,8 +41,10 @@ defmodule Drops.Relation.Schema.Serializable do
         end
       end
 
+      @doc false
       def name, do: __MODULE__ |> to_string() |> String.split(".") |> List.last()
 
+      @doc false
       def load(json), do: Loader.load(json, __MODULE__)
     end
   end
