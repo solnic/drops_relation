@@ -776,6 +776,15 @@ defmodule Drops.Relations.Plugins.ReadingTest do
     end
 
     @tag relations: [:users]
+    test "aggregation functions handle empty results", %{users: users} do
+      # Test aggregation on empty table
+      assert users.min(:age) == nil
+      assert users.max(:age) == nil
+      assert users.sum(:age) == nil
+      assert users.avg(:age) == nil
+    end
+
+    @tag relations: [:users]
     test "max/2 and max/3 work correctly", %{users: users} do
       # Insert test data with ages
       {:ok, _user1} =
@@ -851,6 +860,127 @@ defmodule Drops.Relations.Plugins.ReadingTest do
       # Test avg with piped syntax
       avg_piped = users.restrict(active: true) |> users.avg(:age)
       assert avg_piped == 27.5
+    end
+  end
+
+  describe "stream function" do
+    @tag relations: [:users]
+    test "stream returns a stream struct", %{users: users} do
+      # Insert test data
+      {:ok, _user1} = users.insert(%{name: "User 1", email: "user1@example.com"})
+      {:ok, _user2} = users.insert(%{name: "User 2", email: "user2@example.com"})
+      {:ok, _user3} = users.insert(%{name: "User 3", email: "user3@example.com"})
+
+      stream = users.stream()
+      assert %Stream{} = stream
+
+      assert Enumerable.impl_for(stream) != nil
+    end
+  end
+
+  describe "checkout function" do
+    @tag relations: [:users]
+    test "checkout executes function with checked out connection", %{users: users} do
+      result =
+        users.checkout(fn ->
+          {:ok, _user} = users.insert(%{name: "Checkout User", email: "checkout@example.com"})
+          :checkout_success
+        end)
+
+      assert result == :checkout_success
+
+      # Verify user was inserted
+      user = users.get_by(name: "Checkout User")
+      assert user != nil
+      assert user.email == "checkout@example.com"
+    end
+  end
+
+  describe "get_by! function" do
+    @tag relations: [:users]
+    test "get_by! returns record when found", %{users: users} do
+      {:ok, user} = users.insert(%{name: "Test User", email: "test@example.com"})
+
+      found_user = users.get_by!(email: "test@example.com")
+      assert found_user.id == user.id
+      assert found_user.name == "Test User"
+    end
+
+    @tag relations: [:users]
+    test "get_by! raises when not found", %{users: users} do
+      assert_raise Ecto.NoResultsError, fn ->
+        users.get_by!(email: "nonexistent@example.com")
+      end
+    end
+  end
+
+  describe "get! function" do
+    @tag relations: [:users]
+    test "get! returns record when found", %{users: users} do
+      {:ok, user} = users.insert(%{name: "Test User", email: "test@example.com"})
+
+      found_user = users.get!(user.id)
+      assert found_user.id == user.id
+      assert found_user.name == "Test User"
+    end
+
+    @tag relations: [:users]
+    test "get! raises when not found", %{users: users} do
+      assert_raise Ecto.NoResultsError, fn ->
+        users.get!(999_999)
+      end
+    end
+  end
+
+  describe "edge cases and error handling" do
+    @tag relations: [:users]
+    test "all/1 with empty relation returns empty list", %{users: users} do
+      empty_relation = users.restrict(name: "nonexistent")
+      result = users.all(empty_relation)
+      assert result == []
+    end
+
+    @tag relations: [:users]
+    test "first/1 with empty relation returns nil", %{users: users} do
+      empty_relation = users.restrict(name: "nonexistent")
+      result = users.first(empty_relation)
+      assert result == nil
+    end
+
+    @tag relations: [:users]
+    test "last/1 with empty relation returns nil", %{users: users} do
+      empty_relation = users.restrict(name: "nonexistent")
+      result = users.last(empty_relation)
+      assert result == nil
+    end
+
+    @tag relations: [:users]
+    test "one/1 with empty relation returns nil", %{users: users} do
+      empty_relation = users.restrict(name: "nonexistent")
+      result = users.one(empty_relation)
+      assert result == nil
+    end
+
+    @tag relations: [:users]
+    test "one!/1 with empty relation raises error", %{users: users} do
+      empty_relation = users.restrict(name: "nonexistent")
+
+      assert_raise Ecto.NoResultsError, fn ->
+        users.one!(empty_relation)
+      end
+    end
+
+    @tag relations: [:users]
+    test "one!/1 with multiple results raises error", %{users: users} do
+      # Insert multiple users with same name
+      {:ok, _user1} = users.insert(%{name: "Duplicate", email: "dup1@example.com"})
+      {:ok, _user2} = users.insert(%{name: "Duplicate", email: "dup2@example.com"})
+
+      duplicate_relation = users.restrict(name: "Duplicate")
+
+      assert_raise Ecto.MultipleResultsError, fn ->
+        users.one!(duplicate_relation)
+      end
     end
   end
 end

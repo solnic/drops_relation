@@ -111,4 +111,116 @@ defmodule Drops.Relations.Plugins.Ecto.QueryTest do
       assert [%{age: 25}] = result
     end
   end
+
+  describe "query/1 with guards" do
+    relation(:users) do
+      schema("users", infer: true)
+
+      defquery by_age_range(min_age, max_age) do
+        from(u in relation(), where: u.age >= ^min_age and u.age <= ^max_age)
+      end
+
+      defquery by_status(status) when status in [:active, :inactive] do
+        active_value = if status == :active, do: true, else: false
+        from(u in relation(), where: u.active == ^active_value)
+      end
+    end
+
+    test "query with multiple arguments works", %{users: users} do
+      users.insert(%{name: "Young User", active: true, age: 25})
+      users.insert(%{name: "Old User", active: true, age: 150})
+
+      # Test with both min_age and max_age
+      result = users.by_age_range(20, 100) |> Enum.to_list()
+      assert length(result) == 1
+      assert [%{name: "Young User"}] = result
+    end
+
+    test "query with guards works", %{users: users} do
+      users.insert(%{name: "Active User", active: true, age: 25})
+      users.insert(%{name: "Inactive User", active: false, age: 30})
+
+      # Test with valid guard value
+      active_result = users.by_status(:active) |> Enum.to_list()
+      assert length(active_result) == 1
+      assert [%{name: "Active User"}] = active_result
+
+      inactive_result = users.by_status(:inactive) |> Enum.to_list()
+      assert length(inactive_result) == 1
+      assert [%{name: "Inactive User"}] = inactive_result
+    end
+  end
+
+  describe "query composition with relation operations" do
+    relation(:users) do
+      schema("users", infer: true)
+
+      defquery active() do
+        from(u in relation(), where: u.active == true)
+      end
+
+      defquery by_name_pattern(pattern) do
+        from(u in relation(), where: like(u.name, ^pattern))
+      end
+    end
+
+    test "custom queries compose with restrict", %{users: users} do
+      users.insert(%{name: "Active Alice", active: true, age: 25})
+      users.insert(%{name: "Active Bob", active: true, age: 30})
+      users.insert(%{name: "Inactive Alice", active: false, age: 25})
+
+      result =
+        users.active()
+        |> users.restrict(age: 25)
+        |> Enum.to_list()
+
+      assert length(result) == 1
+      assert [%{name: "Active Alice"}] = result
+    end
+
+    test "custom queries compose with order", %{users: users} do
+      users.insert(%{name: "Charlie", active: true, age: 35})
+      users.insert(%{name: "Alice", active: true, age: 25})
+      users.insert(%{name: "Bob", active: true, age: 30})
+
+      result =
+        users.active()
+        |> users.order(:name)
+        |> Enum.to_list()
+
+      names = Enum.map(result, & &1.name)
+      assert names == ["Alice", "Bob", "Charlie"]
+    end
+
+    test "multiple custom queries can be chained", %{users: users} do
+      users.insert(%{name: "Active Alice", active: true, age: 25})
+      users.insert(%{name: "Active Bob", active: true, age: 30})
+      users.insert(%{name: "Inactive Alice", active: false, age: 25})
+
+      result =
+        users.active()
+        |> users.by_name_pattern("%Alice%")
+        |> Enum.to_list()
+
+      assert length(result) == 1
+      assert [%{name: "Active Alice"}] = result
+    end
+  end
+
+  describe "error handling" do
+    relation(:users) do
+      schema("users", infer: true)
+
+      defquery invalid_field_query() do
+        from(u in relation(), where: u.nonexistent_field == "test")
+      end
+    end
+
+    test "queries with invalid fields raise appropriate errors", %{users: users} do
+      # This should raise an error when the query is executed
+      assert_raise Ecto.QueryError, fn ->
+        users.invalid_field_query() |> Enum.to_list()
+      end
+    end
+  end
 end

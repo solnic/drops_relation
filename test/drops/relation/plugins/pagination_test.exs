@@ -284,6 +284,138 @@ defmodule Drops.Relation.Plugins.PaginationTest do
     end
   end
 
+  describe "error handling and edge cases" do
+    @tag relations: [:users]
+    test "page with zero per_page raises error", %{users: users} do
+      insert_test_users(users, 5)
+
+      assert_raise FunctionClauseError, fn ->
+        users.page(1, 0)
+      end
+    end
+
+    @tag relations: [:users]
+    test "page with negative per_page raises error", %{users: users} do
+      insert_test_users(users, 5)
+
+      assert_raise FunctionClauseError, fn ->
+        users.page(1, -1)
+      end
+    end
+
+    @tag relations: [:users]
+    test "page with zero page number raises error", %{users: users} do
+      insert_test_users(users, 5)
+
+      assert_raise FunctionClauseError, fn ->
+        users.page(0)
+      end
+    end
+
+    @tag relations: [:users]
+    test "page with negative page number raises error", %{users: users} do
+      insert_test_users(users, 5)
+
+      assert_raise FunctionClauseError, fn ->
+        users.page(-1)
+      end
+    end
+
+    @tag relations: [:users]
+    test "per_page with zero raises error", %{users: users} do
+      assert_raise FunctionClauseError, fn ->
+        users.per_page(0)
+      end
+    end
+
+    @tag relations: [:users]
+    test "per_page with negative number raises error", %{users: users} do
+      assert_raise FunctionClauseError, fn ->
+        users.per_page(-5)
+      end
+    end
+  end
+
+  describe "pagination with complex queries" do
+    @tag relations: [:users]
+    test "pagination works with preload operations", %{users: users} do
+      # This test assumes users table has associations
+      # For now, just test that pagination doesn't break with complex operations
+      insert_test_users(users, 10)
+
+      loaded =
+        users
+        |> users.restrict(active: true)
+        |> users.order(:name)
+        |> users.per_page(3)
+        |> users.page(1)
+
+      assert %Loaded{} = loaded
+      assert loaded.meta.pagination.per_page == 3
+      assert length(loaded.data) == 3
+    end
+
+    @tag relations: [:users]
+    test "pagination preserves query operations metadata", %{users: users} do
+      insert_test_users(users, 10)
+
+      base_query = users.restrict(active: true) |> users.order(:name)
+      loaded = users.per_page(base_query, 5) |> users.page(1)
+
+      assert %Loaded{} = loaded
+      assert loaded.meta.pagination.per_page == 5
+      # Verify that the underlying query still has the operations
+      assert Enum.all?(loaded.data, & &1.active)
+    end
+  end
+
+  describe "pagination metadata accuracy" do
+    @tag relations: [:users]
+    test "total_pages calculation is correct for exact multiples", %{users: users} do
+      # Exactly 4 pages with per_page=5
+      insert_test_users(users, 20)
+
+      loaded = users.page(1, 5)
+      assert loaded.meta.pagination.total_pages == 4
+      assert loaded.meta.pagination.total_count == 20
+    end
+
+    @tag relations: [:users]
+    test "total_pages calculation is correct for non-exact multiples", %{users: users} do
+      # 5 pages with per_page=5 (last page has 3 items)
+      insert_test_users(users, 23)
+
+      loaded = users.page(1, 5)
+      assert loaded.meta.pagination.total_pages == 5
+      assert loaded.meta.pagination.total_count == 23
+
+      # Test last page
+      last_page = users.page(5, 5)
+      assert length(last_page.data) == 3
+      assert last_page.meta.pagination.has_next == false
+    end
+
+    @tag relations: [:users]
+    test "has_prev and has_next are accurate", %{users: users} do
+      insert_test_users(users, 15)
+
+      # First page
+      page1 = users.page(1, 5)
+      assert page1.meta.pagination.has_prev == false
+      assert page1.meta.pagination.has_next == true
+
+      # Middle page
+      page2 = users.page(2, 5)
+      assert page2.meta.pagination.has_prev == true
+      assert page2.meta.pagination.has_next == true
+
+      # Last page
+      page3 = users.page(3, 5)
+      assert page3.meta.pagination.has_prev == true
+      assert page3.meta.pagination.has_next == false
+    end
+  end
+
   defp insert_test_users(users, count, attrs \\ []) do
     default_attrs = [active: true]
     attrs = Keyword.merge(default_attrs, attrs)
