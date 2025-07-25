@@ -1,4 +1,4 @@
-defmodule SampleApp.Repo do
+defmodule Sample.Repo do
   use Ecto.Repo,
     otp_app: :sample_app,
     adapter: Ecto.Adapters.SQLite3

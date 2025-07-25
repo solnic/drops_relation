@@ -8,14 +8,14 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasTest do
       # Run the mix task with --yes to avoid prompts
       output =
         run_task!(
-          "drops.relation.gen_schemas --app SampleApp --repo SampleApp.Repo --namespace SampleApp.Schemas --yes"
+          "drops.relation.gen_schemas --app Sample --repo Sample.Repo --namespace Sample.Schemas --yes"
         )
 
       # Verify the task ran successfully
       assert output =~ "Creating or updating schema"
-      assert output =~ "SampleApp.Schemas.Users"
-      assert output =~ "SampleApp.Schemas.Posts"
-      assert output =~ "SampleApp.Schemas.Comments"
+      assert output =~ "Sample.Schemas.Users"
+      assert output =~ "Sample.Schemas.Posts"
+      assert output =~ "Sample.Schemas.Comments"
 
       # Verify schema files were created
       assert_file_exists("lib/sample_app/schemas/users.ex")
@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasTest do
 
       # Verify user schema content
       user_content = read_file("lib/sample_app/schemas/users.ex")
-      assert user_content =~ "defmodule SampleApp.Schemas.Users do"
+      assert user_content =~ "defmodule Sample.Schemas.Users do"
       assert user_content =~ "use Ecto.Schema"
       assert user_content =~ "schema(\"users\") do"
       assert user_content =~ "field(:email, :string)"
@@ -35,7 +35,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasTest do
 
       # Verify post schema content with foreign key
       post_content = read_file("lib/sample_app/schemas/posts.ex")
-      assert post_content =~ "defmodule SampleApp.Schemas.Posts do"
+      assert post_content =~ "defmodule Sample.Schemas.Posts do"
       assert post_content =~ "use Ecto.Schema"
       assert post_content =~ "schema(\"posts\") do"
       assert post_content =~ "field(:title, :string)"
@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasTest do
 
       # Verify comment schema content with multiple foreign keys
       comment_content = read_file("lib/sample_app/schemas/comments.ex")
-      assert comment_content =~ "defmodule SampleApp.Schemas.Comments do"
+      assert comment_content =~ "defmodule Sample.Schemas.Comments do"
       assert comment_content =~ "use Ecto.Schema"
       assert comment_content =~ "schema(\"comments\") do"
       assert comment_content =~ "field(:body, :string)"
@@ -58,13 +58,13 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasTest do
       # Run the mix task for users table only
       output =
         run_task!(
-          "drops.relation.gen_schemas --app SampleApp --repo SampleApp.Repo --namespace SampleApp.Schemas --tables users --yes"
+          "drops.relation.gen_schemas --app Sample --repo Sample.Repo --namespace Sample.Schemas --tables users --yes"
         )
 
       # Verify only user schema was created
-      assert output =~ "SampleApp.Schemas.Users"
-      refute output =~ "SampleApp.Schemas.Posts"
-      refute output =~ "SampleApp.Schemas.Comments"
+      assert output =~ "Sample.Schemas.Users"
+      refute output =~ "Sample.Schemas.Posts"
+      refute output =~ "Sample.Schemas.Comments"
 
       assert_file_exists("lib/sample_app/schemas/users.ex")
       refute_file_exists("lib/sample_app/schemas/posts.ex")
@@ -74,7 +74,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasTest do
     test "updates existing schema file in sync mode" do
       # First, create an initial schema file with custom content
       initial_content = """
-      defmodule SampleApp.Schemas.Users do
+      defmodule Sample.Schemas.Users do
         use Ecto.Schema
 
         schema "users" do
@@ -96,7 +96,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasTest do
       # Run the mix task in sync mode
       output =
         run_task!(
-          "drops.relation.gen_schemas --app SampleApp --repo SampleApp.Repo --namespace SampleApp.Schemas --tables users --sync --yes"
+          "drops.relation.gen_schemas --app Sample --repo Sample.Repo --namespace Sample.Schemas --tables users --sync --yes"
         )
 
       # Verify the task ran in sync mode
@@ -117,7 +117,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemasTest do
 
     test "generated schemas are valid Ecto.Schema modules" do
       run_task!(
-        "drops.relation.gen_schemas --app SampleApp --repo SampleApp.Repo --namespace SampleApp.Schemas --yes"
+        "drops.relation.gen_schemas --app Sample --repo Sample.Repo --namespace Sample.Schemas --yes"
       )
 
       # Load and verify each generated schema module

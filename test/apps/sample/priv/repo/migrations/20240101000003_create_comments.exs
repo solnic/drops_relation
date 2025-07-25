@@ -1,4 +1,4 @@
-defmodule SampleApp.Repo.Migrations.CreateComments do
+defmodule Sample.Repo.Migrations.CreateComments do
   use Ecto.Migration
 
   def change do

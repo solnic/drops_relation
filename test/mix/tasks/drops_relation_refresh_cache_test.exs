@@ -15,11 +15,11 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCacheTest do
     end
 
     test "refreshes cache for specific repository" do
-      output = run_task!("drops.relation.refresh_cache --repo SampleApp.Repo --verbose")
+      output = run_task!("drops.relation.refresh_cache --repo Sample.Repo --verbose")
 
       assert output =~ "Refreshing Drops.Relation cache"
-      assert output =~ "Processing repository: SampleApp.Repo"
-      assert output =~ "Cache cleared for SampleApp.Repo"
+      assert output =~ "Processing repository: Sample.Repo"
+      assert output =~ "Cache cleared for Sample.Repo"
       assert output =~ "Cache warmed up for"
       assert output =~ "Cache refresh completed"
       assert output =~ "Successful: 1"
@@ -29,20 +29,20 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCacheTest do
     test "refreshes cache for specific tables only" do
       output =
         run_task!(
-          "drops.relation.refresh_cache --repo SampleApp.Repo --tables users,posts --verbose"
+          "drops.relation.refresh_cache --repo Sample.Repo --tables users,posts --verbose"
         )
 
       assert output =~ "Refreshing Drops.Relation cache"
       assert output =~ "Tables: [\"users\", \"posts\"]"
-      assert output =~ "Processing repository: SampleApp.Repo"
-      assert output =~ "Cache cleared for SampleApp.Repo"
+      assert output =~ "Processing repository: Sample.Repo"
+      assert output =~ "Cache cleared for Sample.Repo"
       assert output =~ "Cache warmed up for 2 tables"
       assert output =~ "Cache refresh completed"
     end
 
     test "clears cache without warming up when warm-up is false" do
       output =
-        run_task!("drops.relation.refresh_cache --repo SampleApp.Repo --no-warm-up --verbose")
+        run_task!("drops.relation.refresh_cache --repo Sample.Repo --no-warm-up --verbose")
 
       assert output =~ "Warm up: false"
       assert output =~ "Cache cleared (warm-up skipped)"
@@ -52,7 +52,7 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCacheTest do
     test "handles invalid table names gracefully" do
       output =
         run_task!(
-          "drops.relation.refresh_cache --repo SampleApp.Repo --tables non_existent_table --verbose"
+          "drops.relation.refresh_cache --repo Sample.Repo --tables non_existent_table --verbose"
         )
 
       # Should still succeed but may show warnings about non-existent tables
@@ -64,20 +64,20 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCacheTest do
 
       assert output =~ "Refreshing Drops.Relation cache"
       assert output =~ "Cache refresh completed"
-      # Should process at least SampleApp.Repo
+      # Should process at least Sample.Repo
       assert output =~ "Successful:"
     end
 
     test "handles empty tables list" do
       output =
-        run_task!("drops.relation.refresh_cache --repo SampleApp.Repo --tables '' --verbose")
+        run_task!("drops.relation.refresh_cache --repo Sample.Repo --tables '' --verbose")
 
       assert output =~ "Cache refresh completed"
       assert output =~ "Successful: 1"
     end
 
     test "provides concise output without verbose flag" do
-      output = run_task!("drops.relation.refresh_cache --repo SampleApp.Repo")
+      output = run_task!("drops.relation.refresh_cache --repo Sample.Repo")
 
       # Should not contain verbose details
       refute output =~ "Processing repository:"

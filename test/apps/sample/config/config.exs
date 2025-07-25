@@ -1,19 +1,19 @@
 import Config
 
 # Configure the sample app database
-config :sample_app, SampleApp.Repo,
+config :sample_app, Sample.Repo,
   database: Path.expand("../priv/db.sqlite", __DIR__),
   pool_size: 5,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true
 
 # Configure Ecto repositories
-config :sample_app, ecto_repos: [SampleApp.Repo]
+config :sample_app, ecto_repos: [Sample.Repo]
 
 config :sample_app, :drops,
   relation: [
-    ecto_schema_namespace: [SampleApp, Schemas],
-    view_module: &SampleApp.view_module/1
+    ecto_schema_namespace: [Sample, Schemas],
+    view_module: &Sample.view_module/1
   ]
 
 # Configure logger

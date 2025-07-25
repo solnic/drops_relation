@@ -1,7 +1,7 @@
 import Config
 
 # Configure the sample app database for test environment
-config :sample_app, SampleApp.Repo,
+config :sample_app, Sample.Repo,
   database: Path.expand("../priv/test_db.sqlite", __DIR__),
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: 1,
@@ -9,7 +9,7 @@ config :sample_app, SampleApp.Repo,
   show_sensitive_data_on_connection_error: true
 
 # Configure Ecto repositories
-config :sample_app, ecto_repos: [SampleApp.Repo]
+config :sample_app, ecto_repos: [Sample.Repo]
 
 # Configure logger for test
 config :logger, level: :warning

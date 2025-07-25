@@ -1,4 +1,4 @@
-defmodule SampleApp do
+defmodule Sample do
   @moduledoc """
   Sample application for testing Drops.Relation schema generation.
   """
@@ -7,21 +7,21 @@ defmodule SampleApp do
 
   def start(_type, _args) do
     children = [
-      SampleApp.Repo
+      Sample.Repo
     ]
 
-    opts = [strategy: :one_for_one, name: SampleApp.Supervisor]
+    opts = [strategy: :one_for_one, name: Sample.Supervisor]
 
     pid = Supervisor.start_link(children, opts)
 
-    Drops.Relation.Cache.warm_up(SampleApp.Repo, ["users"])
+    Drops.Relation.Cache.warm_up(Sample.Repo, ["users"])
 
     pid
   end
 
   def view_module({relation, name}) do
     Module.concat([
-      SampleApp,
+      Sample,
       Atom.to_string(relation) |> String.split(".") |> List.last(),
       Views,
       Macro.camelize(Atom.to_string(name))

@@ -1,5 +1,5 @@
 defmodule Users do
-  use Drops.Relation, repo: SampleApp.Repo
+  use Drops.Relation, repo: Sample.Repo
 
   schema("users", infer: true)
 

@@ -10,7 +10,7 @@ defmodule Test.IntegrationCase do
 
   use ExUnit.CaseTemplate
 
-  @sample_app_path Path.join([__DIR__, "..", "sample_app"])
+  @apps_path Path.join([__DIR__, "..", "apps"])
 
   using do
     quote do
@@ -23,8 +23,12 @@ defmodule Test.IntegrationCase do
     original_cwd = File.cwd!()
     original_env = System.get_env("MIX_ENV")
 
+    app = Map.get(tags, :app, "sample")
+
+    app_path = Path.join(@apps_path, app)
+
     # Change to sample_app directory
-    File.cd!(@sample_app_path)
+    File.cd!(app_path)
 
     # Set MIX_ENV to dev to avoid test database ownership issues
     System.put_env("MIX_ENV", "dev")
@@ -62,8 +66,8 @@ defmodule Test.IntegrationCase do
 
   ## Examples
 
-      run_task("drops.relation.gen_schemas --app SampleApp --repo SampleApp.Repo")
-      run_task("drops.relation.refresh_cache --repo SampleApp.Repo")
+      run_task("drops.relation.gen_schemas --app Sample --repo Sample.Repo")
+      run_task("drops.relation.refresh_cache --repo Sample.Repo")
 
   ## Returns
 
@@ -96,50 +100,50 @@ defmodule Test.IntegrationCase do
   end
 
   @doc """
-  Asserts that a file exists in the sample_app directory.
+  Asserts that a file exists in the current app directory.
 
   ## Examples
 
       assert_file_exists("lib/sample_app/schemas/users.ex")
   """
   def assert_file_exists(relative_path) do
-    full_path = Path.join(@sample_app_path, relative_path)
+    full_path = Path.join(File.cwd!(), relative_path)
     assert File.exists?(full_path), "Expected file to exist: #{relative_path}"
   end
 
   @doc """
-  Asserts that a file does not exist in the sample_app directory.
+  Asserts that a file does not exist in the current app directory.
 
   ## Examples
 
       refute_file_exists("lib/sample_app/schemas/users.ex")
   """
   def refute_file_exists(relative_path) do
-    full_path = Path.join(@sample_app_path, relative_path)
+    full_path = Path.join(File.cwd!(), relative_path)
     refute File.exists?(full_path), "Expected file to not exist: #{relative_path}"
   end
 
   @doc """
-  Reads a file from the sample_app directory.
+  Reads a file from the current app directory.
 
   ## Examples
 
       content = read_file("lib/sample_app/schemas/users.ex")
   """
   def read_file(relative_path) do
-    full_path = Path.join(@sample_app_path, relative_path)
+    full_path = Path.join(File.cwd!(), relative_path)
     File.read!(full_path)
   end
 
   @doc """
-  Writes content to a file in the sample_app directory.
+  Writes content to a file in the current app directory.
 
   ## Examples
 
       write_file("lib/sample_app/schemas/users.ex", schema_content)
   """
   def write_file(relative_path, content) do
-    full_path = Path.join(@sample_app_path, relative_path)
+    full_path = Path.join(File.cwd!(), relative_path)
     File.mkdir_p!(Path.dirname(full_path))
     File.write!(full_path, content)
   end
@@ -148,7 +152,7 @@ defmodule Test.IntegrationCase do
 
   defp clean_directories(dirs) do
     Enum.each(dirs, fn dir ->
-      full_path = Path.join(@sample_app_path, dir)
+      full_path = Path.join(File.cwd!(), dir)
 
       if File.exists?(full_path) do
         File.rm_rf!(full_path)
@@ -158,7 +162,7 @@ defmodule Test.IntegrationCase do
 
   defp clear_cache do
     # Clear the drops_relation cache directory for dev environment
-    cache_dir = Path.join(@sample_app_path, "tmp/cache/dev/drops_relation_schema")
+    cache_dir = Path.join(File.cwd!(), "tmp/cache/dev/drops_relation_schema")
 
     if File.exists?(cache_dir) do
       File.rm_rf!(cache_dir)

@@ -209,7 +209,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       # Create original schema module AST that matches the user's example
       original_ast =
         quote do
-          defmodule SampleApp.Relations.Users do
+          defmodule Sample.Relations.Users do
             use Ecto.Schema
 
             schema("users") do
@@ -288,7 +288,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       # Create original schema module AST that matches the user's example
       original_ast =
         quote do
-          defmodule SampleApp.Relations.Users do
+          defmodule Sample.Relations.Users do
             use Ecto.Schema
 
             schema("users") do
@@ -365,7 +365,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
       # Create original schema module AST with atom table name
       original_ast =
         quote do
-          defmodule SampleApp.Relations.Posts do
+          defmodule Sample.Relations.Posts do
             use Ecto.Schema
 
             schema("posts") do

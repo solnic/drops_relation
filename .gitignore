@@ -19,12 +19,15 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 drops_relation-*.tar
 
+/log/
+
 # Temporary files, for example, from tests.
 /tmp/
 
 priv/*.db*
 priv/repo/*sqlite*
 
-test/sample_app/_build
-test/sample_app/deps
-test/sample_app/priv/*db*
+test/apps/*/_build
+test/apps/*/deps
+test/apps/*/priv/*db*
+

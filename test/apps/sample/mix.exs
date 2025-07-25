@@ -1,4 +1,4 @@
-defmodule SampleApp.MixProject do
+defmodule Sample.MixProject do
   use Mix.Project
 
   def project do
@@ -8,7 +8,7 @@ defmodule SampleApp.MixProject do
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      # Disable type checking to avoid compatibility issues
+      aliases: aliases(),
       elixirc_options: [warnings_as_errors: false, no_warn_undefined: :all]
     ]
   end
@@ -16,7 +16,15 @@ defmodule SampleApp.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {SampleApp, []}
+      mod: {Sample, []}
+    ]
+  end
+
+  defp aliases do
+    [
+      "ecto.migrate": ["ecto.migrate", "drops.relation.refresh_cache"],
+      "ecto.rollback": ["ecto.rollback", "drops.relation.refresh_cache"],
+      "ecto.load": ["ecto.load", "drops.relation.refresh_cache"]
     ]
   end
 
@@ -25,7 +33,7 @@ defmodule SampleApp.MixProject do
       {:ecto, "~> 3.12"},
       {:ecto_sqlite3, "~> 0.17"},
       {:postgrex, "~> 0.17"},
-      {:drops_relation, path: "../.."},
+      {:drops_relation, path: "../../.."},
       {:jason, "~> 1.4"},
       {:igniter, "~> 0.6", optional: true}
     ]
