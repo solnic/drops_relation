@@ -1,5 +1,5 @@
 defmodule Drops.SQL.Database.TableTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   alias Drops.SQL.Database
   alias Drops.SQL.Database.{Table, Column, PrimaryKey, ForeignKey, Index}

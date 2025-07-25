@@ -1,5 +1,5 @@
 defmodule Drops.Relation.Plugins.Queryable.Operations.OrderTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   describe "order operations with various specifications" do
     @tag relations: [:users]

@@ -1,5 +1,5 @@
 defmodule Drops.Relations.Plugins.WritingTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   describe "changeset/2 function" do
     @tag relations: [:users]

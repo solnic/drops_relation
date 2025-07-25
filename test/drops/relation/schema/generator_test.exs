@@ -1,5 +1,5 @@
 defmodule Drops.Relation.Schema.GeneratorTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   alias Drops.Relation.Generator
   alias Drops.Relation.Schema

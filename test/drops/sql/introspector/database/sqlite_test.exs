@@ -1,5 +1,5 @@
 defmodule Drops.SQL.SqliteTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   alias Drops.SQL.Database
 

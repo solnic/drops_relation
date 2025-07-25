@@ -1,5 +1,5 @@
 defmodule Drops.Relations.CompositionTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   describe "restrict/1" do
     @tag relations: [:users]

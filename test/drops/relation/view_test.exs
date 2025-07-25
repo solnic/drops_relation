@@ -1,5 +1,5 @@
 defmodule Drops.Relation.ViewTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   describe "defining a relation view" do
     relation(:users) do

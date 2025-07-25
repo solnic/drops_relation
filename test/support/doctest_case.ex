@@ -1,4 +1,4 @@
-defmodule Drops.Relation.DoctestCase do
+defmodule Test.DoctestCase do
   use ExUnit.CaseTemplate
 
   using do

@@ -1,5 +1,5 @@
 defmodule Drops.Relation.UuidDynamicRelationTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   describe "uuid dynamic relations" do
     @tag relations: [:uuid_organizations], adapter: :sqlite

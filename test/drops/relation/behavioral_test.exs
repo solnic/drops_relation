@@ -1,5 +1,5 @@
 defmodule Drops.Relation.BehavioralTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   describe "Basic CRUD operations with inferred schemas" do
     @tag relations: [:users], adapter: :postgres

@@ -1,5 +1,5 @@
 defmodule Drops.Relations.SchemaSpec do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   describe "basic schema inference" do
     @tag relations: [:users]

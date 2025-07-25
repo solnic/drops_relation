@@ -1,5 +1,5 @@
 defmodule Drops.Relations.Plugins.ReadingTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   describe "query API functions" do
     @tag relations: [:users]

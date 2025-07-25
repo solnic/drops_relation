@@ -1,5 +1,5 @@
 defmodule Drops.Relation.Compilers.SqliteSchemaCompilerTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   describe "common types table" do
     @describetag relations: [:common_types], adapter: :sqlite

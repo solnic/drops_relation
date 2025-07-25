@@ -1,5 +1,5 @@
 defmodule Drops.Relation.AssociationsTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   describe "defining associations" do
     relation(:user_groups) do

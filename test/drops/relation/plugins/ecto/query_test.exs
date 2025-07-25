@@ -1,5 +1,5 @@
 defmodule Drops.Relations.Plugins.Ecto.QueryTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   describe "query/1 with no args" do
     relation(:users) do

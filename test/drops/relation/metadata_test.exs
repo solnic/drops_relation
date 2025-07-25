@@ -1,5 +1,5 @@
 defmodule Drops.Relation.MetadataIntegrationTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   describe "metadata integration with field inference" do
     @describetag relations: [:metadata_test], adapter: :sqlite

@@ -1,5 +1,5 @@
 defmodule Drops.Relation.LoadableMetadataTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   alias Drops.Relation.Loaded
 
@@ -43,10 +43,11 @@ defmodule Drops.Relation.LoadableMetadataTest do
       insert_test_users(users, 15)
 
       # Chain operations: restrict -> per_page -> page
-      loaded = users
-               |> users.restrict(active: true)
-               |> users.per_page(5)
-               |> users.page(2)
+      loaded =
+        users
+        |> users.restrict(active: true)
+        |> users.per_page(5)
+        |> users.page(2)
 
       assert %Loaded{} = loaded
       assert loaded.meta.pagination.page == 2
@@ -82,10 +83,10 @@ defmodule Drops.Relation.LoadableMetadataTest do
 
       # Create a relation and use Enum functions
       relation = users.restrict(active: true)
-      
+
       # Test Enum.count
       assert Enum.count(relation) == 5
-      
+
       # Test Enum.map
       names = Enum.map(relation, & &1.name)
       assert length(names) == 5
@@ -99,13 +100,13 @@ defmodule Drops.Relation.LoadableMetadataTest do
 
       # Create paginated result
       loaded = users.per_page(5) |> users.page(1)
-      
+
       # Test Enum functions on Loaded struct
       assert Enum.count(loaded) == 5
-      
+
       names = Enum.map(loaded, & &1.name)
       assert length(names) == 5
-      
+
       user_list = Enum.to_list(loaded)
       assert length(user_list) == 5
       assert user_list == loaded.data
@@ -115,11 +116,12 @@ defmodule Drops.Relation.LoadableMetadataTest do
   # Helper function to insert test users
   defp insert_test_users(users, count) do
     for i <- 1..count do
-      {:ok, _} = users.insert(%{
-        name: "User #{i}",
-        email: "user#{i}@example.com",
-        active: true
-      })
+      {:ok, _} =
+        users.insert(%{
+          name: "User #{i}",
+          email: "user#{i}@example.com",
+          active: true
+        })
     end
   end
 end

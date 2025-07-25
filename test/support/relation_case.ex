@@ -1,16 +1,16 @@
-defmodule Drops.RelationCase do
+defmodule Test.RelationCase do
   use ExUnit.CaseTemplate
 
   alias Drops.Relation.Loadable
 
   using do
     quote do
-      use Drops.Relation.DoctestCase
+      use Test.DoctestCase
 
       alias Test.Repos.Sqlite
       alias Test.Repos.Postgres
 
-      import Drops.RelationCase
+      import Test.RelationCase
     end
   end
 

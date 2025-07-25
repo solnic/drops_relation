@@ -1,5 +1,5 @@
 defmodule Drops.Relations.QueryTest do
-  use Drops.RelationCase, async: false
+  use Test.RelationCase, async: false
 
   import Drops.Relation.Query
 
