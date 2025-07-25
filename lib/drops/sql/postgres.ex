@@ -196,6 +196,15 @@ defmodule Drops.SQL.Postgres do
   GROUP BY con.conname, con.oid
   """
 
+  @list_tables """
+  SELECT table_name
+  FROM information_schema.tables
+  WHERE table_schema = 'public'
+  AND table_type = 'BASE TABLE'
+  AND table_name != 'schema_migrations'
+  ORDER BY table_name
+  """
+
   @doc """
   Introspects a PostgreSQL table and returns its complete metadata as an AST.
 
@@ -244,6 +253,45 @@ defmodule Drops.SQL.Postgres do
       {:ok, {:table, {{:identifier, table_name}, columns, foreign_keys, indices}}}
     else
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc """
+  Lists all tables in the PostgreSQL database.
+
+  This function implements the `list_tables/1` callback for PostgreSQL databases.
+  It queries the information schema to retrieve all base tables in the public schema.
+
+  ## Parameters
+
+  - `repo` - The Ecto repository configured for PostgreSQL
+
+  ## Returns
+
+  - `{:ok, [String.t()]}` - Successfully retrieved list of table names
+  - `{:error, term()}` - Error during query execution
+
+  ## Examples
+
+      {:ok, tables} = Drops.SQL.Postgres.list_tables(MyApp.Repo)
+      # => {:ok, ["users", "posts", "comments"]}
+
+  ## Implementation Notes
+
+  - Only returns tables from the 'public' schema
+  - Excludes views, materialized views, and other non-table objects
+  - Results are ordered alphabetically by table name
+  """
+  @impl true
+  @spec list_tables(module()) :: {:ok, [String.t()]} | {:error, term()}
+  def list_tables(repo) do
+    case repo.query(@list_tables, []) do
+      {:ok, %{rows: rows}} ->
+        table_names = Enum.map(rows, fn [table_name] -> table_name end)
+        {:ok, table_names}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 

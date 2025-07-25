@@ -170,6 +170,47 @@ defmodule Drops.SQL.Database do
   @callback introspect_table(String.t(), module()) :: {:ok, table()} | {:error, term()}
 
   @doc """
+  Callback for database adapters to implement table listing.
+
+  This callback must be implemented by each database adapter module to provide
+  database-specific logic for listing all user-defined tables in the database.
+  The implementation should query the database's system catalogs or information
+  schema to extract table names and return them as a list of strings.
+
+  ## Parameters
+
+  - `repo` - The Ecto repository module configured for database access
+
+  ## Returns
+
+  - `{:ok, [String.t()]}` - Successfully retrieved list of table names
+  - `{:error, term()}` - Error during query execution (connection issues, permission denied, etc.)
+
+  ## Implementation Requirements
+
+  Implementations must:
+  1. Query the database for table metadata using the repository connection
+  2. Filter out system tables and migration tables
+  3. Return only user-defined tables
+  4. Order results alphabetically by table name
+  5. Return table names as strings
+
+  ## Example Implementation Structure
+
+      @impl true
+      def list_tables(repo) do
+        case repo.query(@list_tables_query, []) do
+          {:ok, %{rows: rows}} ->
+            table_names = Enum.map(rows, fn [table_name] -> table_name end)
+            {:ok, table_names}
+          {:error, error} ->
+            {:error, error}
+        end
+      end
+  """
+  @callback list_tables(module()) :: {:ok, [String.t()]} | {:error, term()}
+
+  @doc """
   Macro for implementing database adapter modules.
 
   This macro provides the foundation for creating database adapter modules by
@@ -382,13 +423,54 @@ defmodule Drops.SQL.Database do
   """
   @spec table(String.t(), module()) :: {:ok, Table.t()} | {:error, term()}
   def table(name, repo) do
-    case get_database_adapter(repo) do
-      {:ok, adapter} ->
-        adapter.table(name, repo)
+    with_adapter(repo, :table, [name])
+  end
 
-      error ->
-        error
-    end
+  @doc """
+  Lists all tables in the database.
+
+  This function automatically detects the database adapter from the repository
+  configuration and delegates to the appropriate adapter module to retrieve
+  a list of all user-defined tables in the database.
+
+  ## Parameters
+
+  - `repo` - The Ecto repository module configured for your database
+
+  ## Returns
+
+  - `{:ok, [String.t()]}` - Successfully retrieved list of table names
+  - `{:error, {:unsupported_adapter, module()}}` - Repository uses unsupported adapter
+  - `{:error, term()}` - Database error during query execution
+
+  ## Examples
+
+      # List all tables in the database
+      {:ok, tables} = Drops.SQL.Database.list_tables(MyApp.Repo)
+      # => {:ok, ["users", "posts", "comments"]}
+
+      # Handle errors
+      case Drops.SQL.Database.list_tables(MyApp.Repo) do
+        {:ok, tables} ->
+          IO.puts("Found \#{length(tables)} tables")
+        {:error, reason} ->
+          IO.puts("Error: \#{inspect(reason)}")
+      end
+
+  ## Supported Adapters
+
+  - PostgreSQL via `Ecto.Adapters.Postgres`
+  - SQLite via `Ecto.Adapters.SQLite3`
+
+  ## Implementation Notes
+
+  - Excludes system tables and migration tables
+  - Results are ordered alphabetically by table name
+  - Only returns actual tables, not views or other database objects
+  """
+  @spec list_tables(module()) :: {:ok, [String.t()]} | {:error, term()}
+  def list_tables(repo) do
+    with_adapter(repo, :list_tables)
   end
 
   @doc """
@@ -462,6 +544,16 @@ defmodule Drops.SQL.Database do
 
       adapter ->
         {:error, {:unsupported_adapter, adapter}}
+    end
+  end
+
+  defp with_adapter(repo, command, args \\ []) do
+    case get_database_adapter(repo) do
+      {:ok, adapter} ->
+        apply(adapter, command, args ++ [repo])
+
+      error ->
+        error
     end
   end
 end

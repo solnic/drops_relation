@@ -220,4 +220,27 @@ defmodule Drops.SQL.SqliteTest do
       end
     end
   end
+
+  describe "Database.list_tables/1" do
+    @describetag adapter: :sqlite
+
+    test "returns list of tables in the database" do
+      {:ok, tables} = Database.list_tables(Test.Repos.Sqlite)
+
+      assert is_list(tables)
+      assert length(tables) > 0
+
+      # Should include some of our test tables
+      assert "type_mapping_tests" in tables
+      assert "special_cases" in tables
+      assert "metadata_test" in tables
+
+      # Should not include SQLite system tables or migrations
+      refute Enum.any?(tables, &String.starts_with?(&1, "sqlite_"))
+      refute "schema_migrations" in tables
+
+      # Tables should be sorted alphabetically
+      assert tables == Enum.sort(tables)
+    end
+  end
 end

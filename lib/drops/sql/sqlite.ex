@@ -78,6 +78,15 @@ defmodule Drops.SQL.Sqlite do
     WHERE type = 'table' AND name = ?
   """
 
+  @list_tables """
+  SELECT name
+  FROM sqlite_master
+  WHERE type = 'table'
+  AND name NOT LIKE 'sqlite_%'
+  AND name != 'schema_migrations'
+  ORDER BY name
+  """
+
   @doc """
   Introspects a SQLite table and returns its complete metadata as an AST.
 
@@ -125,6 +134,46 @@ defmodule Drops.SQL.Sqlite do
       {:ok, {:table, {{:identifier, table_name}, columns, foreign_keys, indices}}}
     else
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc """
+  Lists all tables in the SQLite database.
+
+  This function implements the `list_tables/1` callback for SQLite databases.
+  It queries the sqlite_master table to retrieve all user-defined tables.
+
+  ## Parameters
+
+  - `repo` - The Ecto repository configured for SQLite
+
+  ## Returns
+
+  - `{:ok, [String.t()]}` - Successfully retrieved list of table names
+  - `{:error, term()}` - Error during query execution
+
+  ## Examples
+
+      {:ok, tables} = Drops.SQL.Sqlite.list_tables(MyApp.Repo)
+      # => {:ok, ["users", "posts", "comments"]}
+
+  ## Implementation Notes
+
+  - Excludes SQLite system tables (those starting with 'sqlite_')
+  - Excludes migration tables (those ending with '_migrations')
+  - Results are ordered alphabetically by table name
+  - Only returns actual tables, not views or other database objects
+  """
+  @impl true
+  @spec list_tables(module()) :: {:ok, [String.t()]} | {:error, term()}
+  def list_tables(repo) do
+    case repo.query(@list_tables, []) do
+      {:ok, %{rows: rows}} ->
+        table_names = Enum.map(rows, fn [table_name] -> table_name end)
+        {:ok, table_names}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
