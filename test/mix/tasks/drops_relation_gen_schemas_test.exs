@@ -1,54 +1,161 @@
 defmodule Mix.Tasks.Drops.Relation.GenSchemasTest do
-  use Drops.RelationCase, async: false
+  use Test.IntegrationCase, async: false
 
-  alias Drops.Relation.Generator
+  describe "gen_schemas mix task integration" do
+    @describetag clean_dirs: ["lib/sample_app/schemas"]
 
-  describe "GenSchemas fix verification" do
-    test "generated schema content has no duplicated defmodule statements" do
-      field = Drops.Relation.Schema.Field.new(:name, :string, %{source: :name})
-      schema = Drops.Relation.Schema.new(:users, nil, [], [field], [])
+    test "generates schema files for all tables with --yes option" do
+      # Run the mix task with --yes to avoid prompts
+      output =
+        run_task!(
+          "drops.relation.gen_schemas --app SampleApp --repo SampleApp.Repo --namespace SampleApp.Schemas --yes"
+        )
 
-      ast = Generator.generate_module("TestApp.Relations.User", schema)
-      schema_content = Macro.to_string(ast)
+      # Verify the task ran successfully
+      assert output =~ "Creating or updating schema"
+      assert output =~ "SampleApp.Schemas.Users"
+      assert output =~ "SampleApp.Schemas.Posts"
+      assert output =~ "SampleApp.Schemas.Comments"
 
-      assert schema_content =~ "defmodule TestApp.Relations.User do"
-      assert schema_content =~ "use Ecto.Schema"
-      assert schema_content =~ "schema(\"users\") do"
-      assert schema_content =~ "field(:name, :string)"
-      refute schema_content =~ "timestamps()"
+      # Verify schema files were created
+      assert_file_exists("lib/sample_app/schemas/users.ex")
+      assert_file_exists("lib/sample_app/schemas/posts.ex")
+      assert_file_exists("lib/sample_app/schemas/comments.ex")
 
-      assert {_result, _bindings} = Code.eval_quoted(ast)
+      # Verify user schema content
+      user_content = read_file("lib/sample_app/schemas/users.ex")
+      assert user_content =~ "defmodule SampleApp.Schemas.Users do"
+      assert user_content =~ "use Ecto.Schema"
+      assert user_content =~ "schema(\"users\") do"
+      assert user_content =~ "field(:email, :string)"
+      assert user_content =~ "field(:first_name, :string)"
+      assert user_content =~ "field(:age, :integer)"
+      assert user_content =~ "field(:active, :boolean"
+      assert user_content =~ "timestamps()"
+
+      # Verify post schema content with foreign key
+      post_content = read_file("lib/sample_app/schemas/posts.ex")
+      assert post_content =~ "defmodule SampleApp.Schemas.Posts do"
+      assert post_content =~ "use Ecto.Schema"
+      assert post_content =~ "schema(\"posts\") do"
+      assert post_content =~ "field(:title, :string)"
+      assert post_content =~ "field(:body, :string)"
+      assert post_content =~ "field(:user_id, :integer)"
+      assert post_content =~ "timestamps()"
+
+      # Verify comment schema content with multiple foreign keys
+      comment_content = read_file("lib/sample_app/schemas/comments.ex")
+      assert comment_content =~ "defmodule SampleApp.Schemas.Comments do"
+      assert comment_content =~ "use Ecto.Schema"
+      assert comment_content =~ "schema(\"comments\") do"
+      assert comment_content =~ "field(:body, :string)"
+      assert comment_content =~ "field(:user_id, :integer)"
+      assert comment_content =~ "field(:post_id, :integer)"
+      assert comment_content =~ "timestamps()"
     end
 
-    test "generated schema with complex fields has no duplicated defmodule" do
-      # Test with more complex schema to ensure the fix works in all cases
-      fields = [
-        Drops.Relation.Schema.Field.new(:id, :id, %{source: :id, primary_key: true}),
-        Drops.Relation.Schema.Field.new(:email, :string, %{source: :email}),
-        Drops.Relation.Schema.Field.new(:age, :integer, %{source: :age}),
-        Drops.Relation.Schema.Field.new(:active, :boolean, %{source: :active, default: true})
-      ]
+    test "generates schema for specific table only" do
+      # Run the mix task for users table only
+      output =
+        run_task!(
+          "drops.relation.gen_schemas --app SampleApp --repo SampleApp.Repo --namespace SampleApp.Schemas --tables users --yes"
+        )
 
-      pk = Drops.Relation.Schema.PrimaryKey.new([List.first(fields)])
-      schema = Drops.Relation.Schema.new(:users, pk, [], fields, [])
+      # Verify only user schema was created
+      assert output =~ "SampleApp.Schemas.Users"
+      refute output =~ "SampleApp.Schemas.Posts"
+      refute output =~ "SampleApp.Schemas.Comments"
 
-      # Generate schema content
-      ast = Generator.generate_module("TestApp.Relations.ComplexUser", schema)
-      schema_content = Macro.to_string(ast)
+      assert_file_exists("lib/sample_app/schemas/users.ex")
+      refute_file_exists("lib/sample_app/schemas/posts.ex")
+      refute_file_exists("lib/sample_app/schemas/comments.ex")
+    end
 
-      # Verify single defmodule
-      defmodule_count =
-        schema_content
-        |> String.split("\n")
-        |> Enum.count(&String.contains?(&1, "defmodule"))
+    test "updates existing schema file in sync mode" do
+      # First, create an initial schema file with custom content
+      initial_content = """
+      defmodule SampleApp.Schemas.Users do
+        use Ecto.Schema
 
-      assert defmodule_count == 1, "Expected exactly 1 defmodule, got #{defmodule_count}"
+        schema "users" do
+          field :email, :string
+          field :first_name, :string
+          # This is a custom comment that should be preserved
+          timestamps()
+        end
 
-      # Verify no nested defmodule
-      refute schema_content =~ ~r/defmodule.*defmodule/s, "Found nested defmodule statements"
+        # Custom function that should be preserved
+        def display_name(%__MODULE__{first_name: first}) do
+          "User: \#{first}"
+        end
+      end
+      """
 
-      # Verify it compiles
-      assert {_result, _bindings} = Code.eval_quoted(ast)
+      write_file("lib/sample_app/schemas/users.ex", initial_content)
+
+      # Run the mix task in sync mode
+      output =
+        run_task!(
+          "drops.relation.gen_schemas --app SampleApp --repo SampleApp.Repo --namespace SampleApp.Schemas --tables users --sync --yes"
+        )
+
+      # Verify the task ran in sync mode
+      assert output =~ "Creating or updating schema"
+
+      # Verify the file was updated
+      updated_content = read_file("lib/sample_app/schemas/users.ex")
+
+      # Should preserve custom function
+      assert updated_content =~ "def display_name"
+
+      # Should preserve custom comment
+      assert updated_content =~ "This is a custom comment"
+
+      assert updated_content =~ ~r/field\s*\(?:email,\s*:string\)?/
+      assert updated_content =~ ~r/field\s*\(?:first_name,\s*:string\)?/
+    end
+
+    test "generated schemas are valid Ecto.Schema modules" do
+      run_task!(
+        "drops.relation.gen_schemas --app SampleApp --repo SampleApp.Repo --namespace SampleApp.Schemas --yes"
+      )
+
+      # Load and verify each generated schema module
+      user_file = Path.expand("lib/sample_app/schemas/users.ex")
+      post_file = Path.expand("lib/sample_app/schemas/posts.ex")
+      comment_file = Path.expand("lib/sample_app/schemas/comments.ex")
+
+      # Compile and load the modules to verify they're valid
+      [{user_module, _}] = Code.compile_file(user_file)
+      [{post_module, _}] = Code.compile_file(post_file)
+      [{comment_module, _}] = Code.compile_file(comment_file)
+
+      # Verify they implement Ecto.Schema behavior
+      assert function_exported?(user_module, :__schema__, 1)
+      assert function_exported?(post_module, :__schema__, 1)
+      assert function_exported?(comment_module, :__schema__, 1)
+
+      # Verify schema metadata
+      assert user_module.__schema__(:source) == "users"
+      assert post_module.__schema__(:source) == "posts"
+      assert comment_module.__schema__(:source) == "comments"
+
+      # Verify fields exist
+      user_fields = user_module.__schema__(:fields)
+      assert :email in user_fields
+      assert :first_name in user_fields
+      assert :last_name in user_fields
+      assert :age in user_fields
+
+      post_fields = post_module.__schema__(:fields)
+      assert :title in post_fields
+      assert :body in post_fields
+      assert :user_id in post_fields
+
+      comment_fields = comment_module.__schema__(:fields)
+      assert :body in comment_fields
+      assert :user_id in comment_fields
+      assert :post_id in comment_fields
     end
   end
 end

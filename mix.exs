@@ -36,6 +36,7 @@ defmodule Drops.Relation.MixProject do
     [
       preferred_envs: [
         "test.refresh_cache": :test,
+        "ecto.migrate": :test,
         "ecto.reset": :test,
         "ecto.drop": :test,
         "ecto.create": :test,
@@ -79,12 +80,12 @@ defmodule Drops.Relation.MixProject do
       extras: [
         "README.md"
       ],
-      nest_modules_by_prefix: [
-        Drops.Relation.Plugins,
-        Drops.Relation.Schema,
-        Drops.SQL.Database,
-        Drops.SQL.Compilers
-      ],
+      # nest_modules_by_prefix: [
+      #   Drops.Relation.Plugins,
+      #   Drops.Relation.Schema,
+      #   Drops.SQL.Database,
+      #   Drops.SQL.Compilers
+      # ],
       groups_for_modules: [
         "Core API": [
           Drops.Relation,
@@ -151,14 +152,11 @@ defmodule Drops.Relation.MixProject do
   defp aliases do
     [
       "test.refresh_cache": ["test.setup", "drops.relation.refresh_cache"],
-      "ecto.create": ["test.setup", "ecto.create"],
-      "ecto.drop": ["test.setup", "ecto.drop --force-drop"],
-      "ecto.setup": ["test.setup", "ecto.create", "ecto.migrate"],
-      "ecto.reset": ["ecto.drop --force-drop", "ecto.setup"],
-      "ecto.migrate": ["test.setup", "ecto.migrate"],
-      "ecto.migrations": ["test.setup", "ecto.migrations"],
+      "ecto.migrate": ["ecto.migrate", "test.refresh_cache"],
+      "ecto.rollback": ["ecto.rollback", "test.refresh_cache"],
+      "ecto.reset": ["ecto.drop --force-drop", "ecto.create", "ecto.migrate"],
       "ecto.dump": ["test.setup", "ecto.dump"],
-      "ecto.load": ["test.setup", "ecto.load"],
+      "ecto.load": ["test.setup", "ecto.load", "test.refresh_cache"],
       "test.integration": ["cmd cd test/sample_app && mix test"],
       "test.cov": ["coveralls.json", "test.cov.update_tasks"]
     ]

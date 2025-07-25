@@ -152,7 +152,7 @@ defmodule Drops.Relation.Schema.GeneratorTest do
   end
 
   describe "Generator with real database introspection" do
-    @tag relations: [:users], adapter: :sqlite
+    @tag relations: [:users]
     test "generates working schema from real users table", %{users: users} do
       module_name = generate_module_name("GeneratedUserSchema")
 
@@ -177,7 +177,7 @@ defmodule Drops.Relation.Schema.GeneratorTest do
       assert module.__schema__(:primary_key) == [:id]
     end
 
-    @tag relations: [:uuid_organizations], adapter: :sqlite
+    @tag relations: [:uuid_organizations]
     test "generates working schema from real UUID table", %{uuid_organizations: orgs} do
       module_name = generate_module_name("GeneratedOrgSchema")
 
@@ -198,7 +198,7 @@ defmodule Drops.Relation.Schema.GeneratorTest do
       assert module.__schema__(:primary_key) == [:id]
     end
 
-    @tag relations: [:composite_pk], adapter: :sqlite
+    @tag relations: [:composite_pk]
     test "generates working schema from real composite primary key table", %{
       composite_pk: composite_pk
     } do

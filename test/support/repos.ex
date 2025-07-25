@@ -29,11 +29,21 @@ defmodule Test.Repos do
   def start_owner!(:sqlite, opts), do: start_owner!(Test.Repos.Sqlite, opts)
   def start_owner!(:postgres, opts), do: start_owner!(Test.Repos.Postgres, opts)
 
-  def start_owner!(repo, opts) do
+  def start_owner!(repo, opts, retry \\ 1) do
     case ensure_started(repo) do
       {:ok, _pid} ->
-        pid = Ecto.Adapters.SQL.Sandbox.start_owner!(repo, opts)
-        :persistent_term.put({:repos, repo, :owner}, pid)
+        try do
+          pid = Ecto.Adapters.SQL.Sandbox.start_owner!(repo, opts)
+
+          :persistent_term.put({:repos, repo, :owner}, pid)
+        rescue
+          error ->
+            if retry <= 3 do
+              start_owner!(repo, opts, retry + 1)
+            else
+              reraise error, __STACKTRACE__
+            end
+        end
 
       {:error, error} ->
         raise "Failed to start repo #{repo}: #{inspect(error)}"

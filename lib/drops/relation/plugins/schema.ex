@@ -159,7 +159,7 @@ defmodule Drops.Relation.Plugins.Schema do
           source_schema =
             case infer_source_schema(relation, name, opts) do
               nil ->
-                Schema.new(%{source: name})
+                Schema.new(%{source: String.to_atom(name)})
 
               schema ->
                 schema

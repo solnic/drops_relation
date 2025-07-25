@@ -34,6 +34,8 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
 
   use Igniter.Mix.Task
 
+  import Mix.Ecto
+
   alias Drops.Relation.Cache
   alias Drops.Relation.Generator
   alias Igniter.Project.Module
@@ -75,11 +77,14 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
       |> Igniter.assign(:prompt_on_git_changes?, false)
       |> Igniter.assign(:quiet_on_no_changes?, true)
 
-    # Ensure the application is started before proceeding
-    ensure_application_started(options[:app])
+    # Start the application
+    Mix.Task.run("app.start")
+
+    # Get the repository using Mix.Ecto helpers
+    repo = get_repo(options, igniter.args.argv)
 
     # Get list of tables to process
-    tables = get_tables_to_process(options)
+    tables = get_tables_to_process(repo, options)
 
     if Enum.empty?(tables) do
       Mix.shell().info("No tables found to generate schemas for.")
@@ -89,7 +94,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
 
       # Generate schema files for each table
       Enum.reduce(tables, igniter, fn table, acc_igniter ->
-        generate_schema_file(acc_igniter, table, options)
+        generate_schema_file(acc_igniter, table, repo, options)
       end)
     end
   end
@@ -132,76 +137,48 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
     |> Map.put_new(:sync, true)
   end
 
-  defp get_tables_to_process(options) do
+  defp get_repo(options, argv) do
+    if repo_name = options[:repo] do
+      ensure_repo(String.to_atom("Elixir.#{repo_name}"), argv)
+    else
+      # Use parse_repo to get the default repo
+      case parse_repo(argv) do
+        [repo | _] -> repo
+        [] -> Mix.raise("No repository found. Please specify --repo option.")
+      end
+    end
+  end
+
+  defp get_tables_to_process(repo, options) do
     if tables_option = options[:tables] do
       String.split(tables_option, ",", trim: true)
       |> Enum.map(&String.trim/1)
     else
       # Get all tables from the database
-      get_all_tables(options[:repo])
+      get_all_tables(repo)
     end
   end
 
-  defp get_all_tables(repo_name) do
-    try do
-      repo = String.to_existing_atom("Elixir.#{repo_name}")
+  defp get_all_tables(repo) do
+    case Drops.SQL.Database.list_tables(repo) do
+      {:ok, tables} ->
+        # Filter out schema_migrations table
+        Enum.reject(tables, &(&1 == "schema_migrations"))
 
-      # Use database introspection to get table names
-      case repo.__adapter__() do
-        Ecto.Adapters.SQLite3 ->
-          get_sqlite_tables(repo)
-
-        Ecto.Adapters.Postgres ->
-          get_postgres_tables(repo)
-
-        _ ->
-          Mix.shell().error("Unsupported database adapter for table introspection")
-          []
-      end
-    rescue
-      error ->
-        Mix.shell().error("Failed to introspect database tables: #{inspect(error)}")
+      {:error, reason} ->
+        Mix.shell().error("Failed to list tables from #{inspect(repo)}: #{inspect(reason)}")
         []
     end
   end
 
-  defp get_sqlite_tables(repo) do
-    query =
-      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != 'schema_migrations'"
-
-    case repo.query(query) do
-      {:ok, %{rows: rows}} ->
-        Enum.map(rows, fn [table_name] -> table_name end)
-
-      {:error, _} ->
-        []
-    end
-  end
-
-  defp get_postgres_tables(repo) do
-    query = """
-    SELECT tablename
-    FROM pg_tables
-    WHERE schemaname = 'public'
-    AND tablename != 'schema_migrations'
-    """
-
-    case repo.query(query) do
-      {:ok, %{rows: rows}} ->
-        Enum.map(rows, fn [table_name] -> table_name end)
-
-      {:error, _} ->
-        []
-    end
-  end
-
-  defp generate_schema_file(igniter, table, options) do
+  defp generate_schema_file(igniter, table, repo, options) do
     # Build module name
     module_name_string = build_module_name_string(table, options[:namespace])
     module_name = Module.parse(module_name_string)
-    repo = String.to_existing_atom("Elixir.#{options[:repo]}")
 
-    module_ast = Generator.generate_module_content(Cache.get_cached_schema(repo, table))
+    # Get or infer the schema
+    schema = get_or_infer_schema(repo, table)
+    module_ast = Generator.generate_module_content(schema)
     module_content = Macro.to_string(module_ast)
 
     Mix.shell().info("Creating or updating schema: #{module_name_string}")
@@ -212,12 +189,31 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
       module_content,
       fn zipper ->
         if options[:sync] do
-          update_schema_preserving_custom_code(zipper, table, module_name_string, options)
+          update_schema_preserving_custom_code(zipper, table, repo, options)
         else
           replace_entire_module_content(zipper, module_ast)
         end
       end
     )
+  end
+
+  defp get_or_infer_schema(repo, table) do
+    case Cache.get_cached_schema(repo, table) do
+      nil ->
+        # Schema not cached, infer it
+        case Drops.SQL.Database.table(table, repo) do
+          {:ok, table_struct} ->
+            schema = Drops.Relation.Compilers.SchemaCompiler.visit(table_struct, %{})
+            Cache.cache_schema(repo, table, schema)
+            schema
+
+          {:error, reason} ->
+            raise "Failed to introspect table #{table}: #{inspect(reason)}"
+        end
+
+      schema ->
+        schema
+    end
   end
 
   defp build_module_name_string(table, namespace) do
@@ -237,10 +233,7 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
   end
 
   # Helper function for sync mode: preserve custom code and only update schema-related parts
-  defp update_schema_preserving_custom_code(zipper, table_name, _module_name_string, options) do
-    repo_name = options[:repo]
-    repo = ensure_repo_started(repo_name)
-
+  defp update_schema_preserving_custom_code(zipper, table_name, repo, _options) do
     # Get fresh schema data
     drops_relation_schema =
       case Drops.SQL.Database.table(table_name, repo) do
@@ -256,71 +249,5 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
       Generator.update_schema_with_zipper(zipper, table_name, drops_relation_schema)
 
     {:ok, updated_zipper}
-  end
-
-  # Ensures the application is started before running the task
-  defp ensure_application_started(app_name) do
-    app_atom = String.to_atom(Macro.underscore(app_name))
-
-    case Application.ensure_all_started(app_atom) do
-      {:ok, _} ->
-        Mix.shell().info("Started application #{app_name}")
-        :ok
-
-      {:error, {failed_app, reason}} ->
-        Mix.shell().error("Failed to start application #{failed_app}: #{inspect(reason)}")
-        Mix.raise("Cannot proceed without starting the application")
-    end
-  end
-
-  # Ensures the repository module is loaded and started.
-  # Returns the repository module atom.
-  # Raises RuntimeError if the repository cannot be started.
-  @spec ensure_repo_started(String.t()) :: module()
-  defp ensure_repo_started(repo_name) do
-    repo_module = String.to_atom("Elixir.#{repo_name}")
-
-    # Ensure the module is loaded
-    case Code.ensure_loaded(repo_module) do
-      {:module, ^repo_module} ->
-        # Try to start the repo if it's not already started
-        case repo_module.__adapter__() do
-          adapter when is_atom(adapter) ->
-            # Ensure the application is started
-            case Application.ensure_all_started(:ecto_sql) do
-              {:ok, _} ->
-                # Check if repo is started, if not try to start it
-                case GenServer.whereis(repo_module) do
-                  nil ->
-                    # Try to start the repo
-                    case repo_module.start_link() do
-                      {:ok, _pid} ->
-                        repo_module
-
-                      {:error, {:already_started, _pid}} ->
-                        repo_module
-
-                      {:error, reason} ->
-                        raise RuntimeError,
-                              "Failed to start repository #{repo_name}: #{inspect(reason)}"
-                    end
-
-                  _pid ->
-                    repo_module
-                end
-
-              {:error, reason} ->
-                raise RuntimeError,
-                      "Failed to start :ecto_sql application: #{inspect(reason)}"
-            end
-
-          _ ->
-            raise RuntimeError, "Repository #{repo_name} does not have a valid adapter"
-        end
-
-      {:error, reason} ->
-        raise RuntimeError,
-              "could not lookup Ecto repo #{repo_name} because it was not started or it does not exist: #{inspect(reason)}"
-    end
   end
 end

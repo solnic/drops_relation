@@ -76,8 +76,11 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
       Mix.shell().info(@moduledoc)
       :ok
     else
+      # Ensure application is started
+      Mix.Task.run("app.start")
+
       # Get repositories to process
-      repos = get_repos(opts)
+      repos = get_repos(opts, args)
 
       if Enum.empty?(repos) do
         Mix.shell().error(
@@ -115,17 +118,20 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
 
   # Private functions
 
-  defp get_repos(opts) do
+  defp get_repos(opts, args) do
     cond do
       opts[:all_repos] ->
-        parse_repo([])
+        parse_repo(args)
 
       opts[:repo] ->
-        mod = opts[:repo] |> String.split(".") |> Module.concat()
-        if ensure_repo(mod), do: [mod]
+        opts[:repo]
+        |> List.wrap()
+        |> Enum.map(fn repo_name ->
+          ensure_repo(Module.concat([repo_name]), args)
+        end)
 
       true ->
-        parse_repo([])
+        parse_repo(args)
     end
   end
 
@@ -193,42 +199,12 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
   end
 
   defp get_all_tables(repo) do
-    case repo.__adapter__() do
-      Ecto.Adapters.Postgres ->
-        query = """
-        SELECT table_name
-        FROM information_schema.tables
-        WHERE table_schema = 'public'
-        AND table_type = 'BASE TABLE'
-        """
+    case Drops.SQL.Database.list_tables(repo) do
+      {:ok, tables} ->
+        tables
 
-        result = Ecto.Adapters.SQL.query!(repo, query, [])
-        Enum.map(result.rows, fn [table_name] -> table_name end)
-
-      Ecto.Adapters.MyXQL ->
-        query = """
-        SELECT table_name
-        FROM information_schema.tables
-        WHERE table_schema = DATABASE()
-        AND table_type = 'BASE TABLE'
-        """
-
-        result = Ecto.Adapters.SQL.query!(repo, query, [])
-        Enum.map(result.rows, fn [table_name] -> table_name end)
-
-      Ecto.Adapters.SQLite3 ->
-        query = """
-        SELECT name
-        FROM sqlite_master
-        WHERE type = 'table'
-        AND name NOT LIKE 'sqlite_%'
-        """
-
-        result = Ecto.Adapters.SQL.query!(repo, query, [])
-        Enum.map(result.rows, fn [table_name] -> table_name end)
-
-      _ ->
-        Mix.shell().error("  Unsupported database adapter for #{inspect(repo)}")
+      {:error, reason} ->
+        Mix.shell().error("  Failed to list tables from #{inspect(repo)}: #{inspect(reason)}")
         []
     end
   end
@@ -275,14 +251,5 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
     end
 
     if failed > 0, do: {:error, :some_failed}, else: :ok
-  end
-
-  defp ensure_repo(repo) do
-    if Code.ensure_loaded?(repo) and function_exported?(repo, :__adapter__, 0) do
-      true
-    else
-      Mix.shell().error("Repository #{inspect(repo)} is not available or not an Ecto repository")
-      false
-    end
   end
 end
