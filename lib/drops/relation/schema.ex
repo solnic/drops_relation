@@ -277,7 +277,7 @@ defmodule Drops.Relation.Schema do
   """
   @spec find_field(t(), atom()) :: Field.t() | nil
   def find_field(%__MODULE__{fields: fields}, field_name) when is_atom(field_name) do
-    Enum.find(fields, &Field.matches_name?(&1, field_name))
+    Enum.find(fields, &(&1.name == field_name))
   end
 
   # Access behavior implementation

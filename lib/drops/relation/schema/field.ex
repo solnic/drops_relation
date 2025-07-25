@@ -158,38 +158,6 @@ defmodule Drops.Relation.Schema.Field do
     raise ArgumentError,
           "Cannot merge fields with different names: #{inspect(left_name)} and #{inspect(right_name)}"
   end
-
-  @doc """
-  Checks if two fields have the same name.
-
-  ## Examples
-
-      iex> field1 = Drops.Relation.Schema.Field.new(:email, :string, :string, :email)
-      iex> field2 = Drops.Relation.Schema.Field.new(:email, :text, :text, :email_address)
-      iex> Drops.Relation.Schema.Field.same_name?(field1, field2)
-      true
-  """
-  @spec same_name?(t(), t()) :: boolean()
-  def same_name?(%__MODULE__{name: name1}, %__MODULE__{name: name2}) do
-    name1 == name2
-  end
-
-  @doc """
-  Checks if a field matches a given name.
-
-  ## Examples
-
-      iex> field = Drops.Relation.Schema.Field.new(:email, :string, :string, :email)
-      iex> Drops.Relation.Schema.Field.matches_name?(field, :email)
-      true
-
-      iex> Drops.Relation.Schema.Field.matches_name?(field, :name)
-      false
-  """
-  @spec matches_name?(t(), atom()) :: boolean()
-  def matches_name?(%__MODULE__{name: field_name}, name) when is_atom(name) do
-    field_name == name
-  end
 end
 
 # Enumerable protocol implementation for Field
