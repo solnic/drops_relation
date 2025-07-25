@@ -53,17 +53,9 @@ defmodule Drops.Relation.Cache do
     case read_cache_file(cache_file) do
       {:ok, %{"schema" => schema, "digest" => stored_digest}} ->
         if current_digest == stored_digest do
-          log_cache_event("Schema cache hit for #{repo}.#{table_name}", :debug)
-
           Schema.load(schema)
         else
           File.rm(cache_file)
-
-          log_cache_event(
-            "Schema cache miss for #{repo}.#{table_name} (digest mismatch: current=#{current_digest}, stored=#{stored_digest})",
-            :debug
-          )
-
           nil
         end
 
@@ -111,11 +103,6 @@ defmodule Drops.Relation.Cache do
       "digest" => digest
     }
 
-    log_cache_event(
-      "Caching schema for #{repo}.#{table_name} with digest #{digest} to #{cache_file}",
-      :debug
-    )
-
     :ok = write_cache_file(cache_file, cache_data)
     digest_file = get_digest_file_path(repo)
     :ok = write_stored_digest(digest_file, digest)
@@ -141,7 +128,6 @@ defmodule Drops.Relation.Cache do
 
     if File.exists?(cache_dir) do
       File.rm_rf!(cache_dir)
-      log_cache_event("Cleared schema cache for repository: #{inspect(repo)}", :info)
     end
 
     :ok
@@ -158,7 +144,6 @@ defmodule Drops.Relation.Cache do
 
     if File.exists?(cache_dir) do
       File.rm_rf!(cache_dir)
-      log_cache_event("Cleared entire schema cache", :info)
     end
 
     :ok
@@ -376,7 +361,6 @@ defmodule Drops.Relation.Cache do
     json = encode(data)
     cache_file |> Path.dirname() |> File.mkdir_p!()
     File.write!(cache_file, json)
-    log_cache_event("Cached schema to #{cache_file}", :debug)
     :ok
   end
 
