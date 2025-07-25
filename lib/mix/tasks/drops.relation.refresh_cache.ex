@@ -48,6 +48,8 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
 
   import Mix.Ecto
 
+  require Logger
+
   @shortdoc "Refreshes the Drops.Relation cache for all tables"
 
   @switches [
@@ -100,10 +102,10 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
     verbose = opts[:verbose] || false
 
     if verbose do
-      Mix.shell().info("Refreshing Drops.Relation cache...")
-      Mix.shell().info("Repositories: #{inspect(repos)}")
-      Mix.shell().info("Tables: #{if tables, do: inspect(tables), else: "all"}")
-      Mix.shell().info("Warm up: #{warm_up}")
+      Logger.info("Refreshing Drops.Relation cache...")
+      Logger.info("Repositories: #{inspect(repos)}")
+      Logger.info("Tables: #{if tables, do: inspect(tables), else: "all"}")
+      Logger.info("Warm up: #{warm_up}")
     end
 
     # Process each repository
@@ -146,13 +148,13 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
 
   defp refresh_repo_cache(repo, tables, warm_up, verbose) do
     if verbose do
-      Mix.shell().info("Processing repository: #{inspect(repo)}")
+      Logger.info("Processing repository: #{inspect(repo)}")
     end
 
     Drops.Relation.Cache.clear_repo_cache(repo)
 
     if verbose do
-      Mix.shell().info("  Cache cleared for #{inspect(repo)}")
+      Logger.info("  Cache cleared for #{inspect(repo)}")
     end
 
     # Warm up if requested
@@ -167,7 +169,7 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
 
           if Enum.empty?(all_tables) do
             if verbose do
-              Mix.shell().info("  No tables found in #{inspect(repo)}")
+              Logger.info("  No tables found in #{inspect(repo)}")
             end
 
             {:ok, []}
@@ -179,19 +181,19 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
       case warm_up_result do
         {:ok, warmed_tables} ->
           if verbose do
-            Mix.shell().info("  Cache warmed up for #{length(warmed_tables)} tables")
+            Logger.info("  Cache warmed up for #{length(warmed_tables)} tables")
           end
 
           {:ok, repo, :refreshed, length(warmed_tables)}
 
         {:error, reason} ->
-          Mix.shell().error("  Failed to warm up cache for #{inspect(repo)}: #{inspect(reason)}")
+          Logger.error("  Failed to warm up cache for #{inspect(repo)}: #{inspect(reason)}")
 
           {:error, repo, reason}
       end
     else
       if verbose do
-        Mix.shell().info("  Cache cleared (warm-up skipped)")
+        Logger.info("  Cache cleared (warm-up skipped)")
       end
 
       {:ok, repo, :cleared, 0}
@@ -204,12 +206,12 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
         tables
 
       {:error, reason} ->
-        Mix.shell().error("  Failed to list tables from #{inspect(repo)}: #{inspect(reason)}")
+        Logger.error("  Failed to list tables from #{inspect(repo)}: #{inspect(reason)}")
         []
     end
   end
 
-  defp report_results(results, verbose) do
+  defp report_results(results, _verbose) do
     successful = Enum.count(results, &match?({:ok, _, _, _}, &1))
     failed = Enum.count(results, &match?({:error, _, _}, &1))
 
@@ -219,34 +221,17 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
       |> Enum.map(fn {:ok, _, _, count} -> count end)
       |> Enum.sum()
 
-    Mix.shell().info("")
-    Mix.shell().info("Cache refresh completed:")
-    Mix.shell().info("  Repositories processed: #{successful + failed}")
-    Mix.shell().info("  Successful: #{successful}")
-    Mix.shell().info("  Failed: #{failed}")
-    Mix.shell().info("  Total tables cached: #{total_tables}")
+    if successful > 0 do
+      Logger.info("Successfully cached schemas for #{total_tables} tables")
+    end
 
     if failed > 0 do
-      Mix.shell().info("")
-      Mix.shell().info("Failed repositories:")
+      Logger.error("Failed to cache schemas for #{failed} tables")
 
       results
       |> Enum.filter(&match?({:error, _, _}, &1))
       |> Enum.each(fn {:error, repo, reason} ->
-        Mix.shell().info("  #{inspect(repo)}: #{inspect(reason)}")
-      end)
-    end
-
-    if verbose do
-      Mix.shell().info("")
-      Mix.shell().info("Detailed results:")
-
-      Enum.each(results, fn
-        {:ok, repo, action, count} ->
-          Mix.shell().info("  #{inspect(repo)}: #{action} (#{count} tables)")
-
-        {:error, repo, reason} ->
-          Mix.shell().info("  #{inspect(repo)}: error - #{inspect(reason)}")
+        Logger.error("Repository #{inspect(repo)}: #{inspect(reason)}")
       end)
     end
 
