@@ -24,7 +24,8 @@ defmodule Sample.MixProject do
     [
       "ecto.migrate": ["ecto.migrate", "drops.relation.refresh_cache"],
       "ecto.rollback": ["ecto.rollback", "drops.relation.refresh_cache"],
-      "ecto.load": ["ecto.load", "drops.relation.refresh_cache"]
+      "ecto.load": ["ecto.load", "drops.relation.refresh_cache"],
+      "ecto.reset": ["ecto.drop", "ecto.create", "ecto.migrate"]
     ]
   end
 

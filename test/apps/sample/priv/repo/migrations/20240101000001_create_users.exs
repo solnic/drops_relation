@@ -4,8 +4,7 @@ defmodule Sample.Repo.Migrations.CreateUsers do
   def change do
     create table(:users) do
       add(:email, :string, null: false)
-      add(:first_name, :string)
-      add(:last_name, :string)
+      add(:name, :string)
       add(:age, :integer)
       add(:active, :boolean, default: true)
       add(:profile_data, :map)
@@ -18,7 +17,6 @@ defmodule Sample.Repo.Migrations.CreateUsers do
     end
 
     create(unique_index(:users, [:email]))
-    create(index(:users, [:last_name, :first_name]))
     create(index(:users, [:active]))
   end
 end
