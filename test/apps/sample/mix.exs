@@ -20,7 +20,7 @@ defmodule Sample.MixProject do
     ]
   end
 
-  defp aliases do
+  def aliases do
     [
       "ecto.migrate": ["ecto.migrate", "drops.relation.refresh_cache"],
       "ecto.rollback": ["ecto.rollback", "drops.relation.refresh_cache"],

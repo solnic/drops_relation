@@ -27,11 +27,15 @@ defmodule Test.IntegrationCase do
 
     app_path = Path.join(@apps_path, app)
 
-    # Change to sample_app directory
+    # Change to app directory
     File.cd!(app_path)
 
     # Set MIX_ENV to dev to avoid test database ownership issues
     System.put_env("MIX_ENV", "dev")
+
+    # Handle file state management
+    files_to_restore = Map.get(tags, :files, [])
+    original_file_contents = backup_files(files_to_restore)
 
     # Clean directories if specified in tags
     clean_dirs = Map.get(tags, :clean_dirs, [])
@@ -51,11 +55,20 @@ defmodule Test.IntegrationCase do
         System.delete_env("MIX_ENV")
       end
 
+      # Change back to app directory for cleanup
+      File.cd!(app_path)
+
+      # Restore original file contents
+      restore_files(files_to_restore, original_file_contents)
+
       # Clean up directories after test
       clean_directories(clean_dirs)
 
       # Clear cache after test
       clear_cache()
+
+      # Restore original working directory again
+      File.cd!(original_cwd)
     end)
 
     :ok
@@ -167,5 +180,41 @@ defmodule Test.IntegrationCase do
     if File.exists?(cache_dir) do
       File.rm_rf!(cache_dir)
     end
+  end
+
+  defp backup_files(files) do
+    Enum.reduce(files, %{}, fn file_path, acc ->
+      full_path = Path.join(File.cwd!(), file_path)
+
+      if File.exists?(full_path) do
+        content = File.read!(full_path)
+        Map.put(acc, file_path, content)
+      else
+        Map.put(acc, file_path, :not_found)
+      end
+    end)
+  end
+
+  defp restore_files(files, original_contents) do
+    Enum.each(files, fn file_path ->
+      full_path = Path.join(File.cwd!(), file_path)
+
+      case Map.get(original_contents, file_path) do
+        :not_found ->
+          # File didn't exist originally, remove it if it exists now
+          if File.exists?(full_path) do
+            File.rm!(full_path)
+          end
+
+        content when is_binary(content) ->
+          # Restore original content
+          File.mkdir_p!(Path.dirname(full_path))
+          File.write!(full_path, content)
+
+        nil ->
+          # No backup found, skip
+          :ok
+      end
+    end)
   end
 end
