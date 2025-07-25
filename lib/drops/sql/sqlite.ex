@@ -199,6 +199,10 @@ defmodule Drops.SQL.Sqlite do
         end)
       end)
 
+    # Fetch table creation SQL once for all check constraints
+    table_sql = get_table_creation_sql(repo, table_name)
+    all_check_constraints = extract_check_constraints_from_sql(table_sql)
+
     case repo.query(table_query(@introspect_columns, table_name)) do
       {:ok, %{rows: rows, columns: _columns}} ->
         # PRAGMA table_info returns: [cid, name, type, notnull, column_default, pk]
@@ -206,8 +210,11 @@ defmodule Drops.SQL.Sqlite do
         # indicating their position in a composite primary key
         columns =
           Enum.map(rows, fn [_cid, name, type, notnull, column_default, pk] ->
-            # Get check constraints for this column
-            check_constraints = get_column_check_constraints(repo, table_name, name)
+            # Get check constraints for this column from the pre-fetched constraints
+            check_constraints =
+              Enum.filter(all_check_constraints, fn constraint ->
+                String.contains?(constraint, name)
+              end)
 
             # Check if column is part of a foreign key
             is_foreign_key = MapSet.member?(foreign_key_column_names, name)
@@ -360,21 +367,17 @@ defmodule Drops.SQL.Sqlite do
 
   defp parse_foreign_key_action(_), do: nil
 
-  # Extracts check constraints for a specific column from table creation SQL.
-  # Returns list of check constraint expressions.
-  @spec get_column_check_constraints(module(), String.t(), String.t()) :: [String.t()]
-  defp get_column_check_constraints(repo, table_name, column_name) do
+  # Fetches table creation SQL from sqlite_master.
+  # Returns the SQL string or empty string if not found.
+  @spec get_table_creation_sql(module(), String.t()) :: String.t()
+  defp get_table_creation_sql(repo, table_name) do
     case repo.query(@introspect_check_constraints, [table_name]) do
       {:ok, %{rows: [[sql]]}} when is_binary(sql) ->
-        check_constraints = extract_check_constraints_from_sql(sql)
-
-        Enum.filter(check_constraints, fn constraint ->
-          String.contains?(constraint, column_name)
-        end)
+        sql
 
       _ ->
-        # If we can't get the SQL, return empty check constraints
-        []
+        # If we can't get the SQL, return empty string
+        ""
     end
   end
 
