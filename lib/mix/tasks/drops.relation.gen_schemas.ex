@@ -133,7 +133,6 @@ defmodule Mix.Tasks.Drops.Relation.GenSchemas do
 
     options
     |> Map.put(:namespace, namespace)
-    |> Map.put_new(:repo, "#{app_name}.Repo")
     |> Map.put_new(:sync, true)
   end
 

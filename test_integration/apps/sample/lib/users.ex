@@ -1,5 +1,5 @@
 defmodule Users do
-  use Drops.Relation, repo: Sample.Repo
+  use Drops.Relation, otp_app: :sample
 
   schema("users", infer: true)
 

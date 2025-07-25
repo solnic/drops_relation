@@ -29,7 +29,7 @@ defmodule Test.Repos do
   def start_owner!(:sqlite, opts), do: start_owner!(Test.Repos.Sqlite, opts)
   def start_owner!(:postgres, opts), do: start_owner!(Test.Repos.Postgres, opts)
 
-  def start_owner!(repo, opts, retry \\ 1) do
+  def start_owner!(repo, opts) do
     case ensure_started(repo) do
       {:ok, _pid} ->
         try do
@@ -38,8 +38,8 @@ defmodule Test.Repos do
           :persistent_term.put({:repos, repo, :owner}, pid)
         rescue
           error ->
-            if retry <= 3 do
-              start_owner!(repo, opts, retry + 1)
+            if opts[:retry] <= 3 do
+              start_owner!(repo, Keyword.put(opts, :retry, opts[:retry] || 0 + 1))
             else
               reraise error, __STACKTRACE__
             end

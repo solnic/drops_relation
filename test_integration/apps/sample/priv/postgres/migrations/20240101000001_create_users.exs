@@ -1,4 +1,4 @@
-defmodule Sample.Repo.Migrations.CreateUsers do
+defmodule Sample.Repos.Migrations.CreateUsers do
   use Ecto.Migration
 
   def change do

@@ -172,12 +172,10 @@ defmodule Drops.Relation do
           def name, do: @view
         end
       else
+        otp_app = if opts[:repo], do: opts[:repo].config()[:otp_app], else: opts[:otp_app]
+
         quote do
-          @config Application.compile_env(
-                    unquote(opts)[:repo].config()[:otp_app],
-                    [:drops, :relation],
-                    []
-                  )
+          @config Application.compile_env(unquote(otp_app), [:drops, :relation], [])
           def __config__, do: @config
         end
       end
@@ -200,7 +198,7 @@ defmodule Drops.Relation do
 
       unquote_splicing(plugins)
 
-      @opts unquote(opts)
+      @opts Keyword.put(unquote(opts), :repo, @config[:repo] || unquote(opts[:repo]))
       def opts, do: @opts
       def opts(name), do: Keyword.get(opts(), name)
 

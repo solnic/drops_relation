@@ -157,7 +157,7 @@ defmodule Drops.Relation.MixProject do
       "ecto.reset": ["ecto.drop --force-drop", "ecto.create", "ecto.migrate"],
       "ecto.dump": ["test.setup", "ecto.dump"],
       "ecto.load": ["test.setup", "ecto.load", "test.refresh_cache"],
-      "test.integration": ["cmd cd test/sample_app && mix test"],
+      "test.integration": ["cmd cd test/sample && mix test"],
       "test.cov": ["coveralls.json", "test.cov.update_tasks"]
     ]
   end

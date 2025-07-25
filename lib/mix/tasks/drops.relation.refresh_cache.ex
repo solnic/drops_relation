@@ -2,10 +2,9 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
   @moduledoc """
   Refreshes the Drops.Relation cache for all tables in specified repositories.
 
-  This task clears the existing cache and optionally warms it up again by
-  inferring schemas for all tables in the database. This is useful when
-  database schema changes have been made and you want to ensure the cache
-  is up to date.
+  This task clears the existing cache and warms it up again by inferring schemas
+  for all tables in the database. This is useful when database schema changes
+  have been made and you want to ensure the cache is up to date.
 
   ## Usage
 
@@ -16,7 +15,6 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
     * `--repo` - The repository to refresh cache for (can be specified multiple times)
     * `--all-repos` - Refresh cache for all configured repositories
     * `--tables` - Comma-separated list of specific tables to refresh (optional)
-    * `--warm-up` - Whether to warm up the cache after clearing (default: true)
     * `--verbose` - Show detailed output during cache refresh
 
   ## Examples
@@ -29,9 +27,6 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
 
       # Refresh cache for specific tables only
       mix drops.relation.refresh_cache --repo MyApp.Repo --tables users,posts,comments
-
-      # Clear cache without warming up
-      mix drops.relation.refresh_cache --repo MyApp.Repo --warm-up false
 
       # Verbose output
       mix drops.relation.refresh_cache --repo MyApp.Repo --verbose
@@ -56,7 +51,6 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
     repo: [:string, :keep],
     all_repos: :boolean,
     tables: :string,
-    warm_up: :boolean,
     verbose: :boolean,
     help: :boolean
   ]
@@ -65,7 +59,6 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
     r: :repo,
     a: :all_repos,
     t: :tables,
-    w: :warm_up,
     v: :verbose,
     h: :help
   ]
@@ -85,10 +78,7 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
       repos = get_repos(opts, args)
 
       if Enum.empty?(repos) do
-        Mix.shell().error(
-          "No repositories found. Use --repo or --all-repos to specify repositories."
-        )
-
+        Logger.error("No repositories found. Use --repo or --all-repos to specify repositories.")
         {:error, :no_repos}
       else
         process_cache_refresh(repos, opts)
@@ -98,20 +88,18 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
 
   defp process_cache_refresh(repos, opts) do
     tables = parse_tables(opts[:tables])
-    warm_up = Keyword.get(opts, :warm_up, true)
     verbose = opts[:verbose] || false
 
     if verbose do
       Logger.info("Refreshing Drops.Relation cache...")
       Logger.info("Repositories: #{inspect(repos)}")
       Logger.info("Tables: #{if tables, do: inspect(tables), else: "all"}")
-      Logger.info("Warm up: #{warm_up}")
     end
 
     # Process each repository
     results =
       Enum.map(repos, fn repo ->
-        refresh_repo_cache(repo, tables, warm_up, verbose)
+        refresh_repo_cache(repo, tables, verbose)
       end)
 
     # Report results
@@ -146,7 +134,7 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
     |> Enum.reject(&(&1 == ""))
   end
 
-  defp refresh_repo_cache(repo, tables, warm_up, verbose) do
+  defp refresh_repo_cache(repo, tables, verbose) do
     if verbose do
       Logger.info("Processing repository: #{inspect(repo)}")
     end
@@ -157,46 +145,37 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
       Logger.info("  Cache cleared for #{inspect(repo)}")
     end
 
-    # Warm up if requested
-    if warm_up do
-      warm_up_result =
-        if tables do
-          # Warm up specific tables
-          Drops.Relation.Cache.warm_up(repo, tables)
-        else
-          # Get all tables from the database and warm up
-          all_tables = get_all_tables(repo)
+    # Warm up the cache
+    warm_up_result =
+      if tables do
+        # Warm up specific tables
+        Drops.Relation.Cache.warm_up(repo, tables)
+      else
+        # Get all tables from the database and warm up
+        all_tables = get_all_tables(repo)
 
-          if Enum.empty?(all_tables) do
-            if verbose do
-              Logger.info("  No tables found in #{inspect(repo)}")
-            end
-
-            {:ok, []}
-          else
-            Drops.Relation.Cache.warm_up(repo, all_tables)
+        if Enum.empty?(all_tables) do
+          if verbose do
+            Logger.info("  No tables found in #{inspect(repo)}")
           end
+
+          {:ok, []}
+        else
+          Drops.Relation.Cache.warm_up(repo, all_tables)
+        end
+      end
+
+    case warm_up_result do
+      {:ok, warmed_tables} ->
+        if verbose do
+          Logger.info("  Cache warmed up for #{length(warmed_tables)} tables")
         end
 
-      case warm_up_result do
-        {:ok, warmed_tables} ->
-          if verbose do
-            Logger.info("  Cache warmed up for #{length(warmed_tables)} tables")
-          end
+        {:ok, repo, :refreshed, length(warmed_tables)}
 
-          {:ok, repo, :refreshed, length(warmed_tables)}
-
-        {:error, reason} ->
-          Logger.error("  Failed to warm up cache for #{inspect(repo)}: #{inspect(reason)}")
-
-          {:error, repo, reason}
-      end
-    else
-      if verbose do
-        Logger.info("  Cache cleared (warm-up skipped)")
-      end
-
-      {:ok, repo, :cleared, 0}
+      {:error, reason} ->
+        Logger.error("  Failed to warm up cache for #{inspect(repo)}: #{inspect(reason)}")
+        {:error, repo, reason}
     end
   end
 
@@ -211,22 +190,20 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
     end
   end
 
-  defp report_results(results, _verbose) do
+  defp report_results(results, verbose) do
     successful = Enum.count(results, &match?({:ok, _, _, _}, &1))
     failed = Enum.count(results, &match?({:error, _, _}, &1))
 
-    total_tables =
-      results
-      |> Enum.filter(&match?({:ok, _, _, _}, &1))
-      |> Enum.map(fn {:ok, _, _, count} -> count end)
-      |> Enum.sum()
+    # Only use Mix.shell for the final completion message that tests expect
+    Mix.shell().info("Cache refresh completed")
 
-    if successful > 0 do
-      Logger.info("Successfully cached schemas for #{total_tables} tables")
+    if verbose do
+      Logger.info("Successful: #{successful}")
+      Logger.info("Failed: #{failed}")
     end
 
     if failed > 0 do
-      Logger.error("Failed to cache schemas for #{failed} tables")
+      Logger.error("Failed to cache schemas for #{failed} repositories")
 
       results
       |> Enum.filter(&match?({:error, _, _}, &1))

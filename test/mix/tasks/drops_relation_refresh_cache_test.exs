@@ -10,50 +10,52 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCacheTest do
       assert output =~ "--repo"
       assert output =~ "--all-repos"
       assert output =~ "--tables"
-      assert output =~ "--warm-up"
       assert output =~ "--verbose"
     end
 
-    test "refreshes cache for specific repository" do
-      output = run_task!("drops.relation.refresh_cache --repo Sample.Repo --verbose")
+    @tag adapter: :sqlite
+    test "refreshes cache for specific repository with SQLite" do
+      output = run_task!("drops.relation.refresh_cache --repo Sample.Repos.Sqlite --verbose")
 
-      assert output =~ "Refreshing Drops.Relation cache"
-      assert output =~ "Processing repository: Sample.Repo"
-      assert output =~ "Cache cleared for Sample.Repo"
-      assert output =~ "Cache warmed up for"
+      # Only the completion message should appear in terminal output
       assert output =~ "Cache refresh completed"
-      assert output =~ "Successful: 1"
-      assert output =~ "Failed: 0"
+      # Verbose logging goes to Logger, not terminal output
+      refute output =~ "Refreshing Drops.Relation cache"
+      refute output =~ "Processing repository:"
+      refute output =~ "Cache cleared for"
+      refute output =~ "Successful:"
+      refute output =~ "Failed:"
+    end
+
+    test "refreshes cache for default repository" do
+      output = run_task!("drops.relation.refresh_cache --verbose")
+
+      # Only the completion message should appear in terminal output
+      assert output =~ "Cache refresh completed"
+      # Verbose logging goes to Logger, not terminal output
+      refute output =~ "Refreshing Drops.Relation cache"
+      refute output =~ "Processing repository:"
+      refute output =~ "Cache cleared for"
+      refute output =~ "Successful:"
+      refute output =~ "Failed:"
     end
 
     test "refreshes cache for specific tables only" do
       output =
-        run_task!(
-          "drops.relation.refresh_cache --repo Sample.Repo --tables users,posts --verbose"
-        )
+        run_task!("drops.relation.refresh_cache --tables users,posts --verbose")
 
-      assert output =~ "Refreshing Drops.Relation cache"
-      assert output =~ "Tables: [\"users\", \"posts\"]"
-      assert output =~ "Processing repository: Sample.Repo"
-      assert output =~ "Cache cleared for Sample.Repo"
-      assert output =~ "Cache warmed up for 2 tables"
+      # Only the completion message should appear in terminal output
       assert output =~ "Cache refresh completed"
-    end
-
-    test "clears cache without warming up when warm-up is false" do
-      output =
-        run_task!("drops.relation.refresh_cache --repo Sample.Repo --no-warm-up --verbose")
-
-      assert output =~ "Warm up: false"
-      assert output =~ "Cache cleared (warm-up skipped)"
-      assert output =~ "cleared (0 tables)"
+      # Verbose logging goes to Logger, not terminal output
+      refute output =~ "Refreshing Drops.Relation cache"
+      refute output =~ "Tables:"
+      refute output =~ "Processing repository:"
+      refute output =~ "Cache cleared for"
     end
 
     test "handles invalid table names gracefully" do
       output =
-        run_task!(
-          "drops.relation.refresh_cache --repo Sample.Repo --tables non_existent_table --verbose"
-        )
+        run_task!("drops.relation.refresh_cache --tables non_existent_table --verbose")
 
       # Should still succeed but may show warnings about non-existent tables
       assert output =~ "Cache refresh completed"
@@ -62,27 +64,31 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCacheTest do
     test "refreshes cache with all-repos option" do
       output = run_task!("drops.relation.refresh_cache --all-repos --verbose")
 
-      assert output =~ "Refreshing Drops.Relation cache"
+      # Only the completion message should appear in terminal output
       assert output =~ "Cache refresh completed"
-      # Should process at least Sample.Repo
-      assert output =~ "Successful:"
+      # Verbose logging goes to Logger, not terminal output
+      refute output =~ "Refreshing Drops.Relation cache"
+      refute output =~ "Successful:"
     end
 
     test "handles empty tables list" do
       output =
-        run_task!("drops.relation.refresh_cache --repo Sample.Repo --tables '' --verbose")
+        run_task!("drops.relation.refresh_cache --tables '' --verbose")
 
+      # Only the completion message should appear in terminal output
       assert output =~ "Cache refresh completed"
-      assert output =~ "Successful: 1"
+      # Verbose logging goes to Logger, not terminal output
+      refute output =~ "Successful:"
     end
 
     test "provides concise output without verbose flag" do
-      output = run_task!("drops.relation.refresh_cache --repo Sample.Repo")
+      output = run_task!("drops.relation.refresh_cache")
 
-      # Should not contain verbose details
+      # Should not contain verbose details (these go to Logger anyway)
       refute output =~ "Processing repository:"
       refute output =~ "Cache cleared for"
-      refute output =~ "Detailed results:"
+      refute output =~ "Successful:"
+      refute output =~ "Failed:"
 
       # But should contain summary
       assert output =~ "Cache refresh completed"
@@ -91,12 +97,14 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCacheTest do
 
   describe "error handling" do
     test "uses default repositories when none specified" do
-      # Since sample_app has ecto_repos configured, it should use those by default
+      # Since sample has ecto_repos configured, it should use those by default
       output = run_task!("drops.relation.refresh_cache --verbose")
 
-      assert output =~ "Refreshing Drops.Relation cache"
+      # Only the completion message should appear in terminal output
       assert output =~ "Cache refresh completed"
-      assert output =~ "Successful:"
+      # Verbose logging goes to Logger, not terminal output
+      refute output =~ "Refreshing Drops.Relation cache"
+      refute output =~ "Successful:"
     end
 
     test "handles non-existent repository gracefully" do

@@ -6,17 +6,15 @@ defmodule Sample do
   use Application
 
   def start(_type, _args) do
+    [repo] = Application.get_env(:sample, :ecto_repos)
+
     children = [
-      Sample.Repo
+      repo
     ]
 
     opts = [strategy: :one_for_one, name: Sample.Supervisor]
 
-    pid = Supervisor.start_link(children, opts)
-
-    Drops.Relation.Cache.warm_up(Sample.Repo, ["users"])
-
-    pid
+    Supervisor.start_link(children, opts)
   end
 
   def view_module({relation, name}) do

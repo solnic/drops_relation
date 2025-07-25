@@ -1,16 +1,16 @@
 defmodule Test.IntegrationCase do
   @moduledoc """
-  Test case for integration tests that run mix tasks within the sample_app directory.
+  Test case for integration tests that run mix tasks within the sample directory.
 
   This case provides:
   - Automatic MIX_ENV management
   - Directory cleanup based on tags
-  - Helper for running mix tasks in sample_app context
+  - Helper for running mix tasks in sample context
   """
 
   use ExUnit.CaseTemplate
 
-  @apps_path Path.join([__DIR__, "..", "apps"])
+  @apps_path Path.join([__DIR__, "../..", "test_integration", "apps"])
 
   using do
     quote do
@@ -22,8 +22,10 @@ defmodule Test.IntegrationCase do
     # Store original environment
     original_cwd = File.cwd!()
     original_env = System.get_env("MIX_ENV")
+    original_adapter = System.get_env("ADAPTER")
 
     app = Map.get(tags, :app, "sample")
+    adapter = Map.get(tags, :adapter, String.to_atom(System.get_env("ADAPTER", "sqlite")))
 
     app_path = Path.join(@apps_path, app)
 
@@ -32,6 +34,17 @@ defmodule Test.IntegrationCase do
 
     # Set MIX_ENV to dev to avoid test database ownership issues
     System.put_env("MIX_ENV", "dev")
+
+    # Set ADAPTER environment variable for the test
+    System.put_env("ADAPTER", Atom.to_string(adapter))
+
+    # Clean and recompile when switching adapters to avoid compile-time config issues
+    # Always clean and recompile to ensure the correct adapter configuration
+    System.cmd("mix", ["deps.clean", "sample", "--build"], env: [{"MIX_ENV", "dev"}])
+
+    System.cmd("mix", ["compile", "--force"],
+      env: [{"MIX_ENV", "dev"}, {"ADAPTER", Atom.to_string(adapter)}]
+    )
 
     # Handle file state management
     files_to_restore = Map.get(tags, :files, [])
@@ -55,6 +68,13 @@ defmodule Test.IntegrationCase do
         System.delete_env("MIX_ENV")
       end
 
+      # Restore original ADAPTER
+      if original_adapter do
+        System.put_env("ADAPTER", original_adapter)
+      else
+        System.delete_env("ADAPTER")
+      end
+
       # Change back to app directory for cleanup
       File.cd!(app_path)
 
@@ -75,12 +95,12 @@ defmodule Test.IntegrationCase do
   end
 
   @doc """
-  Runs a mix task in the sample_app context.
+  Runs a mix task in the sample context.
 
   ## Examples
 
-      run_task("drops.relation.gen_schemas --app Sample --repo Sample.Repo")
-      run_task("drops.relation.refresh_cache --repo Sample.Repo")
+      run_task("drops.relation.gen_schemas --app Sample")
+      run_task("drops.relation.refresh_cache")
 
   ## Returns
 
@@ -92,10 +112,19 @@ defmodule Test.IntegrationCase do
     args = String.split(task_string, " ")
     [task_name | task_args] = args
 
+    env = [{"MIX_ENV", "dev"}]
+
+    # Pass through ADAPTER environment variable if set
+    env =
+      case System.get_env("ADAPTER") do
+        nil -> env
+        adapter -> [{"ADAPTER", adapter} | env]
+      end
+
     System.cmd(
       "mix",
       [task_name | task_args],
-      env: [{"MIX_ENV", "dev"}],
+      env: env,
       stderr_to_stdout: true
     )
   end
@@ -117,7 +146,7 @@ defmodule Test.IntegrationCase do
 
   ## Examples
 
-      assert_file_exists("lib/sample_app/schemas/users.ex")
+      assert_file_exists("lib/sample/schemas/users.ex")
   """
   def assert_file_exists(relative_path) do
     full_path = Path.join(File.cwd!(), relative_path)
@@ -129,7 +158,7 @@ defmodule Test.IntegrationCase do
 
   ## Examples
 
-      refute_file_exists("lib/sample_app/schemas/users.ex")
+      refute_file_exists("lib/sample/schemas/users.ex")
   """
   def refute_file_exists(relative_path) do
     full_path = Path.join(File.cwd!(), relative_path)
@@ -141,7 +170,7 @@ defmodule Test.IntegrationCase do
 
   ## Examples
 
-      content = read_file("lib/sample_app/schemas/users.ex")
+      content = read_file("lib/sample/schemas/users.ex")
   """
   def read_file(relative_path) do
     full_path = Path.join(File.cwd!(), relative_path)
@@ -153,7 +182,7 @@ defmodule Test.IntegrationCase do
 
   ## Examples
 
-      write_file("lib/sample_app/schemas/users.ex", schema_content)
+      write_file("lib/sample/schemas/users.ex", schema_content)
   """
   def write_file(relative_path, content) do
     full_path = Path.join(File.cwd!(), relative_path)
