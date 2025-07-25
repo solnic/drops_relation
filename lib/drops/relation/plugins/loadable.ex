@@ -47,7 +47,7 @@ defmodule Drops.Relation.Plugins.Loadable do
     end
   end
 
-  @spec load(Ecto.Quaryable.t()) :: Drops.Relation.Loaded
+  @spec load(struct()) :: Drops.Relation.Loaded.t()
   def load(relation, meta \\ %{}) do
     Drops.Relation.Loadable.load(relation, meta)
   end
