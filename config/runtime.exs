@@ -3,7 +3,7 @@ import Config
 env = config_env()
 
 if adapter = System.get_env("ADAPTER") do
-  config :drops_relation, ecto_repos: [Module.concat(["Ecto", "Relation", "Repos", adapter])]
+  config :drops_relation, ecto_repos: [Module.concat(["Test", "Repos", adapter])]
 end
 
 config :logger, :default_handler, config: [file: ~c"log/#{env}.log"]

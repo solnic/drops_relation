@@ -45,6 +45,7 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
   """
 
   use Mix.Task
+
   import Mix.Ecto
 
   @shortdoc "Refreshes the Drops.Relation cache for all tables"
@@ -75,9 +76,6 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
       Mix.shell().info(@moduledoc)
       :ok
     else
-      # Ensure the application is started
-      Mix.Task.run("app.start")
-
       # Get repositories to process
       repos = get_repos(opts)
 
@@ -94,7 +92,6 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
   end
 
   defp process_cache_refresh(repos, opts) do
-    # Parse options
     tables = parse_tables(opts[:tables])
     warm_up = Keyword.get(opts, :warm_up, true)
     verbose = opts[:verbose] || false

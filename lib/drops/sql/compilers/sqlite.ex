@@ -17,6 +17,9 @@ defmodule Drops.SQL.Compilers.Sqlite do
       "INTEGER" ->
         :integer
 
+      "INT" ->
+        :integer
+
       "FLOAT" ->
         :float
 

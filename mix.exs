@@ -35,6 +35,14 @@ defmodule Drops.Relation.MixProject do
   def cli do
     [
       preferred_envs: [
+        "test.refresh_cache": :test,
+        "ecto.reset": :test,
+        "ecto.drop": :test,
+        "ecto.create": :test,
+        "ecto.setup": :test,
+        "test.setup": :test,
+        "test.example": :test,
+        "test.cov.update_tasks": :test,
         "test.group": :test,
         "test.integration": :test,
         "test.coverage": :test,
@@ -44,7 +52,6 @@ defmodule Drops.Relation.MixProject do
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
       extra_applications: [:logger],
@@ -56,7 +63,7 @@ defmodule Drops.Relation.MixProject do
   defp package() do
     [
       name: "drops_relation",
-      files: ~w(lib/drops/relation .formatter.exs mix.exs README* LICENSE CHANGELOG.md),
+      files: ~w(lib .formatter.exs mix.exs README* LICENSE CHANGELOG.md),
       licenses: [@license],
       links: %{"GitHub" => @source_url}
     ]
@@ -122,18 +129,16 @@ defmodule Drops.Relation.MixProject do
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:nimble_options, "~> 1.0"},
-      {:telemetry, "~> 1.0"},
       {:drops_inflector, "~> 0.1", github: "solnic/drops_inflector"},
       {:ecto, "~> 3.10"},
       {:ecto_sql, "~> 3.10"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.18", only: [:dev, :test]},
-      {:doctor, "~> 0.21.0", only: :dev},
+      {:excoveralls, "~> 0.18", only: [:dev, :test], runtime: false},
+      {:doctor, "~> 0.21.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:igniter, "~> 0.6", optional: true},
       {:ecto_sqlite3, "~> 0.12", only: [:test, :dev], optional: true},
@@ -141,20 +146,19 @@ defmodule Drops.Relation.MixProject do
     ]
   end
 
-  # Mix aliases for common tasks
   defp aliases do
     [
-      "ecto.create": ["drops.relation.dev_setup", "ecto.create"],
-      "ecto.drop": ["drops.relation.dev_setup", "ecto.drop --force-drop"],
-      "ecto.setup": ["drops.relation.dev_setup", "ecto.create", "ecto.migrate"],
-      "ecto.reset": ["drops.relation.dev_setup", "ecto.drop --force-drop", "ecto.setup"],
-      "ecto.migrate": ["drops.relation.dev_setup", "ecto.migrate"],
-      "ecto.migrations": ["drops.relation.dev_setup", "ecto.migrations"],
-      "ecto.dump": ["drops.relation.dev_setup", "ecto.dump"],
-      "ecto.load": ["drops.relation.dev_setup", "ecto.load"],
-      "drops.relation.refresh_cache": ["drops.relation.dev_setup", "drops.relation.refresh_cache"],
+      "test.refresh_cache": ["test.setup", "drops.relation.refresh_cache"],
+      "ecto.create": ["test.setup", "ecto.create"],
+      "ecto.drop": ["test.setup", "ecto.drop --force-drop"],
+      "ecto.setup": ["test.setup", "ecto.create", "ecto.migrate"],
+      "ecto.reset": ["ecto.drop --force-drop", "ecto.setup"],
+      "ecto.migrate": ["test.setup", "ecto.migrate"],
+      "ecto.migrations": ["test.setup", "ecto.migrations"],
+      "ecto.dump": ["test.setup", "ecto.dump"],
+      "ecto.load": ["test.setup", "ecto.load"],
       "test.integration": ["cmd cd test/sample_app && mix test"],
-      "test.coverage": ["coveralls.json", "dev.coverage.create_tasks"]
+      "test.cov": ["coveralls.json", "test.cov.update_tasks"]
     ]
   end
 end

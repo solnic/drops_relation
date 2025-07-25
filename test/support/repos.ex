@@ -1,8 +1,11 @@
 defmodule Test.Repos do
   @moduledoc false
 
-  def start(repo, mode \\ nil)
+  @adapters [:sqlite, :postgres]
 
+  def start(repo_or_adapter, mode \\ :auto)
+
+  def start(:all, mode), do: Enum.each(@adapters, &start(&1, mode))
   def start(:sqlite, mode), do: start(Test.Repos.Sqlite, mode)
   def start(:postgres, mode), do: start(Test.Repos.Postgres, mode)
 
