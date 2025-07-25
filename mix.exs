@@ -125,7 +125,9 @@ defmodule Drops.Relation.MixProject do
         "Schema Cache": [
           Drops.Relation.Cache
         ]
-      ]
+      ],
+      authors: ["Peter Solnica"],
+      logo: "assets/logo.png"
     ]
   end
 
