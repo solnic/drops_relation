@@ -16,12 +16,23 @@ def deps do
 end
 ```
 
+## Configuration
+
+Configure Drops.Relation in your application config:
+
+```elixir
+config :my_app, :drops,
+  relation: [
+    repo: MyApp.Repo
+  ]
+```
+
 ## Quick Start
 
 ```elixir
 # Define a relation
 defmodule MyApp.Users do
-  use Drops.Relation, repo: MyApp.Repo
+  use Drops.Relation, otp_app: :my_app
 
   schema("users", infer: true)
 end
@@ -39,22 +50,55 @@ Drops.Relation automatically introspects your database tables and generates Ecto
 
 ```elixir
 defmodule MyApp.Users do
-  use Drops.Relation, repo: MyApp.Repo
+  use Drops.Relation, otp_app: :my_app
 
   # Automatically infers all columns, types, primary keys, and foreign keys
   schema("users", infer: true)
 end
 
 # Access the generated schema
-MyApp.Users.struct()  # Returns %MyApp.Users.Struct{}
-MyApp.Users.__schema__(:fields)  # [:id, :name, :email, :inserted_at, :updated_at]
+schema = MyApp.Users.schema()
+
+schema[:id]
+# %Drops.Relation.Schema.Field{
+#   name: :id,
+#   type: :integer,
+#   source: :id,
+#   meta: %{
+#     default: nil,
+#     index: false,
+#     type: :integer,
+#     primary_key: true,
+#     foreign_key: false,
+#     check_constraints: [],
+#     index_name: nil,
+#     nullable: true
+#   }
+# }
+
+schema[:email]
+# %Drops.Relation.Schema.Field{
+#   name: :email,
+#   type: :string,
+#   source: :email,
+#   meta: %{
+#     default: nil,
+#     index: true,
+#     type: :string,
+#     primary_key: false,
+#     foreign_key: false,
+#     check_constraints: [],
+#     index_name: "users_email_index",
+#     nullable: false
+#   }
+# }
 ```
 
 You can also define schemas manually or customize inferred ones:
 
 ```elixir
 defmodule MyApp.Users do
-  use Drops.Relation, repo: MyApp.Repo
+  use Drops.Relation, otp_app: :my_app
 
   schema("users") do
     field(:name, :string)
@@ -140,7 +184,7 @@ Define reusable query functions with the `defquery` macro:
 
 ```elixir
 defmodule MyApp.Users do
-  use Drops.Relation, repo: MyApp.Repo
+  use Drops.Relation, otp_app: :my_app
 
   schema("users", infer: true)
 
@@ -204,7 +248,7 @@ For complex query logic involving multiple conditions and boolean operations, us
 
 ```elixir
 defmodule MyApp.Users do
-  use Drops.Relation, repo: MyApp.Repo
+  use Drops.Relation, otp_app: :my_app
   import Drops.Relation.Query
 
   schema("users", infer: true)
@@ -316,23 +360,3 @@ The `query` macro uses Ecto-style variable bindings:
 - Parentheses for grouping complex expressions
 
 All query operations return relation structs that can be further composed with other operations like `order/2`, `preload/2`, or used with `Enum` functions.
-
-## Configuration
-
-Configure Drops.Relation in your application config:
-
-```elixir
-config :my_app, :drops,
-  relation: [
-    # Default plugins to include in all relations
-    default_plugins: [
-      Drops.Relation.Plugins.Schema,
-      Drops.Relation.Plugins.Reading,
-      Drops.Relation.Plugins.Writing,
-      Drops.Relation.Plugins.Queryable
-    ],
-
-    # Custom schema module naming
-    ecto_schema_module: &MyApp.Schemas.for_relation/1
-  ]
-```
