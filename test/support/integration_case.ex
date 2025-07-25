@@ -33,6 +33,9 @@ defmodule Test.IntegrationCase do
     clean_dirs = Map.get(tags, :clean_dirs, [])
     clean_directories(clean_dirs)
 
+    # Clear the cache to ensure clean state between tests
+    clear_cache()
+
     on_exit(fn ->
       # Restore original working directory
       File.cd!(original_cwd)
@@ -46,6 +49,9 @@ defmodule Test.IntegrationCase do
 
       # Clean up directories after test
       clean_directories(clean_dirs)
+
+      # Clear cache after test
+      clear_cache()
     end)
 
     :ok
@@ -143,9 +149,19 @@ defmodule Test.IntegrationCase do
   defp clean_directories(dirs) do
     Enum.each(dirs, fn dir ->
       full_path = Path.join(@sample_app_path, dir)
+
       if File.exists?(full_path) do
         File.rm_rf!(full_path)
       end
     end)
+  end
+
+  defp clear_cache do
+    # Clear the drops_relation cache directory for dev environment
+    cache_dir = Path.join(@sample_app_path, "tmp/cache/dev/drops_relation_schema")
+
+    if File.exists?(cache_dir) do
+      File.rm_rf!(cache_dir)
+    end
   end
 end
