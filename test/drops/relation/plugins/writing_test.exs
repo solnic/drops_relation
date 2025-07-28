@@ -1,6 +1,12 @@
 defmodule Drops.Relations.Plugins.WritingTest do
   use Test.RelationCase, async: false
 
+  describe "Doctests" do
+    @describetag fixtures: [:users]
+
+    doctest Drops.Relation.Plugins.Writing
+  end
+
   describe "changeset/2 function" do
     @tag relations: [:users]
     test "creates changeset from map", %{users: users} do

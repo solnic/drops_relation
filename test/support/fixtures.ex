@@ -70,6 +70,7 @@ defmodule Test.Fixtures do
       }
     ]
 
+    MyApp.Repo.delete_all(MyApp.Users)
     MyApp.Repo.insert_all("users", users)
   end
 
@@ -129,6 +130,7 @@ defmodule Test.Fixtures do
       }
     ]
 
+    MyApp.Repo.delete_all(MyApp.Posts)
     MyApp.Repo.insert_all("posts", posts)
   end
 end

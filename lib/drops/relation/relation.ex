@@ -17,12 +17,12 @@ defmodule Drops.Relation do
 
   ## Reading and Writing
 
-      iex> defmodule MyApp.Users do
-      ...>   use Drops.Relation, otp_app: :my_app
-      ...>
-      ...>   schema("users", infer: true)
-      ...> end
-      ...>
+      defmodule MyApp.Users do
+        use Drops.Relation, otp_app: :my_app
+
+        schema("users", infer: true)
+      end
+
       iex> {:ok, user} = MyApp.Users.insert(%{name: "Jane", email: "jane@doe.org", age: 42})
       iex> user.name
       "Jane"
@@ -38,12 +38,12 @@ defmodule Drops.Relation do
 
   ## Composable Queries
 
-      iex> defmodule MyApp.Users do
-      ...>   use Drops.Relation, otp_app: :my_app
-      ...>
-      ...>   schema("users", infer: true)
-      ...> end
-      ...>
+      defmodule MyApp.Users do
+        use Drops.Relation, otp_app: :my_app
+
+        schema("users", infer: true)
+      end
+
       iex> MyApp.Users.insert(%{name: "John", email: "john@doe.org", active: true})
       iex> MyApp.Users.insert(%{name: "Jane", email: "jane@doe.org", active: true})
       iex> MyApp.Users.insert(%{name: "Joe", email: "joe@doe.org", active: false})
@@ -164,14 +164,14 @@ defmodule Drops.Relation do
       ...>   end
       ...> end
       ...>
-      iex> defmodule MyApp.Users do
+      iex> defmodule MyApp.TestUsers do
       ...>   use Drops.Relation, otp_app: :my_app, plugins: [TestPlugin]
       ...>
       ...>   schema("users", infer: true)
       ...> end
       ...>
-      iex> MyApp.Users.test_function("hello")
-      {"hello", Drops.RelationTest.MyApp.Users}
+      iex> MyApp.TestUsers.test_function("hello")
+      {"hello", Drops.RelationTest.MyApp.TestUsers}
   """
   defmacro delegate_to(fun, to: target) do
     fun = Macro.escape(fun)

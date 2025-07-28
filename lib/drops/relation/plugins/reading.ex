@@ -27,38 +27,47 @@ defmodule Drops.Relation.Plugins.Reading do
 
   **Query API functions** execute immediately:
   ```elixir
-  users = Users.all()                    # Returns list of users
-  user = Users.get(1)                    # Returns user or nil
-  count = Users.count()                  # Returns integer
+  users = MyApp.Users.all()                    # Returns list of users
+  user = MyApp.Users.get(1)                    # Returns user or nil
+  count = MyApp.Users.count()                  # Returns integer
   ```
 
   **Composable Query API functions** return composable relations:
   ```elixir
-  query = Users.restrict(active: true)   # Returns relation struct
-  query = Users.order(query, :name)      # Returns relation struct
-  users = Users.all(query)               # Execute and return results
+  query = MyApp.Users.restrict(active: true)   # Returns relation struct
+  query = MyApp.Users.order(query, :name)      # Returns relation struct
+  users = MyApp.Users.all(query)               # Execute and return results
   ```
 
   ## Examples
 
-      # Query API - immediate execution
-      user = Users.get(1)
-      users = Users.all()
-      user = Users.get_by(email: "john@example.com")
-      count = Users.count()
-      avg_age = Users.aggregate(:avg, :age)
+      iex> user = MyApp.Users.get(1)
+      iex> user.name
+      "John Doe"
+      iex> user.email
+      "john@example.com"
+      ...>
+      iex> MyApp.Users.all() |> length()
+      3
+      ...>
+      iex> user = MyApp.Users.get_by(email: "john@example.com")
+      iex> user.name
+      "John Doe"
+      ...>
+      iex> MyApp.Users.count()
+      3
+      ...>
+      iex> MyApp.Users.aggregate(:avg, :age)
+      Decimal.new("30.0000000000000000")
 
-      # Composable Query API - build and execute
-      active_users = Users
-                     |> Users.restrict(active: true)
-                     |> Users.order(:name)
-                     |> Users.all()
-
-      # Mixed usage
-      base_query = Users.restrict(active: true)
-      admin_users = Users.restrict(base_query, role: "admin")
-      sorted_admins = Users.order(admin_users, :name)
-      results = Users.all(sorted_admins)
+      iex> active_users = MyApp.Users.restrict(active: true)
+      ...>   |> MyApp.Users.order(:name)
+      ...>   |> MyApp.Users.all()
+      ...>
+      iex> length(active_users)
+      2
+      iex> hd(active_users).name
+      "Jane Smith"
   """
 
   use Drops.Relation.Plugin
@@ -139,23 +148,33 @@ defmodule Drops.Relation.Plugins.Reading do
   - `spec` - A keyword list of field-value pairs to filter by
   - `opts` - Additional options (typically empty for composable operations)
 
-  ## Examples
-
-      # Standalone usage
-      active_users = Users.restrict(active: true)
-
-      # Chained operations
-      result = Users
-               |> Users.restrict(active: true)
-               |> Users.order(:name)
-               |> Users.all()
-
-      # Multiple conditions
-      filtered = Users.restrict(active: true, role: "admin")
-
   ## Returns
 
   Returns a relation struct that can be further composed or executed.
+
+  ## Examples
+
+      iex> # Create a restriction query
+      iex> active_users = MyApp.Users.restrict(active: true)
+      iex> users = MyApp.Users.all(active_users)
+      iex> length(users)
+      2
+      iex> Enum.all?(users, & &1.active)
+      true
+
+      iex> # Chain with other operations
+      iex> result = MyApp.Users.restrict(active: true) |> MyApp.Users.order(:name) |> MyApp.Users.all()
+      iex> length(result)
+      2
+      iex> hd(result).name
+      "Jane Smith"
+
+      iex> # Multiple conditions
+      iex> filtered = MyApp.Users.restrict(active: true, name: "John Doe") |> MyApp.Users.all()
+      iex> length(filtered)
+      1
+      iex> hd(filtered).name
+      "John Doe"
   """
   @doc group: "Composable Query API"
   @spec restrict(restrict_spec(), keyword()) :: relation()
@@ -176,13 +195,13 @@ defmodule Drops.Relation.Plugins.Reading do
   ## Examples
 
       # Apply restriction to existing relation
-      base_query = Users.order(:name)
-      active_users = Users.restrict(base_query, active: true)
+      base_query = MyApp.Users.order(:name)
+      active_users = MyApp.Users.restrict(base_query, active: true)
 
       # Chain multiple restrictions
       filtered = Users
-                 |> Users.restrict(active: true)
-                 |> Users.restrict(role: "admin")
+                 |> MyApp.Users.restrict(active: true)
+                 |> MyApp.Users.restrict(role: "admin")
 
   ## Returns
 
@@ -212,29 +231,38 @@ defmodule Drops.Relation.Plugins.Reading do
   - `[desc: :field]` - Order by field in descending order
   - `[asc: :field1, desc: :field2]` - Mixed ordering
 
-  ## Examples
-
-      # Simple ascending order
-      ordered = Users.order(:name)
-
-      # Descending order
-      recent_first = Users.order(desc: :created_at)
-
-      # Multiple fields
-      sorted = Users.order([:last_name, :first_name])
-
-      # Mixed ordering
-      complex = Users.order([desc: :created_at, asc: :name])
-
-      # Chained with other operations
-      result = Users
-               |> Users.restrict(active: true)
-               |> Users.order(:name)
-               |> Users.all()
-
   ## Returns
 
   Returns a relation struct that can be further composed or executed.
+
+  ## Examples
+
+      iex> # Simple ascending order
+      iex> ordered = MyApp.Users.order(:name) |> MyApp.Users.all()
+      iex> [first, second, third] = ordered
+      iex> first.name
+      "Bob Wilson"
+      iex> second.name
+      "Jane Smith"
+      iex> third.name
+      "John Doe"
+
+      iex> # Descending order by age
+      iex> by_age = MyApp.Users.order(desc: :age) |> MyApp.Users.all()
+      iex> [first, second, third] = by_age
+      iex> first.age
+      35
+      iex> second.age
+      30
+      iex> third.age
+      25
+
+      iex> # Chained with restrictions
+      iex> result = MyApp.Users.restrict(active: true) |> MyApp.Users.order(:name) |> MyApp.Users.all()
+      iex> length(result)
+      2
+      iex> hd(result).name
+      "Jane Smith"
   """
   @doc group: "Composable Query API"
   @spec order(order_spec(), keyword()) :: relation()
@@ -257,13 +285,13 @@ defmodule Drops.Relation.Plugins.Reading do
   ## Examples
 
       # Apply ordering to existing relation
-      base_query = Users.restrict(active: true)
-      ordered = Users.order(base_query, :name)
+      base_query = MyApp.Users.restrict(active: true)
+      ordered = MyApp.Users.order(base_query, :name)
 
       # Chain multiple orderings (last one takes precedence)
       sorted = Users
-               |> Users.order(:created_at)
-               |> Users.order(:name)  # This will be the final ordering
+               |> MyApp.Users.order(:created_at)
+               |> MyApp.Users.order(:name)  # This will be the final ordering
 
   ## Returns
 
@@ -306,27 +334,27 @@ defmodule Drops.Relation.Plugins.Reading do
   ## Examples
 
       # Preload single association
-      with_posts = Users.preload(:posts)
+      with_posts = MyApp.Users.preload(:posts)
 
       # Preload multiple associations
-      with_assocs = Users.preload([:posts, :profile])
+      with_assocs = MyApp.Users.preload([:posts, :profile])
 
       # Nested preloads
-      nested = Users.preload([posts: :comments])
+      nested = MyApp.Users.preload([posts: :comments])
 
       # Complex nested preloads
-      complex = Users.preload([posts: [:comments, :tags], :profile])
+      complex = MyApp.Users.preload([posts: [:comments, :tags], :profile])
 
       # Preload from existing query
-      base_query = Users.restrict(active: true)
-      with_posts = Users.preload(base_query, :posts)
+      base_query = MyApp.Users.restrict(active: true)
+      with_posts = MyApp.Users.preload(base_query, :posts)
 
       # Chain with other operations
       result = Users
-               |> Users.restrict(active: true)
-               |> Users.order(:name)
-               |> Users.preload([:posts, :profile])
-               |> Users.all()
+               |> MyApp.Users.restrict(active: true)
+               |> MyApp.Users.order(:name)
+               |> MyApp.Users.preload([:posts, :profile])
+               |> MyApp.Users.all()
 
   ## Returns
 
@@ -382,28 +410,14 @@ defmodule Drops.Relation.Plugins.Reading do
 
   ## Examples
 
-      # Get user by ID
-      user = Users.get(1)
-      # => %Users.Struct{id: 1, name: "John", email: "john@example.com"}
-
-      # Returns nil if not found
-      user = Users.get(999)
-      # => nil
-
-      # Override repository
-      user = Users.get(1, repo: AnotherRepo)
-
-      # With timeout option
-      user = Users.get(1, timeout: 5000)
-
-  ## Error Handling
-
-      case Users.get(user_id) do
-        nil ->
-          {:error, :not_found}
-        user ->
-          {:ok, user}
-      end
+      iex> user = MyApp.Users.get(1)
+      iex> user.name
+      "John Doe"
+      iex> user.email
+      "john@example.com"
+      ...>
+      iex> MyApp.Users.get(999)
+      nil
 
   See `Ecto.Repo.get/3` for more details on the underlying implementation.
   """
@@ -440,23 +454,23 @@ defmodule Drops.Relation.Plugins.Reading do
   ## Examples
 
       # Get user by ID
-      user = Users.get!(1)
-      # => %Users.Struct{id: 1, name: "John", email: "john@example.com"}
+      user = MyApp.Users.get!(1)
+      # => %MyApp.Users.Struct{id: 1, name: "John", email: "john@example.com"}
 
       # Raises if not found
-      user = Users.get!(999)
+      user = MyApp.Users.get!(999)
       # => ** (Ecto.NoResultsError) expected at least one result but got none
 
       # Override repository
-      user = Users.get!(1, repo: AnotherRepo)
+      user = MyApp.Users.get!(1, repo: AnotherRepo)
 
       # With timeout option
-      user = Users.get!(1, timeout: 5000)
+      user = MyApp.Users.get!(1, timeout: 5000)
 
   ## Error Handling
 
       try do
-        user = Users.get!(user_id)
+        user = MyApp.Users.get!(user_id)
         process_user(user)
       rescue
         Ecto.NoResultsError ->
@@ -477,10 +491,40 @@ defmodule Drops.Relation.Plugins.Reading do
   Delegates to `Ecto.Repo.get_by/3`. The `:repo` and `:relation` options are automatically set
   based on the repository and relation module configured in the `use` macro, but can be overridden.
 
+  ## Parameters
+
+  - `clauses` - Keyword list of field-value pairs to match
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Options
+
+  - `:repo` - Override the default repository
+  - `:timeout` - Query timeout in milliseconds
+  - `:log` - Override logging configuration
+
+  ## Returns
+
+  - The record struct if found
+  - `nil` if no record matches the given clauses
+
   ## Examples
 
-      user = MyRelation.get_by(email: "user@example.com")
-      user = MyRelation.get_by([email: "user@example.com"], repo: AnotherRepo)
+      iex> user = MyApp.Users.get_by(email: "jane@example.com")
+      iex> user.name
+      "Jane Smith"
+      iex> user.email
+      "jane@example.com"
+
+      iex> # Get by multiple clauses
+      iex> user = MyApp.Users.get_by(name: "John Doe", active: true)
+      iex> user.name
+      "John Doe"
+      iex> user.active
+      true
+
+      iex> # Returns nil if not found
+      iex> MyApp.Users.get_by(email: "nonexistent@example.com")
+      nil
 
   See [`Ecto.Repo.get_by/3`](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get_by/3) for more details.
   """
@@ -495,10 +539,44 @@ defmodule Drops.Relation.Plugins.Reading do
   Delegates to `Ecto.Repo.get_by!/3`. The `:repo` and `:relation` options are automatically set
   based on the repository and relation module configured in the `use` macro, but can be overridden.
 
+  ## Parameters
+
+  - `clauses` - Keyword list of field-value pairs to match
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Options
+
+  - `:repo` - Override the default repository
+  - `:timeout` - Query timeout in milliseconds
+  - `:log` - Override logging configuration
+
+  ## Returns
+
+  - The record struct if found
+  - Raises `Ecto.NoResultsError` if no record matches the given clauses
+
   ## Examples
 
-      user = MyRelation.get_by!(email: "user@example.com")
-      user = MyRelation.get_by!([email: "user@example.com"], repo: AnotherRepo)
+      iex> user = MyApp.Users.get_by!(email: "jane@example.com")
+      iex> user.name
+      "Jane Smith"
+      iex> user.email
+      "jane@example.com"
+
+      iex> # Get by multiple clauses
+      iex> user = MyApp.Users.get_by!(name: "John Doe", active: true)
+      iex> user.name
+      "John Doe"
+      iex> user.active
+      true
+
+      iex> # Raises if not found
+      iex> try do
+      ...>   MyApp.Users.get_by!(email: "nonexistent@example.com")
+      ...> rescue
+      ...>   Ecto.NoResultsError -> :not_found
+      ...> end
+      :not_found
 
   See [Ecto.Repo.get_by!/3](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get_by!/3) for more details.
   """
@@ -513,10 +591,39 @@ defmodule Drops.Relation.Plugins.Reading do
   Delegates to `Ecto.Repo.all/2` with a where clause. The `:repo` and `:relation` options are automatically set
   based on the repository and relation module configured in the `use` macro, but can be overridden.
 
+  ## Parameters
+
+  - `clauses` - Keyword list of field-value pairs to match
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Options
+
+  - `:repo` - Override the default repository
+  - `:timeout` - Query timeout in milliseconds
+  - `:log` - Override logging configuration
+
+  ## Returns
+
+  A list of record structs matching the given clauses. Returns an empty list if no records are found.
+
   ## Examples
 
-      users = MyRelation.all_by(active: true)
-      users = MyRelation.all_by([active: true], repo: AnotherRepo)
+      iex> users = MyApp.Users.all_by(active: true)
+      iex> length(users)
+      2
+      iex> Enum.all?(users, & &1.active)
+      true
+
+      iex> # Get by multiple clauses
+      iex> users = MyApp.Users.all_by(name: "John Doe", active: true)
+      iex> length(users)
+      1
+      iex> hd(users).name
+      "John Doe"
+
+      iex> # Returns empty list if no matches
+      iex> MyApp.Users.all_by(active: false, age: 100)
+      []
 
   See [`Ecto.Repo.all_by/2`](https://hexdocs.pm/ecto/Ecto.Repo.html#c:all_by/2) for more details.
   """
@@ -548,21 +655,20 @@ defmodule Drops.Relation.Plugins.Reading do
 
   ## Examples
 
-      # Get all users
-      users = Users.all()
-      # => [%Users.Struct{id: 1, name: "John"}, %Users.Struct{id: 2, name: "Jane"}]
-
-      # Execute a composable query
-      active_users = Users
-                     |> Users.restrict(active: true)
-                     |> Users.order(:name)
-                     |> Users.all()
-
-      # Override repository
-      users = Users.all(repo: AnotherRepo)
-
-      # With timeout option
-      users = Users.all(timeout: 10000)
+      iex> users = MyApp.Users.all()
+      iex> length(users)
+      3
+      iex> hd(users).name
+      "John Doe"
+      ...>
+      iex> active_users = MyApp.Users.restrict(active: true)
+      ...>    |> MyApp.Users.order(:name)
+      ...>    |> MyApp.Users.all()
+      iex>
+      iex> length(active_users)
+      2
+      iex> hd(active_users).name
+      "Jane Smith"
 
   ## Performance Considerations
 
@@ -571,8 +677,8 @@ defmodule Drops.Relation.Plugins.Reading do
 
       # Better: use restrictions to limit results
       recent_users = Users
-                     |> Users.restrict(inserted_at: {:>, days_ago(30)})
-                     |> Users.all()
+                     |> MyApp.Users.restrict(inserted_at: {:>, days_ago(30)})
+                     |> MyApp.Users.all()
 
   See `Ecto.Repo.all/2` for more details on the underlying implementation.
   """
@@ -600,13 +706,13 @@ defmodule Drops.Relation.Plugins.Reading do
   ## Examples
 
       # Build and execute a composable query
-      query = Users.restrict(active: true)
-      users = Users.all(query)
+      query = MyApp.Users.restrict(active: true)
+      users = MyApp.Users.all(query)
 
       # Equivalent to:
       users = Users
-              |> Users.restrict(active: true)
-              |> Users.all()
+              |> MyApp.Users.restrict(active: true)
+              |> MyApp.Users.all()
   """
   @doc group: "Query API"
   @spec all(struct(), keyword()) :: [struct()]
@@ -620,10 +726,32 @@ defmodule Drops.Relation.Plugins.Reading do
   Delegates to `Ecto.Repo.one/2`. The `:repo` and `:relation` options are automatically set
   based on the repository and relation module configured in the `use` macro, but can be overridden.
 
+  ## Parameters
+
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Options
+
+  - `:repo` - Override the default repository
+  - `:timeout` - Query timeout in milliseconds
+  - `:log` - Override logging configuration
+
+  ## Returns
+
+  - The single record struct if exactly one record is found
+  - `nil` if no records are found
+  - Raises `Ecto.MultipleResultsError` if more than one record is found
+
   ## Examples
 
-      user = MyRelation.one(query)
-      user = MyRelation.one(query, repo: AnotherRepo)
+      iex> # Get a single user (when only one exists matching criteria)
+      iex> user = MyApp.Users.restrict(name: "John Doe") |> MyApp.Users.one()
+      iex> user.name
+      "John Doe"
+
+      iex> # Returns nil when no records match
+      iex> MyApp.Users.restrict(name: "Nonexistent") |> MyApp.Users.one()
+      nil
 
   See [`Ecto.Repo.one/2`](https://hexdocs.pm/ecto/Ecto.Repo.html#c:one/2) for more details.
   """
@@ -650,13 +778,13 @@ defmodule Drops.Relation.Plugins.Reading do
   ## Examples
 
       # Build and execute a composable query
-      query = Users.restrict(active: true)
-      user = Users.one(query)
+      query = MyApp.Users.restrict(active: true)
+      user = MyApp.Users.one(query)
 
       # Equivalent to:
       user = Users
-             |> Users.restrict(active: true)
-             |> Users.one()
+             |> MyApp.Users.restrict(active: true)
+             |> MyApp.Users.one()
   """
   @doc group: "Query API"
   @spec one(struct(), keyword()) :: struct() | nil
@@ -701,13 +829,13 @@ defmodule Drops.Relation.Plugins.Reading do
   ## Examples
 
       # Build and execute a composable query
-      query = Users.restrict(active: true)
-      user = Users.one!(query)
+      query = MyApp.Users.restrict(active: true)
+      user = MyApp.Users.one!(query)
 
       # Equivalent to:
       user = Users
-             |> Users.restrict(active: true)
-             |> Users.one!()
+             |> MyApp.Users.restrict(active: true)
+             |> MyApp.Users.one!()
   """
   @doc group: "Query API"
   @spec one!(struct(), keyword()) :: struct()
@@ -723,8 +851,8 @@ defmodule Drops.Relation.Plugins.Reading do
 
   ## Examples
 
-      count = MyRelation.count()
-      count = MyRelation.count(repo: AnotherRepo)
+      iex> MyApp.Users.count()
+      3
 
   See [`Ecto.Repo.aggregate/3`](https://hexdocs.pm/ecto/Ecto.Repo.html#c:aggregate/3) for more details.
   """
@@ -751,13 +879,13 @@ defmodule Drops.Relation.Plugins.Reading do
   ## Examples
 
       # Build and execute a composable query
-      query = Users.restrict(active: true)
-      count = Users.count(query)
+      query = MyApp.Users.restrict(active: true)
+      count = MyApp.Users.count(query)
 
       # Equivalent to:
       count = Users
-              |> Users.restrict(active: true)
-              |> Users.count()
+              |> MyApp.Users.restrict(active: true)
+              |> MyApp.Users.count()
   """
   @doc group: "Query API"
   @spec count(struct(), keyword()) :: non_neg_integer()
@@ -775,10 +903,27 @@ defmodule Drops.Relation.Plugins.Reading do
   Delegates to `Ecto.Repo.one/2` with `Ecto.Query.first/1`. The `:repo` and `:relation` options are automatically set
   based on the repository and relation module configured in the `use` macro, but can be overridden.
 
+  ## Parameters
+
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Options
+
+  - `:repo` - Override the default repository
+  - `:timeout` - Query timeout in milliseconds
+  - `:log` - Override logging configuration
+
+  ## Returns
+
+  The first record struct, or `nil` if no records exist.
+
   ## Examples
 
-      user = MyRelation.first()
-      user = MyRelation.first(repo: AnotherRepo)
+      iex> user = MyApp.Users.first()
+      iex> user.name
+      "John Doe"
+      iex> user.id
+      1
 
   See [`Ecto.Repo.one/2`](https://hexdocs.pm/ecto/Ecto.Repo.html#c:one/2) and
   [Ecto.Query.first/1](https://hexdocs.pm/ecto/Ecto.Query.html#first/1) for more details.
@@ -806,14 +951,14 @@ defmodule Drops.Relation.Plugins.Reading do
   ## Examples
 
       # Build and execute a composable query
-      query = Users.restrict(active: true) |> Users.order(:name)
-      user = Users.first(query)
+      query = MyApp.Users.restrict(active: true) |> MyApp.Users.order(:name)
+      user = MyApp.Users.first(query)
 
       # Equivalent to:
       user = Users
-             |> Users.restrict(active: true)
-             |> Users.order(:name)
-             |> Users.first()
+             |> MyApp.Users.restrict(active: true)
+             |> MyApp.Users.order(:name)
+             |> MyApp.Users.first()
   """
   @doc group: "Query API"
   @spec first(struct(), keyword()) :: struct() | nil
@@ -828,10 +973,27 @@ defmodule Drops.Relation.Plugins.Reading do
   Delegates to `Ecto.Repo.one/2` with `Ecto.Query.last/1`. The `:repo` and `:relation` options are automatically set
   based on the repository and relation module configured in the `use` macro, but can be overridden.
 
+  ## Parameters
+
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Options
+
+  - `:repo` - Override the default repository
+  - `:timeout` - Query timeout in milliseconds
+  - `:log` - Override logging configuration
+
+  ## Returns
+
+  The last record struct, or `nil` if no records exist.
+
   ## Examples
 
-      user = MyRelation.last()
-      user = MyRelation.last(repo: AnotherRepo)
+      iex> user = MyApp.Users.last()
+      iex> user.name
+      "Bob Wilson"
+      iex> user.id
+      3
 
   See [`Ecto.Repo.one/2`](https://hexdocs.pm/ecto/Ecto.Repo.html#c:one/2) and
   [Ecto.Query.last/1](https://hexdocs.pm/ecto/Ecto.Query.html#last/1) for more details.
@@ -859,14 +1021,14 @@ defmodule Drops.Relation.Plugins.Reading do
   ## Examples
 
       # Build and execute a composable query
-      query = Users.restrict(active: true) |> Users.order(:name)
-      user = Users.last(query)
+      query = MyApp.Users.restrict(active: true) |> MyApp.Users.order(:name)
+      user = MyApp.Users.last(query)
 
       # Equivalent to:
       user = Users
-             |> Users.restrict(active: true)
-             |> Users.order(:name)
-             |> Users.last()
+             |> MyApp.Users.restrict(active: true)
+             |> MyApp.Users.order(:name)
+             |> MyApp.Users.last()
   """
   @doc group: "Query API"
   @spec last(struct(), keyword()) :: struct() | nil
@@ -881,10 +1043,29 @@ defmodule Drops.Relation.Plugins.Reading do
   Delegates to `Ecto.Repo.exists?/2`. The `:repo` and `:relation` options are automatically set
   based on the repository and relation module configured in the `use` macro, but can be overridden.
 
+  ## Parameters
+
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Options
+
+  - `:repo` - Override the default repository
+  - `:timeout` - Query timeout in milliseconds
+  - `:log` - Override logging configuration
+
+  ## Returns
+
+  - `true` if any records exist
+  - `false` if no records exist
+
   ## Examples
 
-      exists = MyRelation.exists?()
-      exists = MyRelation.exists?(repo: AnotherRepo)
+      iex> MyApp.Users.exists?()
+      true
+
+      iex> # Check if any active users exist (using basic exists)
+      iex> MyApp.Users.exists?()
+      true
 
   See [Ecto.Repo.exists?/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:exists?/2) for more details.
   """
@@ -948,8 +1129,8 @@ defmodule Drops.Relation.Plugins.Reading do
 
   ## Examples
 
-      min_age = Users.min(:age)
-      min_age = Users.min(:age, repo: AnotherRepo)
+      min_age = MyApp.Users.min(:age)
+      min_age = MyApp.Users.min(:age, repo: AnotherRepo)
 
   See `aggregate/3` for more details.
   """
@@ -969,8 +1150,8 @@ defmodule Drops.Relation.Plugins.Reading do
 
   ## Examples
 
-      query = Users.restrict(active: true)
-      min_age = Users.min(query, :age)
+      query = MyApp.Users.restrict(active: true)
+      min_age = MyApp.Users.min(query, :age)
   """
   @doc group: "Query API"
   def min(%{__struct__: relation_module} = relation, field, opts) do
@@ -993,8 +1174,8 @@ defmodule Drops.Relation.Plugins.Reading do
 
   ## Examples
 
-      max_age = Users.max(:age)
-      max_age = Users.max(:age, repo: AnotherRepo)
+      max_age = MyApp.Users.max(:age)
+      max_age = MyApp.Users.max(:age, repo: AnotherRepo)
 
   See `aggregate/3` for more details.
   """
@@ -1014,8 +1195,8 @@ defmodule Drops.Relation.Plugins.Reading do
 
   ## Examples
 
-      query = Users.restrict(active: true)
-      max_age = Users.max(query, :age)
+      query = MyApp.Users.restrict(active: true)
+      max_age = MyApp.Users.max(query, :age)
   """
   @doc group: "Query API"
   def max(%{__struct__: relation_module} = relation, field, opts) do
@@ -1038,8 +1219,8 @@ defmodule Drops.Relation.Plugins.Reading do
 
   ## Examples
 
-      total_age = Users.sum(:age)
-      total_age = Users.sum(:age, repo: AnotherRepo)
+      total_age = MyApp.Users.sum(:age)
+      total_age = MyApp.Users.sum(:age, repo: AnotherRepo)
 
   See `aggregate/3` for more details.
   """
@@ -1059,8 +1240,8 @@ defmodule Drops.Relation.Plugins.Reading do
 
   ## Examples
 
-      query = Users.restrict(active: true)
-      total_age = Users.sum(query, :age)
+      query = MyApp.Users.restrict(active: true)
+      total_age = MyApp.Users.sum(query, :age)
   """
   @doc group: "Query API"
   def sum(%{__struct__: relation_module} = relation, field, opts) do
@@ -1083,8 +1264,8 @@ defmodule Drops.Relation.Plugins.Reading do
 
   ## Examples
 
-      avg_age = Users.avg(:age)
-      avg_age = Users.avg(:age, repo: AnotherRepo)
+      avg_age = MyApp.Users.avg(:age)
+      avg_age = MyApp.Users.avg(:age, repo: AnotherRepo)
 
   See `aggregate/3` for more details.
   """
@@ -1104,8 +1285,8 @@ defmodule Drops.Relation.Plugins.Reading do
 
   ## Examples
 
-      query = Users.restrict(active: true)
-      avg_age = Users.avg(query, :age)
+      query = MyApp.Users.restrict(active: true)
+      avg_age = MyApp.Users.avg(query, :age)
   """
   @doc group: "Query API"
   def avg(%{__struct__: relation_module} = relation, field, opts) do

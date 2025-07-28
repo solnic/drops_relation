@@ -14,21 +14,29 @@ defmodule Drops.Relation.Plugins.Writing do
 
   ## Examples
 
-      # Insert with map
-      {:ok, user} = Users.insert(%{name: "John", email: "john@example.com"})
+      iex> {:ok, user} = MyApp.Users.insert(%{name: "Alice", email: "alice.new@example.com", age: 28, active: true})
+      iex> user.name
+      "Alice"
+      iex> user.email
+      "alice.new@example.com"
 
-      # Insert with changeset
-      changeset = Users.changeset(%{name: "Jane"})
-      {:ok, user} = Users.insert(changeset)
+      iex> # Insert with changeset
+      iex> changeset = MyApp.Users.changeset(%{name: "Charlie", email: "charlie.new@example.com", age: 32, active: true})
+      iex> {:ok, user} = MyApp.Users.insert(changeset)
+      iex> user.name
+      "Charlie"
 
-      # Update
-      {:ok, updated_user} = Users.update(user, %{name: "Johnny"})
+      iex> # Update existing user
+      iex> existing_user = MyApp.Users.get(1)
+      iex> {:ok, updated_user} = MyApp.Users.update(existing_user, %{name: "John Updated"})
+      iex> updated_user.name
+      "John Updated"
 
-      # Delete
-      {:ok, deleted_user} = Users.delete(user)
-
-      # Bulk operations
-      Users.insert_all([%{name: "Alice"}, %{name: "Bob"}])
+      iex> # Delete user
+      iex> user_to_delete = MyApp.Users.get(2)
+      iex> {:ok, deleted_user} = MyApp.Users.delete(user_to_delete)
+      iex> deleted_user.name
+      "Jane Smith"
   """
 
   use Drops.Relation.Plugin
@@ -84,32 +92,18 @@ defmodule Drops.Relation.Plugins.Writing do
 
   ## Examples
 
-      # Insert with plain map
-      {:ok, user} = Users.insert(%{name: "John", email: "john@example.com"})
-      # => {:ok, %Users.Struct{id: 1, name: "John", email: "john@example.com"}}
+      iex> # Insert with plain map
+      iex> {:ok, user} = MyApp.Users.insert(%{name: "David", email: "david.test@example.com", age: 29, active: true})
+      iex> user.name
+      "David"
+      iex> user.email
+      "david.test@example.com"
 
-      # Insert with changeset
-      changeset = Users.changeset(%{name: "Jane", email: "jane@example.com"})
-      {:ok, user} = Users.insert(changeset)
-
-      # Insert with struct
-      user_struct = %Users.Struct{name: "Bob", email: "bob@example.com"}
-      {:ok, user} = Users.insert(user_struct)
-
-      # Handle validation errors
-      case Users.insert(%{name: "", email: "invalid"}) do
-        {:ok, user} ->
-          IO.puts("Created user: \#{user.name}")
-        {:error, changeset} ->
-          IO.puts("Validation errors: \#{inspect(changeset.errors)}")
-      end
-
-      # Override repository
-      {:ok, user} = Users.insert(%{name: "Alice"}, repo: AnotherRepo)
-
-      # With conflict handling
-      {:ok, user} = Users.insert(%{email: "john@example.com"},
-                                 on_conflict: :nothing)
+      iex> # Insert with changeset
+      iex> changeset = MyApp.Users.changeset(%{name: "Emma", email: "emma.test@example.com", age: 26, active: true})
+      iex> {:ok, user} = MyApp.Users.insert(changeset)
+      iex> user.name
+      "Emma"
 
   ## Validation
 
@@ -142,10 +136,36 @@ defmodule Drops.Relation.Plugins.Writing do
   Delegates to `Ecto.Repo.insert!/2`. The `:repo` and `:relation` options are automatically set
   based on the repository and relation module configured in the `use` macro, but can be overridden.
 
+  ## Parameters
+
+  - `struct_or_changeset` - A struct, changeset, or plain map to insert
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Options
+
+  - `:repo` - Override the default repository
+  - `:timeout` - Query timeout in milliseconds
+  - `:log` - Override logging configuration
+  - `:returning` - Fields to return from the inserted record
+  - `:on_conflict` - How to handle conflicts (e.g., `:raise`, `:nothing`, `:replace_all`)
+
+  ## Returns
+
+  The inserted record struct, raises on error.
+
   ## Examples
 
-      user = MyRelation.insert!(%{name: "John", email: "john@example.com"})
-      user = MyRelation.insert!(changeset, repo: AnotherRepo)
+      iex> user = MyApp.Users.insert!(%{name: "Alice", email: "alice.unique@example.com", age: 28, active: true})
+      iex> user.name
+      "Alice"
+      iex> user.email
+      "alice.unique@example.com"
+
+      iex> # Insert with changeset
+      iex> changeset = MyApp.Users.changeset(%{name: "Bob", email: "bob.unique@example.com", age: 35, active: false})
+      iex> user = MyApp.Users.insert!(changeset)
+      iex> user.name
+      "Bob"
 
   See [Ecto.Repo.insert!/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:insert!/2) for more details.
   """
@@ -169,10 +189,38 @@ defmodule Drops.Relation.Plugins.Writing do
   The `:repo` and `:relation` options are automatically set based on the repository and relation
   module configured in the `use` macro, but can be overridden.
 
+  ## Parameters
+
+  - `struct` - The struct to update
+  - `attributes` - Map of attributes to update
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Options
+
+  - `:repo` - Override the default repository
+  - `:timeout` - Query timeout in milliseconds
+  - `:log` - Override logging configuration
+  - `:force_changes` - Force changes even if values haven't changed
+
+  ## Returns
+
+  - `{:ok, struct}` - Successfully updated record
+  - `{:error, changeset}` - Validation or database errors
+
   ## Examples
 
-      {:ok, user} = MyRelation.update(user_struct, %{name: "Jane"})
-      {:ok, user} = MyRelation.update(user_struct, %{name: "Jane"}, repo: AnotherRepo)
+      iex> user = MyApp.Users.get(1)
+      iex> {:ok, updated_user} = MyApp.Users.update(user, %{name: "John Updated"})
+      iex> updated_user.name
+      "John Updated"
+
+      iex> # Update with multiple attributes
+      iex> user = MyApp.Users.get(2)
+      iex> {:ok, updated_user} = MyApp.Users.update(user, %{name: "Jane Updated", age: 26})
+      iex> updated_user.name
+      "Jane Updated"
+      iex> updated_user.age
+      26
 
   See [Ecto.Repo.update/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:update/2) for more details.
   """
@@ -240,10 +288,30 @@ defmodule Drops.Relation.Plugins.Writing do
   Delegates to `Ecto.Repo.delete/2`. The `:repo` and `:relation` options are automatically set
   based on the repository and relation module configured in the `use` macro, but can be overridden.
 
+  ## Parameters
+
+  - `struct` - The struct to delete
+  - `opts` - Additional options (optional, defaults to `[]`)
+
+  ## Options
+
+  - `:repo` - Override the default repository
+  - `:timeout` - Query timeout in milliseconds
+  - `:log` - Override logging configuration
+
+  ## Returns
+
+  - `{:ok, struct}` - Successfully deleted record
+  - `{:error, changeset}` - Database errors
+
   ## Examples
 
-      {:ok, user} = MyRelation.delete(user)
-      {:ok, user} = MyRelation.delete(user, repo: AnotherRepo)
+      iex> user = MyApp.Users.get(3)
+      iex> {:ok, deleted_user} = MyApp.Users.delete(user)
+      iex> deleted_user.name
+      "Bob Wilson"
+      iex> deleted_user.id
+      3
 
   See [Ecto.Repo.delete/2](https://hexdocs.pm/ecto/Ecto.Repo.html#c:delete/2) for more details.
   """
@@ -274,19 +342,35 @@ defmodule Drops.Relation.Plugins.Writing do
   Uses the relation schema to automatically cast fields based on their types.
   The changeset can be used for validation and database operations.
 
-  ## Examples
+  ## Parameters
 
-      changeset = MyRelation.changeset(%{name: "John", email: "john@example.com"})
-      {:ok, user} = MyRelation.insert(changeset)
-
-      # With existing struct
-      changeset = MyRelation.changeset(user, %{name: "Jane"})
-      {:ok, updated_user} = MyRelation.update(changeset)
+  - `params` - Map of parameters to cast into a changeset
+  - `opts` - Additional options (optional, defaults to `[]`)
 
   ## Options
 
-  * `:empty_values` - a list of values to be considered as empty when casting
-  * `:force_changes` - a boolean indicating whether to include values that don't alter the current data
+  - `:empty_values` - A list of values to be considered as empty when casting
+  - `:force_changes` - A boolean indicating whether to include values that don't alter the current data
+
+  ## Returns
+
+  An `Ecto.Changeset` struct with the cast parameters.
+
+  ## Examples
+
+      iex> changeset = MyApp.Users.changeset(%{name: "Frank", email: "frank.changeset@example.com", age: 31, active: true})
+      iex> changeset.valid?
+      true
+      iex> changeset.changes.name
+      "Frank"
+      iex> changeset.changes.email
+      "frank.changeset@example.com"
+
+      iex> # With existing struct
+      iex> user = MyApp.Users.get(1)
+      iex> changeset = MyApp.Users.changeset(user, %{name: "John Updated Again"})
+      iex> changeset.changes.name
+      "John Updated Again"
 
   See [Ecto.Changeset.cast/4](https://hexdocs.pm/ecto/Ecto.Changeset.html#cast/4) for more details.
   """

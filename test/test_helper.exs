@@ -16,12 +16,26 @@ Application.put_env(:my_app, MyApp.Repo,
   password: "postgres",
   hostname: "postgres",
   database: "drops_relation_test",
-  pool_size: 10,
   pool: Ecto.Adapters.SQL.Sandbox,
-  priv: "priv/repo/postgres",
-  log: :debug
+  priv: "priv/repo/postgres"
 )
 
 Drops.Relation.Cache.clear_all()
+
+Test.Repos.with_owner(MyApp.Repo, fn repo ->
+  {:ok, _} = Drops.Relation.Cache.warm_up(repo, ["users", "posts"])
+end)
+
+defmodule MyApp.Users do
+  use Drops.Relation, otp_app: :my_app
+
+  schema("users", infer: true)
+end
+
+defmodule MyApp.Posts do
+  use Drops.Relation, otp_app: :my_app
+
+  schema("users", infer: true)
+end
 
 ExUnit.start()

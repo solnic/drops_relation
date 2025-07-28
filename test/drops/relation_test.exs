@@ -1,7 +1,9 @@
 defmodule Drops.RelationTest do
   use Test.RelationCase, async: false
 
-  doctest Drops.Relation
+  describe "Doctests" do
+    doctest Drops.Relation
+  end
 
   describe "opts/1" do
     setup do

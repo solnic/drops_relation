@@ -13,9 +13,7 @@ defmodule Test.RelationCase do
   end
 
   setup tags do
-    if tags[:doctest] do
-      :ok
-    else
+    if tags[:test_type] != :doctest do
       adapter = Map.get(tags, :adapter, String.to_atom(System.get_env("ADAPTER", "sqlite")))
 
       setup_sandbox(tags, adapter)
@@ -28,6 +26,8 @@ defmodule Test.RelationCase do
       on_exit(fn -> Test.cleanup_relation_modules(Map.values(context)) end)
 
       {:ok, Map.merge(context, %{adapter: adapter, repo: repo(adapter)})}
+    else
+      :ok
     end
   end
 

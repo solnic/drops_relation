@@ -1,6 +1,12 @@
 defmodule Drops.Relations.Plugins.ReadingTest do
   use Test.RelationCase, async: false
 
+  describe "Doctests" do
+    @describetag fixtures: [:users]
+
+    doctest Drops.Relation.Plugins.Reading
+  end
+
   describe "query API functions" do
     @tag relations: [:users]
     test "query functions work with actual data", %{users: users} do
