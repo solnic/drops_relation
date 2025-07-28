@@ -1,5 +1,17 @@
-defmodule Drops.Relations.SchemaSpec do
+defmodule Drops.RelationTest do
   use Test.RelationCase, async: false
+
+  describe "opts" do
+    defmodule Users do
+      use Drops.Relation, repo: Test.Repos.Sqlite
+
+      schema("users", infer: true)
+    end
+
+    test "returns provided opts with repo" do
+      assert Users.opts()[:repo] == Test.Repos.Sqlite
+    end
+  end
 
   describe "basic schema inference" do
     @tag relations: [:users]

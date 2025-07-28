@@ -65,6 +65,7 @@ defmodule Drops.Relation do
   """
 
   alias Drops.Relation.Compilation
+  alias __MODULE__
 
   @doc """
   Macro for defining relation modules with automatic schema inference and query capabilities.
@@ -154,7 +155,7 @@ defmodule Drops.Relation do
   5. Sets up delegation functions for plugin operations
   """
   defmacro __using__(opts) do
-    __define_relation__(Macro.expand(opts, __CALLER__))
+    __define_relation__(Compilation.expand_opts(opts, __CALLER__))
   end
 
   @doc false
@@ -172,7 +173,8 @@ defmodule Drops.Relation do
           def name, do: @view
         end
       else
-        otp_app = if opts[:repo], do: opts[:repo].config()[:otp_app], else: opts[:otp_app]
+        repo = if opts[:repo], do: opts[:repo], else: nil
+        otp_app = if repo, do: repo.config()[:otp_app], else: opts[:otp_app]
 
         quote do
           @config Application.compile_env(unquote(otp_app), [:drops, :relation], [])
@@ -188,7 +190,7 @@ defmodule Drops.Relation do
       end)
 
     quote location: :keep do
-      import Drops.Relation
+      import Relation
 
       unquote(config)
 
@@ -203,8 +205,8 @@ defmodule Drops.Relation do
       def opts(name), do: Keyword.get(opts(), name)
 
       defmacro __using__(opts) do
-        Drops.Relation.__define_relation__(
-          Keyword.put(Macro.expand(opts, __CALLER__), :source, __MODULE__)
+        Relation.__define_relation__(
+          Compilation.expand_opts(opts, __CALLER__, source: __MODULE__)
         )
       end
     end

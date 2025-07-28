@@ -3,6 +3,12 @@ defmodule Drops.Relation.Compilation do
 
   alias Drops.Relation.Config
 
+  def expand_opts(opts, caller, more_opts \\ []) do
+    Enum.reduce(Keyword.merge(Macro.expand(opts, caller), more_opts), [], fn {key, value}, acc ->
+      Keyword.put(acc, key, Macro.expand(value, caller))
+    end)
+  end
+
   defmodule Context do
     @moduledoc false
 
