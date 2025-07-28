@@ -5,9 +5,15 @@ defmodule Drops.Relation.Compilation do
 
   def expand_opts(opts, caller, more_opts \\ []) do
     Enum.reduce(Keyword.merge(Macro.expand(opts, caller), more_opts), [], fn {key, value}, acc ->
-      Keyword.put(acc, key, Macro.expand(value, caller))
+      Keyword.put(acc, key, expand_ast(value, caller))
     end)
   end
+
+  defp expand_ast(ast, caller) when is_list(ast) do
+    Enum.map(ast, &expand_ast(&1, caller))
+  end
+
+  defp expand_ast(ast, caller), do: Macro.expand(ast, caller)
 
   defmodule Context do
     @moduledoc false

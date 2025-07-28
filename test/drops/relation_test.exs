@@ -1,15 +1,21 @@
 defmodule Drops.RelationTest do
   use Test.RelationCase, async: false
 
-  describe "opts" do
-    defmodule Users do
-      use Drops.Relation, repo: Test.Repos.Sqlite
+  doctest Drops.Relation
 
-      schema("users", infer: true)
+  describe "opts/1" do
+    setup do
+      defmodule Users do
+        use Drops.Relation, repo: Test.Repos.Postgres
+
+        schema("users", infer: true)
+      end
+
+      %{users: Users}
     end
 
-    test "returns provided opts with repo" do
-      assert Users.opts()[:repo] == Test.Repos.Sqlite
+    test "returns configured option", %{users: users} do
+      assert users.opts(:repo) == Test.Repos.Postgres
     end
   end
 

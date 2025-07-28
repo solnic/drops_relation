@@ -93,12 +93,9 @@ defmodule Drops.Relation.Config do
 
   def default_plugins(_relation) do
     [
-      Drops.Relation.Plugins.Schema,
       Drops.Relation.Plugins.Reading,
       Drops.Relation.Plugins.Writing,
-      Drops.Relation.Plugins.Loadable,
       Drops.Relation.Plugins.Views,
-      Drops.Relation.Plugins.Queryable,
       Drops.Relation.Plugins.AutoRestrict,
       Drops.Relation.Plugins.Pagination,
       Drops.Relation.Plugins.Ecto.Query

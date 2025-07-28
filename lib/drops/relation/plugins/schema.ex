@@ -91,7 +91,7 @@ defmodule Drops.Relation.Plugins.Schema do
   alias Drops.Relation.Cache
   alias Drops.Relation.Generator
 
-  use Drops.Relation.Plugin, imports: [schema: 1, schema: 2]
+  use Drops.Relation.Plugin, imports: [schema: 1, schema: 2, schema: 3]
 
   defmodule Macros.Schema do
     @moduledoc false
@@ -137,6 +137,18 @@ defmodule Drops.Relation.Plugins.Schema do
   defmacro schema(fields, opts) when is_list(fields) do
     quote do
       @context update_context(__MODULE__, Macros.Schema, [unquote(fields), unquote(opts)])
+    end
+  end
+
+  defmacro schema(name, opts, block) when is_binary(name) do
+    block = block[:do]
+
+    quote do
+      @context update_context(__MODULE__, Macros.Schema, [
+                 unquote(name),
+                 unquote(Keyword.delete(opts, :do)),
+                 unquote(Macro.escape(block))
+               ])
     end
   end
 

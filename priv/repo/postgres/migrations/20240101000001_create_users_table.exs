@@ -7,6 +7,7 @@ defmodule Test.Repos.Postgres.Migrations.CreateUsersTable do
       add(:email, :string)
       add(:age, :integer)
       add(:active, :boolean)
+      add(:settings, :map, default: "{}", null: false)
 
       timestamps()
     end

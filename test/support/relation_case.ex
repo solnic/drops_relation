@@ -1,8 +1,6 @@
 defmodule Test.RelationCase do
   use ExUnit.CaseTemplate
 
-  alias Drops.Relation.Loadable
-
   using do
     quote do
       use Test.DoctestCase
@@ -15,18 +13,22 @@ defmodule Test.RelationCase do
   end
 
   setup tags do
-    adapter = Map.get(tags, :adapter, String.to_atom(System.get_env("ADAPTER", "sqlite")))
+    if tags[:doctest] do
+      :ok
+    else
+      adapter = Map.get(tags, :adapter, String.to_atom(System.get_env("ADAPTER", "sqlite")))
 
-    setup_sandbox(tags, adapter)
+      setup_sandbox(tags, adapter)
 
-    context =
-      Enum.reduce(Map.get(tags, :relations, []), %{}, fn name, context ->
-        Map.put(context, name, create_relation(name, adapter: adapter))
-      end)
+      context =
+        Enum.reduce(Map.get(tags, :relations, []), %{}, fn name, context ->
+          Map.put(context, name, create_relation(name, adapter: adapter))
+        end)
 
-    on_exit(fn -> cleanup_modules(Map.values(context)) end)
+      on_exit(fn -> Test.cleanup_relation_modules(Map.values(context)) end)
 
-    {:ok, Map.merge(context, %{adapter: adapter, repo: repo(adapter)})}
+      {:ok, Map.merge(context, %{adapter: adapter, repo: repo(adapter)})}
+    end
   end
 
   defmacro relation(name, opts) do
@@ -34,7 +36,7 @@ defmodule Test.RelationCase do
       setup context do
         relation_module = create_relation(unquote(name), unquote(Macro.escape(opts)))
 
-        on_exit(fn -> cleanup_modules(relation_module) end)
+        on_exit(fn -> Test.cleanup_relation_modules(relation_module) end)
 
         {:ok, Map.put(context, unquote(name), relation_module)}
       end
@@ -72,7 +74,7 @@ defmodule Test.RelationCase do
         end
       )
 
-    cleanup_modules(module_name)
+    Test.cleanup_relation_modules(module_name)
 
     {:ok, _} = Drops.Relation.Cache.warm_up(repo, [table_name])
 
@@ -87,37 +89,6 @@ defmodule Test.RelationCase do
       )
 
     relation_module
-  end
-
-  def cleanup_modules(relation_modules) when is_list(relation_modules) do
-    Enum.each(relation_modules, &cleanup_modules/1)
-  end
-
-  def cleanup_modules(relation_module) do
-    if Code.ensure_loaded?(relation_module) do
-      cleanup_modules(Map.values(relation_module.__views__()))
-
-      Enum.each(
-        [
-          relation_module,
-          Module.concat([relation_module, QueryBuilder]),
-          relation_module.__schema_module__()
-        ],
-        fn module ->
-          for protocol <- [Enumerable, Ecto.Queryable, Loadable] do
-            impl_module = Module.concat([protocol, module])
-
-            if Code.ensure_loaded?(impl_module) do
-              :code.delete(impl_module)
-              :code.purge(impl_module)
-            end
-          end
-
-          :code.delete(module)
-          :code.purge(module)
-        end
-      )
-    end
   end
 
   def setup_sandbox(tags, adapter) do
