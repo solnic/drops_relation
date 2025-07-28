@@ -15,35 +15,69 @@ defmodule Drops.Relation.Plugins.AutoRestrict do
   - Composite index on `email, role` → `get_by_email_and_role/2`
   - Composite index on `user_id, status` → `get_by_user_id_and_status/2`
 
-  ## Usage Examples
+  ## Examples
 
-      defmodule MyApp.Users do
-        use Drops.Relation, repo: MyApp.Repo
+  ### Single Column Index Finders
 
-        schema("users", infer: true)
-      end
+      iex> # Find user by email (unique index)
+      iex> user_query = MyApp.Users.get_by_email("john@example.com")
+      iex> user = MyApp.Users.one(user_query)
+      iex> user.name
+      "John Doe"
+      iex> user.email
+      "john@example.com"
 
-      # Assuming users table has an index on email column
-      users_query = MyApp.Users.get_by_email("john@example.com")  # Returns relation
-      user = MyApp.Users.one(users_query)                        # Execute query
+      iex> # Find users by name (non-unique index)
+      iex> users_query = MyApp.Users.get_by_name("Jane Smith")
+      iex> users = MyApp.Users.all(users_query)
+      iex> length(users)
+      1
+      iex> hd(users).name
+      "Jane Smith"
 
-      # Composable with other operations
-      active_user = MyApp.Users
-                    |> MyApp.Users.get_by_email("john@example.com")
-                    |> MyApp.Users.restrict(active: true)
-                    |> MyApp.Users.one()
+  ### Composite Index Finders
 
-      # Works with composite indices too
-      # Assuming index on (email, role) columns
-      admin_user = MyApp.Users.get_by_email_and_role("john@example.com", "admin")
-                   |> MyApp.Users.one()
+      iex> # Find by composite index (name + age)
+      iex> user_query = MyApp.Users.get_by_name_and_age("John Doe", 30)
+      iex> user = MyApp.Users.one(user_query)
+      iex> user.name
+      "John Doe"
+      iex> user.age
+      30
 
-      # Chain with ordering and other operations
-      recent_posts = MyApp.Posts
-                     |> MyApp.Posts.get_by_author_id(user.id)
-                     |> MyApp.Posts.restrict(published: true)
-                     |> MyApp.Posts.order(desc: :created_at)
-                     |> MyApp.Posts.all()
+  ### Composable with Other Operations
+
+      iex> # Chain with restrictions
+      iex> active_user = MyApp.Users.get_by_email("john@example.com")
+      ...>   |> MyApp.Users.restrict(active: true)
+      ...>   |> MyApp.Users.one()
+      iex> active_user.name
+      "John Doe"
+      iex> active_user.active
+      true
+
+      iex> # Chain with ordering
+      iex> ordered_users = MyApp.Users.get_by_name("John Doe")
+      ...>   |> MyApp.Users.order(:age)
+      ...>   |> MyApp.Users.all()
+      iex> length(ordered_users)
+      1
+      iex> hd(ordered_users).age
+      30
+
+  ### Blog Posts Example
+
+      iex> # Find posts by user (foreign key index)
+      iex> user_posts = MyApp.Posts.get_by_user_id(1)
+      ...>   |> MyApp.Posts.restrict(published: true)
+      ...>   |> MyApp.Posts.order(desc: :view_count)
+      ...>   |> MyApp.Posts.all()
+      iex> length(user_posts)
+      1
+      iex> hd(user_posts).title
+      "First Post"
+      iex> hd(user_posts).published
+      true
 
   ## Function Behavior
 
