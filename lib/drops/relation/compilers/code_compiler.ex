@@ -119,6 +119,9 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
       meta[:association] ->
         nil
 
+      meta[:embed] ->
+        generate_embed_definition(name, meta)
+
       Schema.primary_key?(schema, field) ->
         nil
 
@@ -241,6 +244,42 @@ defmodule Drops.Relation.Compilers.CodeCompiler do
       quote do
         field(unquote(name), unquote(field_type), unquote(Macro.escape(all_opts)))
       end
+    end
+  end
+
+  @spec generate_embed_definition(atom(), map()) :: Macro.t()
+  defp generate_embed_definition(name, meta) do
+    cardinality = meta[:embed_cardinality]
+    related = meta[:embed_related]
+    on_replace = meta[:embed_on_replace]
+
+    embed_opts = []
+
+    embed_opts =
+      if on_replace != :raise, do: [{:on_replace, on_replace} | embed_opts], else: embed_opts
+
+    case cardinality do
+      :one ->
+        if embed_opts == [] do
+          quote do
+            embeds_one(unquote(name), unquote(related))
+          end
+        else
+          quote do
+            embeds_one(unquote(name), unquote(related), unquote(embed_opts))
+          end
+        end
+
+      :many ->
+        if embed_opts == [] do
+          quote do
+            embeds_many(unquote(name), unquote(related))
+          end
+        else
+          quote do
+            embeds_many(unquote(name), unquote(related), unquote(embed_opts))
+          end
+        end
     end
   end
 end

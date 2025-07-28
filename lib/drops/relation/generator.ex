@@ -142,5 +142,13 @@ defmodule Drops.Relation.Generator do
     if MapSet.member?(existing_fields, field_name), do: nil, else: field_ast
   end
 
+  defp filter_ast_fields({:embeds_one, _meta, [field_name | _rest]} = embed_ast, existing_fields) do
+    if MapSet.member?(existing_fields, field_name), do: nil, else: embed_ast
+  end
+
+  defp filter_ast_fields({:embeds_many, _meta, [field_name | _rest]} = embed_ast, existing_fields) do
+    if MapSet.member?(existing_fields, field_name), do: nil, else: embed_ast
+  end
+
   defp filter_ast_fields(ast, _existing_fields), do: ast
 end

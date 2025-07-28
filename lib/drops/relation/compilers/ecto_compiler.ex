@@ -29,8 +29,14 @@ defmodule Drops.Relation.Compilers.EctoCompiler do
         schema_module.__schema__(:association, name)
       end)
 
+    embeds =
+      Enum.map(schema_module.__schema__(:embeds), fn name ->
+        schema_module.__schema__(:embed, name)
+      end)
+
     opts = %{
       associations: associations,
+      embeds: embeds,
       pk: schema_module.__schema__(:primary_key),
       defaults: Map.from_struct(struct(schema_module))
     }
@@ -48,6 +54,7 @@ defmodule Drops.Relation.Compilers.EctoCompiler do
 
   def visit({:field, {name, type, source}}, %{
         associations: associations,
+        embeds: embeds,
         pk: pk,
         defaults: defaults
       }) do
@@ -56,7 +63,13 @@ defmodule Drops.Relation.Compilers.EctoCompiler do
         assoc.owner_key == name and name not in pk
       end)
 
+    embed =
+      Enum.find(embeds, fn embed ->
+        embed.field == name
+      end)
+
     foreign_key = if is_nil(assoc), do: false, else: true
+    is_embed = not is_nil(embed)
 
     meta = %{
       source: source,
@@ -65,8 +78,20 @@ defmodule Drops.Relation.Compilers.EctoCompiler do
       check_constraints: [],
       primary_key: name in pk,
       foreign_key: foreign_key,
-      association: not is_nil(assoc)
+      association: not is_nil(assoc),
+      embed: is_embed
     }
+
+    meta =
+      if is_embed do
+        Map.merge(meta, %{
+          embed_cardinality: embed.cardinality,
+          embed_related: embed.related,
+          embed_on_replace: embed.on_replace
+        })
+      else
+        meta
+      end
 
     Field.new(name, type, meta)
   end

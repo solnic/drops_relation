@@ -72,7 +72,10 @@ defmodule Drops.Relation.Schema.Field do
   @spec new(atom(), any()) :: t()
   @spec new(atom(), any(), meta()) :: t()
   def new(name, type, meta \\ %{}) do
-    %__MODULE__{name: name, source: name, type: type, meta: meta}
+    # Ensure embed metadata has default values
+    default_meta = %{embed: false}
+    merged_meta = Map.merge(default_meta, meta)
+    %__MODULE__{name: name, source: name, type: type, meta: merged_meta}
   end
 
   @spec new(atom(), any(), any(), atom()) :: t()

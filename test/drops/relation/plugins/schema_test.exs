@@ -38,9 +38,6 @@ defmodule Drops.Relation.Plugins.SchemaTest do
     end
   end
 
-  # Field selection from inferred schema is documented in the plugin docstring
-  # This feature allows selecting specific fields: schema([:id, :name, :email])
-
   describe "manual schema definition" do
     relation(:custom_users) do
       schema("users") do
@@ -58,7 +55,6 @@ defmodule Drops.Relation.Plugins.SchemaTest do
       assert :email in field_names
       assert :active in field_names
 
-      # Find the active field and check its default
       active_field = Enum.find(schema.fields, &(&1.name == :active))
       assert active_field.type == :boolean
     end
@@ -69,12 +65,10 @@ defmodule Drops.Relation.Plugins.SchemaTest do
     test "provides access to schema metadata", %{users: users} do
       schema = users.schema()
 
-      # Test field access by name
       email_field = schema[:email]
       assert email_field.name == :email
       assert email_field.type == :string
 
-      # Test that non-existent fields return nil
       assert schema[:nonexistent] == nil
     end
 
@@ -82,11 +76,9 @@ defmodule Drops.Relation.Plugins.SchemaTest do
     test "generates Ecto schema module", %{users: users} do
       schema_module = users.__schema_module__()
 
-      # Verify it's a valid module
       assert Code.ensure_loaded?(schema_module)
       assert is_atom(schema_module)
 
-      # Test Ecto.Schema functions
       assert users.__schema__(:source) == "users"
       assert :id in users.__schema__(:fields)
       assert :name in users.__schema__(:fields)
@@ -99,10 +91,8 @@ defmodule Drops.Relation.Plugins.SchemaTest do
 
       assert user.name == "John"
       assert user.email == "john@example.com"
-      # Not set in struct creation
       assert is_nil(user.id)
 
-      # Verify it's the correct struct type
       schema_module = users.__schema_module__()
       assert user.__struct__ == schema_module
     end
@@ -124,7 +114,6 @@ defmodule Drops.Relation.Plugins.SchemaTest do
     test "preserves field type information", %{users: users} do
       schema = users.schema()
 
-      # Check specific field types
       id_field = schema[:id]
       assert id_field.type in [:id, :integer]
 
@@ -185,13 +174,182 @@ defmodule Drops.Relation.Plugins.SchemaTest do
 
       field_names = Enum.map(schema.fields, & &1.name)
 
-      # Should have both inferred and manual fields
       assert :id in field_names
       assert :name in field_names
       assert :email in field_names
+    end
+  end
 
-      # Note: Virtual fields may not be included in the schema fields list
-      # This is expected behavior for virtual fields
+  describe "embeds support" do
+    defmodule TestEmbedded do
+      use Ecto.Schema
+
+      embedded_schema do
+        field(:name, :string)
+        field(:value, :integer)
+      end
+    end
+
+    relation(:users_with_embeds) do
+      schema("users") do
+        field(:name, :string)
+        embeds_one(:metadata, TestEmbedded)
+        embeds_many(:tags, TestEmbedded)
+      end
+    end
+
+    test "handles embeds_one and embeds_many in schema blocks", %{users_with_embeds: users} do
+      schema = users.schema()
+
+      field_names = Enum.map(schema.fields, & &1.name)
+      assert :name in field_names
+      assert :metadata in field_names
+      assert :tags in field_names
+
+      metadata_field = schema[:metadata]
+      assert metadata_field.meta[:embed] == true
+      assert metadata_field.meta[:embed_cardinality] == :one
+      assert to_string(metadata_field.meta[:embed_related]) =~ "TestEmbedded"
+
+      tags_field = schema[:tags]
+      assert tags_field.meta[:embed] == true
+      assert tags_field.meta[:embed_cardinality] == :many
+      assert to_string(tags_field.meta[:embed_related]) =~ "TestEmbedded"
+    end
+
+    test "generates correct Ecto schema with embeds", %{users_with_embeds: users} do
+      schema_module = users.__schema_module__()
+
+      assert :metadata in schema_module.__schema__(:embeds)
+      assert :tags in schema_module.__schema__(:embeds)
+
+      metadata_embed = schema_module.__schema__(:embed, :metadata)
+      assert metadata_embed.cardinality == :one
+      assert to_string(metadata_embed.related) =~ "TestEmbedded"
+
+      tags_embed = schema_module.__schema__(:embed, :tags)
+      assert tags_embed.cardinality == :many
+      assert to_string(tags_embed.related) =~ "TestEmbedded"
+    end
+
+    test "creates struct instances with embeds", %{users_with_embeds: users} do
+      user =
+        users.struct(%{
+          name: "John",
+          metadata: %{name: "test", value: 42},
+          tags: [%{name: "tag1", value: 1}, %{name: "tag2", value: 2}]
+        })
+
+      assert user.name == "John"
+      assert user.metadata.name == "test"
+      assert user.metadata.value == 42
+      assert length(user.tags) == 2
+      assert hd(user.tags).name == "tag1"
+    end
+  end
+
+  describe "embeds with inline schemas" do
+    relation(:users_with_inline_embeds) do
+      schema("users") do
+        field(:name, :string)
+
+        embeds_one :profile, Profile do
+          field(:bio, :string)
+          field(:age, :integer)
+        end
+
+        embeds_many :addresses, Address do
+          field(:street, :string)
+          field(:city, :string)
+        end
+      end
+    end
+
+    test "handles inline embedded schemas", %{users_with_inline_embeds: users} do
+      schema = users.schema()
+
+      field_names = Enum.map(schema.fields, & &1.name)
+      assert :name in field_names
+      assert :profile in field_names
+      assert :addresses in field_names
+
+      profile_field = schema[:profile]
+      assert profile_field.meta[:embed] == true
+      assert profile_field.meta[:embed_cardinality] == :one
+
+      addresses_field = schema[:addresses]
+      assert addresses_field.meta[:embed] == true
+      assert addresses_field.meta[:embed_cardinality] == :many
+    end
+
+    test "generates correct Ecto schema with inline embeds", %{users_with_inline_embeds: users} do
+      schema_module = users.__schema_module__()
+
+      assert :profile in schema_module.__schema__(:embeds)
+      assert :addresses in schema_module.__schema__(:embeds)
+
+      profile_embed = schema_module.__schema__(:embed, :profile)
+      assert profile_embed.cardinality == :one
+
+      addresses_embed = schema_module.__schema__(:embed, :addresses)
+      assert addresses_embed.cardinality == :many
+    end
+  end
+
+  describe "embeds integration with schema merging" do
+    relation(:users_with_mixed_embeds) do
+      schema("users", infer: true) do
+        embeds_one(:profile, TestEmbedded)
+        embeds_many(:preferences, TestEmbedded)
+      end
+    end
+
+    test "merges inferred schema with embed definitions", %{users_with_mixed_embeds: users} do
+      schema = users.schema()
+
+      field_names = Enum.map(schema.fields, & &1.name)
+
+      assert :id in field_names
+      assert :name in field_names
+      assert :email in field_names
+      assert :profile in field_names
+      assert :preferences in field_names
+
+      profile_field = schema[:profile]
+      assert profile_field.meta[:embed] == true
+      assert profile_field.meta[:embed_cardinality] == :one
+
+      preferences_field = schema[:preferences]
+      assert preferences_field.meta[:embed] == true
+      assert preferences_field.meta[:embed_cardinality] == :many
+
+      name_field = schema[:name]
+      assert name_field.meta[:embed] == false
+    end
+
+    test "generates correct mixed schema", %{users_with_mixed_embeds: users} do
+      schema_module = users.__schema_module__()
+
+      assert :name in schema_module.__schema__(:fields)
+      assert :email in schema_module.__schema__(:fields)
+      assert :profile in schema_module.__schema__(:fields)
+      assert :preferences in schema_module.__schema__(:fields)
+
+      assert :profile in schema_module.__schema__(:embeds)
+      assert :preferences in schema_module.__schema__(:embeds)
+
+      user =
+        users.struct(%{
+          name: "John",
+          email: "john@example.com",
+          profile: %{name: "profile", value: 1},
+          preferences: [%{name: "pref1", value: 1}]
+        })
+
+      assert user.name == "John"
+      assert user.email == "john@example.com"
+      assert user.profile.name == "profile"
+      assert length(user.preferences) == 1
     end
   end
 end

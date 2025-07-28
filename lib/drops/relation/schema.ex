@@ -210,10 +210,15 @@ defmodule Drops.Relation.Schema do
     source = left_source
     # Merge primary keys (right takes precedence if not nil)
     merged_primary_key =
-      if right.primary_key != nil do
-        PrimaryKey.merge(left.primary_key, right.primary_key)
-      else
-        left.primary_key
+      cond do
+        right.primary_key != nil and left.primary_key != nil ->
+          PrimaryKey.merge(left.primary_key, right.primary_key)
+
+        right.primary_key != nil ->
+          right.primary_key
+
+        true ->
+          left.primary_key
       end
 
     # Merge fields by name, with right taking precedence
