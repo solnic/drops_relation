@@ -35,7 +35,7 @@ end
 defmodule MyApp.Posts do
   use Drops.Relation, otp_app: :my_app
 
-  schema("users", infer: true)
+  schema("posts", infer: true)
 end
 
 ExUnit.start()

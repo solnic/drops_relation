@@ -28,35 +28,94 @@ defmodule Drops.Relation.Plugins.Views do
 
   ## Examples
 
-      defmodule MyApp.Users do
-        use Drops.Relation, repo: MyApp.Repo
+  ### Basic View with Field Selection
 
-        schema("users", infer: true)
+      iex> defmodule BlogApp.Users do
+      ...>   use Drops.Relation, repo: MyApp.Repo
+      ...>   schema("users", infer: true)
+      ...>
+      ...>   view(:active) do
+      ...>     schema([:id, :name, :active])
+      ...>     derive do
+      ...>       restrict(active: true)
+      ...>     end
+      ...>   end
+      ...> end
+      iex>
+      iex> # View returns only active users with limited fields
+      iex> active_users = BlogApp.Users.active().all()
+      iex> length(active_users)
+      2
+      iex> hd(active_users).name
+      "John Doe"
+      iex> hd(active_users).active
+      true
+      iex> Map.has_key?(hd(active_users), :email)
+      false
 
-        # View with custom struct name
-        view(:public_profile) do
-          schema([:id, :name], struct: "PublicUser")
+  ### View with Custom Struct Name
 
-          derive do
-            restrict(active: true)
-            |> restrict(public_profile: true)
-          end
-        end
+      iex> defmodule BlogApp.Posts do
+      ...>   use Drops.Relation, repo: MyApp.Repo
+      ...>   schema("posts", infer: true)
+      ...>
+      ...>   view(:published) do
+      ...>     schema([:id, :title, :view_count, :published], struct: "PublishedPost")
+      ...>     derive do
+      ...>       restrict(published: true)
+      ...>       |> order(desc: :view_count)
+      ...>     end
+      ...>   end
+      ...> end
+      iex>
+      iex> # View returns published posts ordered by view count
+      iex> published_posts = BlogApp.Posts.published().all()
+      iex> length(published_posts)
+      3
+      iex> hd(published_posts).__struct__
+      BlogApp.Posts.Published.PublishedPost
+      iex> hd(published_posts).title
+      "First Post"
+      iex> hd(published_posts).view_count
+      100
 
-        # View for admin data
-        view(:admin_view) do
-          schema([:id, :name, :email, :role, :last_login])
+  ### Multiple Views on Same Relation
 
-          derive do
-            restrict(role: ["admin", "super_admin"])
-            |> order(:last_login)
-          end
-        end
-      end
-
-      # Using the views
-      public_users = MyApp.Users.public_profile().all()
-      admin_users = MyApp.Users.admin_view().all()
+      iex> defmodule BlogApp.Analytics do
+      ...>   use Drops.Relation, repo: MyApp.Repo
+      ...>   schema("posts", infer: true)
+      ...>
+      ...>   view(:popular) do
+      ...>     schema([:id, :title, :view_count, :published])
+      ...>     derive do
+      ...>       restrict(published: true)
+      ...>       |> order(desc: :view_count)
+      ...>     end
+      ...>   end
+      ...>
+      ...>   view(:recent_drafts) do
+      ...>     schema([:id, :title, :user_id, :published])
+      ...>     derive do
+      ...>       restrict(published: false)
+      ...>     end
+      ...>   end
+      ...> end
+      iex>
+      iex> # Popular posts view
+      iex> popular = BlogApp.Analytics.popular().all()
+      iex> length(popular)
+      3
+      iex> hd(popular).title
+      "First Post"
+      iex> hd(popular).view_count
+      100
+      iex>
+      iex> # Recent drafts view
+      iex> drafts = BlogApp.Analytics.recent_drafts().all()
+      iex> length(drafts)
+      1
+      iex> hd(drafts).title
+      "Draft Post"
   """
 
   use Drops.Relation.Plugin, imports: [view: 2, derive: 1]
