@@ -12,47 +12,78 @@ defmodule Drops.Relation.Plugins.Pagination do
   - `per_page/1` - Set per_page for subsequent pagination
   - `per_page/2` - Set per_page on an existing relation
 
-  ## Usage
+  ## Examples
 
-      defmodule MyApp.Users do
-        use Drops.Relation, repo: MyApp.Repo
+      iex> # Basic pagination - first page with default per_page
+      iex> loaded = MyApp.Users.page(1)
+      iex> loaded.meta.pagination.page
+      1
+      iex> loaded.meta.pagination.per_page
+      20
+      iex> loaded.meta.pagination.total_count
+      3
+      iex> loaded.meta.pagination.total_pages
+      1
+      iex> loaded.meta.pagination.has_next
+      false
+      iex> loaded.meta.pagination.has_prev
+      false
+      iex> length(loaded.data)
+      3
 
-        schema("users", infer: true)
-      end
+      iex> # Pagination with custom per_page
+      iex> loaded = MyApp.Users.page(1, 2)
+      iex> loaded.meta.pagination.page
+      1
+      iex> loaded.meta.pagination.per_page
+      2
+      iex> loaded.meta.pagination.total_count
+      3
+      iex> loaded.meta.pagination.total_pages
+      2
+      iex> loaded.meta.pagination.has_next
+      true
+      iex> loaded.meta.pagination.has_prev
+      false
+      iex> length(loaded.data)
+      2
 
-      # Basic pagination
-      page1 = Users.page(1)                    # First page with default per_page (20)
-      page2 = Users.page(2, 10)                # Second page with 10 records per page
+      iex> # Second page
+      iex> loaded = MyApp.Users.page(2, 2)
+      iex> loaded.meta.pagination.page
+      2
+      iex> loaded.meta.pagination.per_page
+      2
+      iex> loaded.meta.pagination.total_count
+      3
+      iex> loaded.meta.pagination.total_pages
+      2
+      iex> loaded.meta.pagination.has_next
+      false
+      iex> loaded.meta.pagination.has_prev
+      true
+      iex> length(loaded.data)
+      1
 
-      # Set per_page first, then paginate
-      small_pages = Users.per_page(5)
-      page1_small = Users.page(small_pages, 1) # First page with 5 records
+      iex> # Set per_page first, then paginate
+      iex> relation = MyApp.Users.per_page(2)
+      iex> loaded = MyApp.Users.page(relation, 1)
+      iex> loaded.meta.pagination.per_page
+      2
+      iex> length(loaded.data)
+      2
 
-      # Chain with other operations
-      active_page1 = Users
-                     |> Users.restrict(active: true)
-                     |> Users.order(:name)
-                     |> Users.per_page(10)
-                     |> Users.page(1)
-
-  ## Working with Results
-
-      loaded = Users.page(1)
-
-      # Access data using Enumerable protocol
-      users = Enum.to_list(loaded)
-      first_user = Enum.at(loaded, 0)
-      user_names = Enum.map(loaded, & &1.name)
-
-      # Access pagination metadata
-      pagination = loaded.meta.pagination
-
-      pagination.page         # => 1
-      pagination.per_page     # => 20
-      pagination.total_count  # => 150
-      pagination.total_pages  # => 8
-      pagination.has_next     # => true
-      pagination.has_prev     # => false
+      iex> # Access data using Enumerable protocol
+      iex> loaded = MyApp.Users.page(1, 2)
+      iex> users = Enum.to_list(loaded)
+      iex> length(users)
+      2
+      iex> first_user = Enum.at(loaded, 0)
+      iex> first_user.name
+      "John Doe"
+      iex> user_names = Enum.map(loaded, & &1.name)
+      iex> length(user_names)
+      2
 
   ## Configuration
 
@@ -103,11 +134,14 @@ defmodule Drops.Relation.Plugins.Pagination do
 
   ## Examples
 
-      # Load first page with default per_page
-      page1 = Users.page(1)
-
-      # Load third page
-      page3 = Users.page(3)
+      iex> # Load first page with default per_page
+      iex> loaded = MyApp.Users.page(1)
+      iex> loaded.meta.pagination.page
+      1
+      iex> loaded.meta.pagination.per_page
+      20
+      iex> length(loaded.data)
+      3
   """
   @spec page(pos_integer(), keyword()) :: Loaded.t()
   def page(page_num, opts) when is_integer(page_num) and page_num > 0 do
@@ -129,11 +163,21 @@ defmodule Drops.Relation.Plugins.Pagination do
 
   ## Examples
 
-      # Load first page with 10 records per page
-      page1 = Users.page(1, 10)
+      iex> # Load first page with 2 records per page
+      iex> loaded = MyApp.Users.page(1, 2)
+      iex> loaded.meta.pagination.page
+      1
+      iex> loaded.meta.pagination.per_page
+      2
+      iex> length(loaded.data)
+      2
 
-      # Load second page with 5 records per page
-      page2 = Users.page(2, 5)
+      iex> # Load second page with 2 records per page
+      iex> loaded = MyApp.Users.page(2, 2)
+      iex> loaded.meta.pagination.page
+      2
+      iex> length(loaded.data)
+      1
   """
   @spec page(pos_integer(), pos_integer(), keyword()) :: Loaded.t()
   def page(page_num, per_page, opts)
@@ -168,9 +212,13 @@ defmodule Drops.Relation.Plugins.Pagination do
 
   ## Examples
 
-      # Set per_page for later use
-      relation = Users.per_page(10)
-      page1 = Users.page(relation, 1)
+      iex> # Set per_page for later use
+      iex> relation = MyApp.Users.per_page(2)
+      iex> loaded = MyApp.Users.page(relation, 1)
+      iex> loaded.meta.pagination.per_page
+      2
+      iex> length(loaded.data)
+      2
   """
   @spec per_page(pos_integer(), keyword()) :: struct()
   def per_page(per_page, opts) when is_integer(per_page) and per_page > 0 do

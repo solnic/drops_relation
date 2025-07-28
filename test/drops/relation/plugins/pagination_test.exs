@@ -3,6 +3,12 @@ defmodule Drops.Relation.Plugins.PaginationTest do
 
   alias Drops.Relation.Loaded
 
+  describe "Doctests" do
+    @describetag fixtures: [:users]
+
+    doctest Drops.Relation.Plugins.Pagination
+  end
+
   describe "basic pagination" do
     @tag relations: [:users]
     test "page/1 returns first page with default per_page", %{users: users} do
