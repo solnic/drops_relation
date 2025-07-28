@@ -518,21 +518,11 @@ defmodule Drops.Relation.Plugins.Reading do
       users = MyRelation.all_by(active: true)
       users = MyRelation.all_by([active: true], repo: AnotherRepo)
 
-  See [`Ecto.Repo.all/2`](https://hexdocs.pm/ecto/Ecto.Repo.html#c:all/2) for more details.
+  See [`Ecto.Repo.all_by/2`](https://hexdocs.pm/ecto/Ecto.Repo.html#c:all_by/2) for more details.
   """
   @doc group: "Query API"
   def all_by(clauses, opts) do
-    # Use the same approach as get_by but return all results
-    relation = opts[:relation]
-    repo = relation.repo()
-    queryable = relation.new()
-    repo_opts = Keyword.delete(opts, :relation)
-
-    # Build query with where conditions
-    import Ecto.Query
-    query = from(q in queryable, where: ^clauses)
-
-    apply(repo, :all, [query, repo_opts])
+    read(:all_by, [clauses], opts)
   end
 
   @doc """
