@@ -6,45 +6,44 @@ defmodule Drops.Relation.Plugins.Schema do
   It supports both automatic schema inference from database tables and manual schema
   definition with Ecto.Schema syntax.
 
-  ## Automatic Schema Inference
+  ## Examples
 
-  The most common usage is to automatically infer the complete schema from the database:
+  ### Automatic Schema Inference
 
-      defmodule MyApp.Users do
-        use Drops.Relation, repo: MyApp.Repo
+      iex> # Access the inferred schema
+      iex> schema = MyApp.Users.schema()
+      iex> schema.source
+      :users
+      iex> length(schema.fields) > 0
+      true
+      iex> field_names = Enum.map(schema.fields, & &1.name)
+      iex> :id in field_names
+      true
+      iex> :name in field_names
+      true
+      iex> :email in field_names
+      true
 
-        schema("users", infer: true)  # Infers all fields, types, and relationships
-      end
+  ### Field Selection from Inferred Schema
 
-      # Access the inferred schema
-      schema = MyApp.Users.schema()
-      fields = schema.fields  # All database columns as Field structs
+  You can select only specific fields from an automatically inferred schema by passing a list of field names:
 
-  ## Manual Schema Definition
+      schema([:id, :name, :email])  # Only include specific fields from inferred schema
+
+  This creates a relation with only the specified fields, excluding others like `:age`, `:active`, etc.
+
+  ### Manual Schema Definition
 
   You can also define schemas manually using familiar Ecto.Schema syntax:
 
-      defmodule MyApp.Users do
-        use Drops.Relation, repo: MyApp.Repo
-
-        schema("users") do
-          field(:name, :string)
-          field(:email, :string)
-          field(:active, :boolean, default: true)
-
-          timestamps()
-        end
+      schema("users") do
+        field(:name, :string)
+        field(:email, :string)
+        field(:active, :boolean, default: true)
+        timestamps()
       end
 
-  ## Field Selection from Inferred Schema
-
-  Select only specific fields from an automatically inferred schema:
-
-      defmodule MyApp.UserSummary do
-        use Drops.Relation, repo: MyApp.Repo
-
-        schema([:id, :name, :email])  # Only include specific fields from inferred schema
-      end
+  This gives you full control over field definitions, types, and options.
 
   ## Hybrid Approach
 
@@ -62,23 +61,50 @@ defmodule Drops.Relation.Plugins.Schema do
         end
       end
 
-  ## Schema Access
+  ### Schema Access and Struct Generation
 
-  All relation modules provide access to their schema metadata:
+      iex> # Get the complete schema
+      iex> schema = MyApp.Users.schema()
+      iex> schema.__struct__
+      Drops.Relation.Schema
 
-      # Get the complete schema
-      schema = MyApp.Users.schema()
+      iex> # Access specific fields
+      iex> email_field = MyApp.Users.schema()[:email]
+      iex> email_field.name
+      :email
+      iex> email_field.type
+      :string
 
-      # Access specific fields
-      email_field = schema[:email]
+      iex> # Get the generated Ecto schema module
+      iex> schema_module = MyApp.Users.__schema_module__()
+      iex> is_atom(schema_module)
+      true
 
-      # Get the generated Ecto schema module
-      schema_module = MyApp.Users.__schema_module__()
-      # => MyApp.Users.Struct
+      iex> # Create struct instances
+      iex> user = MyApp.Users.struct(%{name: "John", email: "john@example.com"})
+      iex> user.name
+      "John"
+      iex> user.email
+      "john@example.com"
 
-      # Create struct instances
-      user = MyApp.Users.struct(%{name: "John", email: "john@example.com"})
-      # => %MyApp.Users.Struct{name: "John", email: "john@example.com"}
+  ### Working with Posts Schema
+
+      iex> # Posts schema includes foreign key relationships
+      iex> schema = MyApp.Posts.schema()
+      iex> field_names = Enum.map(schema.fields, & &1.name)
+      iex> :user_id in field_names
+      true
+      iex> :title in field_names
+      true
+      iex> :published in field_names
+      true
+
+      iex> # Create a post struct
+      iex> post = MyApp.Posts.struct(%{title: "My First Post", body: "Hello World", published: true})
+      iex> post.title
+      "My First Post"
+      iex> post.published
+      true
 
   ## Options
 
