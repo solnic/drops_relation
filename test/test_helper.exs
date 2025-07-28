@@ -5,6 +5,7 @@ Code.require_file("support/integration_case.ex", __DIR__)
 
 # Doctest setup
 Code.require_file("support/doctest/my_app.ex", __DIR__)
+Code.require_file("support/fixtures.ex", __DIR__)
 
 Application.put_env(:my_app, :ecto_repos, [MyApp.Repo])
 Application.put_env(:my_app, :drops, relation: [repo: MyApp.Repo])
