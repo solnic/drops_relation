@@ -76,6 +76,9 @@ defmodule Drops.Relation.MixProject do
       source_ref: "v#{@version}",
       source_url: @source_url,
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
+      authors: ["Peter Solnica"],
+      logo: "assets/logo.png",
+      favicon: "assets/favicon.png",
       filter_modules: "Drops.*",
       extras: [
         "README.md"
@@ -126,9 +129,7 @@ defmodule Drops.Relation.MixProject do
         "Schema Cache": [
           Drops.Relation.Cache
         ]
-      ],
-      authors: ["Peter Solnica"],
-      logo: "assets/logo.png"
+      ]
     ]
   end
 
