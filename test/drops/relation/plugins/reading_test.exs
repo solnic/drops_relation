@@ -431,13 +431,13 @@ defmodule Drops.Relations.Plugins.ReadingTest do
     end
 
     relation(:association_items) do
-      schema("association_items") do
+      schema("association_items", infer: true) do
         belongs_to(:association, Test.Relations.Associations)
       end
     end
 
     relation(:associations) do
-      schema("associations") do
+      schema("associations", infer: true) do
         has_many(:items, Test.Relations.AssociationItems)
         belongs_to(:parent, Test.Relations.AssociationParents)
       end

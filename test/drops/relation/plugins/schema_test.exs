@@ -191,7 +191,7 @@ defmodule Drops.Relation.Plugins.SchemaTest do
     end
 
     relation(:users_with_embeds) do
-      schema("users") do
+      schema("users", infer: true) do
         field(:name, :string)
         embeds_one(:metadata, TestEmbedded)
         embeds_many(:tags, TestEmbedded)
@@ -250,7 +250,7 @@ defmodule Drops.Relation.Plugins.SchemaTest do
 
   describe "embeds with inline schemas" do
     relation(:users_with_inline_embeds) do
-      schema("users") do
+      schema("users", infer: true) do
         field(:name, :string)
 
         embeds_one :profile, Profile do

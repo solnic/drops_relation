@@ -3,21 +3,21 @@ defmodule Drops.Relation.AssociationsTest do
 
   describe "defining associations" do
     relation(:user_groups) do
-      schema("user_groups") do
+      schema("user_groups", infer: true) do
         belongs_to(:user, Test.Relations.Users)
         belongs_to(:group, Test.Relations.Groups)
       end
     end
 
     relation(:users) do
-      schema("users") do
+      schema("users", infer: true) do
         has_many(:user_groups, Test.Relations.UserGroups)
         has_many(:groups, through: [:user_groups, :group])
       end
     end
 
     relation(:groups) do
-      schema("groups") do
+      schema("groups", infer: true) do
         has_many(:user_groups, Test.Relations.UserGroups)
         has_many(:users, through: [:user_groups, :user])
       end

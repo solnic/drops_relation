@@ -1407,6 +1407,7 @@ defmodule Drops.Relation.Plugins.Reading do
     apply(repo, fun, [queryable] ++ args ++ [repo_opts])
   end
 
+  @doc false
   def operation(name, opts) when is_atom(name) do
     {relation, _repo, queryable, rest_opts} = clean_opts(opts)
     operation_opts = Keyword.get(rest_opts, name, rest_opts)
@@ -1414,6 +1415,7 @@ defmodule Drops.Relation.Plugins.Reading do
     relation.add_operation(queryable, name, operation_opts)
   end
 
+  @doc false
   def operation(other, name, opts) when is_struct(other) and is_map_key(other, :queryable) do
     {relation, _repo, _queryable, rest_opts} = clean_opts(opts)
     operation_opts = Keyword.get(rest_opts, name, rest_opts)
@@ -1421,6 +1423,7 @@ defmodule Drops.Relation.Plugins.Reading do
     relation.add_operation(other, name, operation_opts)
   end
 
+  @doc false
   def operation(other, name, opts) when is_struct(other) do
     {relation, _repo, queryable, rest_opts} = clean_opts(opts, other)
     operation_opts = Keyword.get(rest_opts, name, rest_opts)
@@ -1428,6 +1431,7 @@ defmodule Drops.Relation.Plugins.Reading do
     relation.add_operation(relation.new(queryable), name, operation_opts)
   end
 
+  @doc false
   def operation(other, name, opts) when is_atom(other) do
     {relation, _repo, queryable, rest_opts} = clean_opts(opts, other)
     operation_opts = Keyword.get(rest_opts, name, rest_opts)
@@ -1435,6 +1439,7 @@ defmodule Drops.Relation.Plugins.Reading do
     relation.add_operation(relation.new(queryable), name, operation_opts)
   end
 
+  @doc false
   def clean_opts(opts, queryable \\ nil) do
     relation = opts[:relation]
     repo = relation.repo()

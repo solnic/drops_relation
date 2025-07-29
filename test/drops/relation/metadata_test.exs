@@ -21,7 +21,7 @@ defmodule Drops.Relation.MetadataIntegrationTest do
 
   describe "parameterized types with metadata" do
     relation(:metadata_test) do
-      schema("metadata_test") do
+      schema("metadata_test", infer: true) do
         field(:status, Ecto.Enum, values: [:active, :inactive, :pending])
         field(:priority, :integer, default: 10)
       end
