@@ -27,7 +27,7 @@ case adapter do
       adapter: Ecto.Adapters.Postgres,
       username: "postgres",
       password: "postgres",
-      hostname: "postgres",
+      hostname: System.get_env("POSTGRES_HOST", "postgres"),
       database: "sample_app_#{env}",
       log: :debug
 end

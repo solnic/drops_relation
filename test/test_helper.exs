@@ -14,7 +14,7 @@ Application.put_env(:my_app, MyApp.Repo,
   adapter: Ecto.Adapters.Postgres,
   username: "postgres",
   password: "postgres",
-  hostname: "postgres",
+  hostname: System.get_env("POSTGRES_HOST", "postgres"),
   database: "drops_relation_test",
   pool: Ecto.Adapters.SQL.Sandbox,
   priv: "priv/repo/postgres"
