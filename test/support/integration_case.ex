@@ -40,7 +40,7 @@ defmodule Test.IntegrationCase do
 
     # Clean and recompile when switching adapters to avoid compile-time config issues
     # Always clean and recompile to ensure the correct adapter configuration
-    System.cmd("mix", ["deps.clean", "sample", "--build"], env: [{"MIX_ENV", "dev"}])
+    System.cmd("mix", ["clean", "--all"], env: [{"MIX_ENV", "dev"}])
 
     System.cmd("mix", ["compile", "--force"],
       env: [{"MIX_ENV", "dev"}, {"ADAPTER", Atom.to_string(adapter)}]
