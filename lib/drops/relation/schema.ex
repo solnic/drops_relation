@@ -87,20 +87,6 @@ defmodule Drops.Relation.Schema do
 
   use Serializable
 
-  # defimpl JSON.Encoder do
-  #   def encode(schema, opts) do
-  #     JSON.Encoder.encode(
-  #       Map.merge(
-  #         %{
-  #           __struct__: "Schema"
-  #         },
-  #         Map.from_struct(schema)
-  #       ),
-  #       opts
-  #     )
-  #   end
-  # end
-
   @doc """
   Creates a new Schema struct with the provided metadata.
 

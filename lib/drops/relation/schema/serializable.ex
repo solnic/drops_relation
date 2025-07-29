@@ -27,17 +27,14 @@ defmodule Drops.Relation.Schema.Serializable do
 
   defmacro __using__(_opts) do
     quote location: :keep do
-      defimpl JSON.Encoder, for: __MODULE__ do
-        def encode(component, opts) do
+      defimpl unquote(Drops.Relation.json()).Encoder, for: __MODULE__ do
+        def encode(component, _opts) do
           attributes = Dumper.dump(Map.from_struct(component))
 
-          JSON.Encoder.encode(
-            %{
-              __struct__: component.__struct__.name(),
-              attributes: attributes
-            },
-            opts
-          )
+          Drops.Relation.json().encode!(%{
+            __struct__: component.__struct__.name(),
+            attributes: attributes
+          })
         end
       end
 

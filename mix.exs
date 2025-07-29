@@ -12,7 +12,7 @@ defmodule Drops.Relation.MixProject do
       elixir: "~> 1.14",
       elixirc_options: [warnings_as_errors: false],
       start_permanent: Mix.env() == :prod,
-      deps: deps(),
+      deps: deps(Mix.env(), System.version()),
       licenses: [@license],
       description: ~S"""
       Provides a convenient query API that wraps Ecto.Schema and delegates to Ecto.Repo functions with automatic schema inference from database tables.
@@ -133,7 +133,20 @@ defmodule Drops.Relation.MixProject do
     ]
   end
 
-  defp deps do
+  defp deps(_, version) when version != "all" do
+    base_deps = deps(:test, "all")
+
+    if Version.match?(version, "< 1.18.0") do
+      base_deps ++
+        [
+          {:jason, "~> 1.4"}
+        ]
+    else
+      base_deps
+    end
+  end
+
+  defp deps(_, _) do
     [
       {:nimble_options, "~> 1.0"},
       {:drops_inflector, "~> 0.1", github: "solnic/drops_inflector"},
