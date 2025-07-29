@@ -28,6 +28,6 @@ case adapter do
       username: "postgres",
       password: "postgres",
       hostname: System.get_env("POSTGRES_HOST", "postgres"),
-      database: "sample_app_#{env}",
+      database: "drops_relation_#{env}_sample_app",
       log: :debug
 end

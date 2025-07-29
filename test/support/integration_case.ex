@@ -1,12 +1,5 @@
 defmodule Test.IntegrationCase do
-  @moduledoc """
-  Test case for integration tests that run mix tasks within the sample directory.
-
-  This case provides:
-  - Automatic MIX_ENV management
-  - Directory cleanup based on tags
-  - Helper for running mix tasks in sample context
-  """
+  @moduledoc false
 
   use ExUnit.CaseTemplate
 
@@ -19,75 +12,29 @@ defmodule Test.IntegrationCase do
   end
 
   setup tags do
-    # Store original environment
     original_cwd = File.cwd!()
-    original_env = System.get_env("MIX_ENV")
-    original_adapter = System.get_env("ADAPTER")
 
     app = Map.get(tags, :app, "sample")
-    adapter = Map.get(tags, :adapter, String.to_atom(System.get_env("ADAPTER", "sqlite")))
-
     app_path = Path.join(@apps_path, app)
 
-    # Change to app directory
     File.cd!(app_path)
 
-    # Set MIX_ENV to dev to avoid test database ownership issues
-    System.put_env("MIX_ENV", "dev")
-
-    # Set ADAPTER environment variable for the test
-    System.put_env("ADAPTER", Atom.to_string(adapter))
-
-    # Clean and recompile when switching adapters to avoid compile-time config issues
-    # Always clean and recompile to ensure the correct adapter configuration
-    System.cmd("mix", ["clean", "--all"], env: [{"MIX_ENV", "dev"}])
-
-    System.cmd("mix", ["compile", "--force"],
-      env: [{"MIX_ENV", "dev"}, {"ADAPTER", Atom.to_string(adapter)}]
-    )
-
-    # Handle file state management
     files_to_restore = Map.get(tags, :files, [])
     original_file_contents = backup_files(files_to_restore)
 
-    # Clean directories if specified in tags
     clean_dirs = Map.get(tags, :clean_dirs, [])
     clean_directories(clean_dirs)
 
-    # Clear the cache to ensure clean state between tests
     clear_cache()
 
     on_exit(fn ->
-      # Restore original working directory
       File.cd!(original_cwd)
-
-      # Restore original MIX_ENV
-      if original_env do
-        System.put_env("MIX_ENV", original_env)
-      else
-        System.delete_env("MIX_ENV")
-      end
-
-      # Restore original ADAPTER
-      if original_adapter do
-        System.put_env("ADAPTER", original_adapter)
-      else
-        System.delete_env("ADAPTER")
-      end
-
-      # Change back to app directory for cleanup
       File.cd!(app_path)
 
-      # Restore original file contents
       restore_files(files_to_restore, original_file_contents)
-
-      # Clean up directories after test
       clean_directories(clean_dirs)
-
-      # Clear cache after test
       clear_cache()
 
-      # Restore original working directory again
       File.cd!(original_cwd)
     end)
 
@@ -112,14 +59,7 @@ defmodule Test.IntegrationCase do
     args = String.split(task_string, " ")
     [task_name | task_args] = args
 
-    env = [{"MIX_ENV", "dev"}]
-
-    # Pass through ADAPTER environment variable if set
-    env =
-      case System.get_env("ADAPTER") do
-        nil -> env
-        adapter -> [{"ADAPTER", adapter} | env]
-      end
+    env = [{"MIX_ENV", "test"}]
 
     System.cmd(
       "mix",
@@ -203,8 +143,7 @@ defmodule Test.IntegrationCase do
   end
 
   defp clear_cache do
-    # Clear the drops_relation cache directory for dev environment
-    cache_dir = Path.join(File.cwd!(), "tmp/cache/dev/drops_relation_schema")
+    cache_dir = Path.join(File.cwd!(), "tmp/cache/test/drops_relation_schema")
 
     if File.exists?(cache_dir) do
       File.rm_rf!(cache_dir)

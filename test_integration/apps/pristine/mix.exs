@@ -7,7 +7,9 @@ defmodule Pristine.MixProject do
       version: "0.1.0",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      build_path: "../../../_build/__apps__/pristine",
+      deps_path: "../../../deps/__apps__/pristine"
     ]
   end
 

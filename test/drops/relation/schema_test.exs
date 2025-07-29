@@ -1,5 +1,5 @@
 defmodule Drops.Relation.SchemaTest do
-  use Test.RelationCase, async: true
+  use Test.RelationCase, async: false
 
   describe "merge/2" do
     @describetag adapter: :sqlite

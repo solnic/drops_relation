@@ -9,7 +9,8 @@ defmodule Sample.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
-      elixirc_options: [warnings_as_errors: false, no_warn_undefined: :all]
+      build_path: "../../../_build/__apps__/sample",
+      deps_path: "../../../deps/__apps__/sample"
     ]
   end
 
@@ -23,6 +24,7 @@ defmodule Sample.MixProject do
   def aliases do
     [
       "ecto.migrate": ["ecto.migrate", "drops.relation.refresh_cache"],
+      "ecto.setup": ["ecto.create", "ecto.migrate"],
       "ecto.rollback": ["ecto.rollback", "drops.relation.refresh_cache"],
       "ecto.load": ["ecto.load", "drops.relation.refresh_cache"],
       "ecto.reset": ["ecto.drop", "ecto.create", "ecto.migrate"]
@@ -35,7 +37,7 @@ defmodule Sample.MixProject do
       {:ecto_sqlite3, "~> 0.17"},
       {:postgrex, "~> 0.17"},
       {:drops_relation, path: "../../.."},
-      {:igniter, "~> 0.6", optional: true}
+      {:igniter, "~> 0.6"}
     ]
   end
 end

@@ -3,50 +3,25 @@ defmodule Test.Repos do
 
   @adapters [:sqlite, :postgres]
 
-  def start(repo_or_adapter, mode \\ :auto)
+  def start_all(mode) do
+    Enum.each(@adapters, &start(&1, mode))
+    start(MyApp.Repo, mode)
+  end
 
-  def start(:all, mode), do: Enum.each(@adapters, &start(&1, mode))
+  def start(adapter, mode \\ :auto)
+
   def start(:sqlite, mode), do: start(Test.Repos.Sqlite, mode)
   def start(:postgres, mode), do: start(Test.Repos.Postgres, mode)
 
   def start(repo, mode) do
-    {:ok, pid} = repo.start_link()
-    env = Application.get_env(:drops_relation, :env, :test)
-    Ecto.Adapters.SQL.Sandbox.mode(repo, mode || mode(env))
-    :persistent_term.put({:repos, repo}, pid)
-  end
+    case Process.whereis(repo) do
+      nil ->
+        {:ok, _pid} = repo.start_link()
 
-  def stop(repo) do
-    pid = :persistent_term.get({:repos, repo, :owner})
-    Ecto.Adapters.SQL.Sandbox.stop_owner(pid)
-  end
+        :ok = Ecto.Adapters.SQL.Sandbox.mode(repo, mode)
 
-  defp mode(:dev), do: :auto
-  defp mode(:test), do: :manual
-
-  def start_owner!(repo, opts \\ [])
-
-  def start_owner!(:sqlite, opts), do: start_owner!(Test.Repos.Sqlite, opts)
-  def start_owner!(:postgres, opts), do: start_owner!(Test.Repos.Postgres, opts)
-
-  def start_owner!(repo, opts) do
-    case ensure_started(repo) do
-      {:ok, _pid} ->
-        try do
-          pid = Ecto.Adapters.SQL.Sandbox.start_owner!(repo, opts)
-
-          :persistent_term.put({:repos, repo, :owner}, pid)
-        rescue
-          error ->
-            if opts[:retry] <= 3 do
-              start_owner!(repo, Keyword.put(opts, :retry, opts[:retry] || 0 + 1))
-            else
-              reraise error, __STACKTRACE__
-            end
-        end
-
-      {:error, error} ->
-        raise "Failed to start repo #{repo}: #{inspect(error)}"
+      _pid ->
+        :ok
     end
   end
 
@@ -54,7 +29,53 @@ defmodule Test.Repos do
   def stop_owner(:postgres), do: stop_owner(Test.Repos.Postgres)
 
   def stop_owner(repo) do
-    Ecto.Adapters.SQL.Sandbox.stop_owner(:persistent_term.get({:repos, repo, :owner}))
+    case owner_pid(repo) do
+      nil ->
+        :ok
+
+      pid ->
+        try do
+          Ecto.Adapters.SQL.Sandbox.stop_owner(pid)
+        rescue
+          _ -> :ok
+        end
+
+        :persistent_term.erase({:repos, repo, :owner})
+        :ok
+    end
+  end
+
+  def start_owner!(repo, opts \\ [])
+
+  def start_owner!(:sqlite, opts), do: start_owner!(Test.Repos.Sqlite, opts)
+  def start_owner!(:postgres, opts), do: start_owner!(Test.Repos.Postgres, opts)
+
+  def start_owner!(repo, opts) do
+    retry_count = Keyword.get(opts, :retry, 0)
+    max_retries = Keyword.get(opts, :max_retries, 3)
+
+    try do
+      pid = Ecto.Adapters.SQL.Sandbox.start_owner!(repo, opts)
+      :persistent_term.put({:repos, repo, :owner}, pid)
+      :ok
+    rescue
+      error ->
+        case error do
+          %MatchError{term: {:error, {{:badmatch, :already_shared}, _}}} ->
+            :ok
+
+          _ ->
+            if retry_count < max_retries do
+              cleanup_owner_state(repo)
+              Process.sleep(50 * (retry_count + 1))
+
+              retry_opts = Keyword.put(opts, :retry, retry_count + 1)
+              start_owner!(repo, retry_opts)
+            else
+              reraise error, __STACKTRACE__
+            end
+        end
+    end
   end
 
   def with_owner(repo, fun) do
@@ -65,9 +86,7 @@ defmodule Test.Repos do
       error ->
         reraise error, __STACKTRACE__
     after
-      if repo_pid(repo) do
-        stop_owner(repo)
-      end
+      stop_owner(repo)
     end
   end
 
@@ -75,25 +94,23 @@ defmodule Test.Repos do
     Enum.each(Application.get_env(:drops_relation, :ecto_repos), &fun.(&1))
   end
 
-  defp ensure_started(repo) do
-    case Process.whereis(repo) do
-      nil ->
-        try do
-          :ok = Test.Repos.start(repo)
-
-          {:ok, repo_pid(repo)}
-        rescue
-          error ->
-            {:error, error}
-        end
-
-      pid ->
-        {:ok, pid}
-    end
+  defp owner_pid(repo) do
+    :persistent_term.get({:repos, repo, :owner}, nil)
   end
 
-  defp repo_pid(repo) do
-    :persistent_term.get({:repos, repo})
+  defp cleanup_owner_state(repo) do
+    try do
+      case owner_pid(repo) do
+        nil ->
+          :ok
+
+        _pid ->
+          :persistent_term.erase({:repos, repo, :owner})
+          :ok
+      end
+    rescue
+      _ -> :ok
+    end
   end
 end
 
@@ -102,6 +119,7 @@ defmodule Test.Repos.Sqlite do
 
   use Ecto.Repo,
     otp_app: :drops_relation,
+    pool: Ecto.Adapters.SQL.Sandbox,
     adapter: Ecto.Adapters.SQLite3
 end
 
@@ -110,5 +128,15 @@ defmodule Test.Repos.Postgres do
 
   use Ecto.Repo,
     otp_app: :drops_relation,
+    pool: Ecto.Adapters.SQL.Sandbox,
+    adapter: Ecto.Adapters.Postgres
+end
+
+defmodule MyApp.Repo do
+  @moduledoc false
+
+  use Ecto.Repo,
+    otp_app: :drops_relation,
+    pool: Ecto.Adapters.SQL.Sandbox,
     adapter: Ecto.Adapters.Postgres
 end

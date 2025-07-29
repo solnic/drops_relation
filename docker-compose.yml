@@ -1,0 +1,76 @@
+services:
+  base: &base
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /workspace/drops-relation
+    command: sleep infinity
+    depends_on: [postgres]
+    links: [postgres]
+    volumes:
+      - ".:/workspace/drops-relation"
+      - "drops_relation_deps:/workspace/drops-relation/deps"
+
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DATABASE: postgres
+      POSTGRES_USERNAME: postgres
+    ports:
+      - 5432:5432
+    command: [ "postgres", "-c", "log_statement=all" ]
+    volumes:
+      - "drops_relation_pgdata:/var/lib/postgresql/data"
+
+  dev-latest: &dev-latest
+    <<: *base
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ELIXIR_VERSION: 1.18.4
+        OTP_VERSION: 28.0.2
+
+  dev-1.17:
+    <<: *base
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ELIXIR_VERSION: 1.17.3
+        OTP_VERSION: 27.3.4.2
+
+  dev-1.16:
+    <<: *base
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ELIXIR_VERSION: 1.16.3
+        OTP_VERSION: 26.2.5.14
+
+  dev-1.15:
+    <<: *base
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ELIXIR_VERSION: 1.15.8
+        OTP_VERSION: 25.3.2.21
+
+  dev-1.14:
+    <<: *base
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ELIXIR_VERSION: 1.14.5
+        OTP_VERSION: 24.3.4.17
+
+  test:
+    <<: *dev-latest
+
+volumes:
+  drops_relation_deps:
+  drops_relation_pgdata:

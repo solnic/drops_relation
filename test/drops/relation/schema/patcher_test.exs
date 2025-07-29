@@ -5,7 +5,7 @@ defmodule Drops.Relation.Schema.PatcherTest do
   These tests verify that the Patcher can correctly update existing schema modules
   while preserving custom code.
   """
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Drops.Relation.Schema
   alias Drops.Relation.Schema.{Field, PrimaryKey, Patcher}
