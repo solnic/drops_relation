@@ -340,11 +340,11 @@ defmodule Drops.Relation.Cache do
   end
 
   defp encode(data) do
-    JSON.encode!(data)
+    Drops.Relation.json().encode!(data)
   end
 
   defp decode(data) do
-    JSON.decode!(data)
+    Drops.Relation.json().decode!(data)
   end
 
   defp read_cache_file(cache_file) do

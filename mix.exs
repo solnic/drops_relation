@@ -12,7 +12,7 @@ defmodule Drops.Relation.MixProject do
       elixir: "~> 1.14",
       elixirc_options: [warnings_as_errors: false],
       start_permanent: Mix.env() == :prod,
-      deps: deps(),
+      deps: deps(Mix.env(), System.version()),
       licenses: [@license],
       description: ~S"""
       Provides a convenient query API that wraps Ecto.Schema and delegates to Ecto.Repo functions with automatic schema inference from database tables.
@@ -35,12 +35,13 @@ defmodule Drops.Relation.MixProject do
   def cli do
     [
       preferred_envs: [
-        "test.refresh_cache": :test,
         "ecto.migrate": :test,
         "ecto.reset": :test,
         "ecto.drop": :test,
         "ecto.create": :test,
         "ecto.setup": :test,
+        test: :test,
+        "test.refresh_cache": :test,
         "test.setup": :test,
         "test.example": :test,
         "test.cov.update_tasks": :test,
@@ -133,28 +134,42 @@ defmodule Drops.Relation.MixProject do
     ]
   end
 
-  defp deps do
+  defp deps(_, version) when version != "all" do
+    base_deps = deps(:test, "all")
+
+    if Version.match?(version, "< 1.18.0") do
+      base_deps ++
+        [
+          {:jason, "~> 1.4"}
+        ]
+    else
+      base_deps
+    end
+  end
+
+  defp deps(_, _) do
     [
       {:nimble_options, "~> 1.0"},
-      {:drops_inflector, "~> 0.1", github: "solnic/drops_inflector"},
+      {:drops_inflector, "~> 0.1"},
       {:ecto, "~> 3.10"},
       {:ecto_sql, "~> 3.10"},
+      {:igniter, "~> 0.6"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: [:dev, :test], runtime: false},
       {:doctor, "~> 0.21.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:igniter, "~> 0.6", optional: true},
-      {:ecto_sqlite3, "~> 0.12", only: [:test, :dev], optional: true},
-      {:postgrex, "~> 0.17", only: [:test, :dev], optional: true}
+      {:ecto_sqlite3, "~> 0.12", only: [:test, :dev], optional: true, runtime: false},
+      {:postgrex, "~> 0.17", only: [:test, :dev], optional: true, runtime: false}
     ]
   end
 
   defp aliases do
     [
       "test.refresh_cache": ["test.setup", "drops.relation.refresh_cache"],
-      "ecto.migrate": ["ecto.migrate", "test.refresh_cache"],
+      "ecto.migrate": ["test.setup", "ecto.migrate", "test.refresh_cache"],
       "ecto.rollback": ["ecto.rollback", "test.refresh_cache"],
+      "ecto.setup": ["ecto.create", "ecto.migrate"],
       "ecto.reset": ["ecto.drop --force-drop", "ecto.create", "ecto.migrate"],
       "ecto.dump": ["test.setup", "ecto.dump"],
       "ecto.load": ["test.setup", "ecto.load", "test.refresh_cache"],

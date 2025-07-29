@@ -7,7 +7,9 @@ defmodule Test.DoctestCase do
 
       setup tags do
         if tags[:test_type] == :doctest do
-          Test.Repos.start_owner!(MyApp.Repo, shared: not tags[:async])
+          :ok = Test.Repos.start_owner!(MyApp.Repo, shared: not tags[:async])
+
+          {:ok, _} = Drops.Relation.Cache.warm_up(MyApp.Repo, ["users", "posts"])
 
           modules_before = Test.loaded_modules()
 
@@ -16,7 +18,7 @@ defmodule Test.DoctestCase do
           Test.Fixtures.load(fixtures)
 
           on_exit(fn ->
-            Test.Repos.stop_owner(MyApp.Repo)
+            :ok = Test.Repos.stop_owner(MyApp.Repo)
 
             new_modules = MapSet.difference(Test.loaded_modules(), modules_before)
             test_module_prefix = to_string(__MODULE__)

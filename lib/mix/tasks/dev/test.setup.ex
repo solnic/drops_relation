@@ -15,7 +15,7 @@ if Mix.env() == :test do
 
       case adapter() do
         nil ->
-          Test.Repos.start(:all)
+          Test.Repos.start_all(:auto)
 
         adapter ->
           Test.Repos.start(adapter)

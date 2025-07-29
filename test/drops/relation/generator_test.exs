@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Drops.Relation.GeneratorTest do
-  use Test.DoctestCase, async: true
+  use Test.DoctestCase, async: false
 
   alias Drops.Relation.Generator
 

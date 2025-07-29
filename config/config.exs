@@ -1,7 +1,15 @@
 import Config
 
-# Configure ecto repos
-config :drops_relation, ecto_repos: [Test.Repos.Sqlite, Test.Repos.Postgres]
+# Configure ecto repos - environment specific
+case config_env() do
+  :test ->
+    config :drops_relation,
+      ecto_repos: [Test.Repos.Sqlite, Test.Repos.Postgres, MyApp.Repo]
+
+  _ ->
+    config :drops_relation,
+      ecto_repos: [MyApp.Repo]
+end
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

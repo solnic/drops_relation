@@ -9,11 +9,3 @@ defmodule MyApp do
     Supervisor.start_link([], opts)
   end
 end
-
-defmodule MyApp.Repo do
-  @moduledoc false
-
-  use Ecto.Repo,
-    otp_app: :my_app,
-    adapter: Ecto.Adapters.Postgres
-end

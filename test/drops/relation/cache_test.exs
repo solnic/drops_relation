@@ -5,6 +5,8 @@ defmodule Drops.Relation.CacheTest do
   alias Drops.Relation.Schema
   alias Drops.Relation.Schema.{Field, PrimaryKey, ForeignKey, Index}
 
+  @json_lib Drops.Relation.json()
+
   # Mock repository for testing
   defmodule TestRepo do
     def config do
@@ -184,7 +186,7 @@ defmodule Drops.Relation.CacheTest do
         meta: %{nullable: false, default: nil}
       }
 
-      dumped = JSON.encode!(field) |> JSON.decode!()
+      dumped = @json_lib.encode!(field) |> @json_lib.decode!()
       assert dumped["__struct__"] == "Field"
       assert dumped["attributes"]["name"] == ["atom", "email"]
       assert dumped["attributes"]["type"] == ["atom", "string"]
@@ -203,7 +205,7 @@ defmodule Drops.Relation.CacheTest do
         meta: %{}
       }
 
-      dumped = JSON.encode!(field) |> JSON.decode!()
+      dumped = @json_lib.encode!(field) |> @json_lib.decode!()
       loaded = Drops.Relation.Schema.Field.load(dumped)
       assert loaded.type == {:array, :string}
       assert loaded == field
@@ -215,7 +217,7 @@ defmodule Drops.Relation.CacheTest do
       field = %Field{name: :id, type: :id, source: :id, meta: %{}}
       pk = %PrimaryKey{fields: [field]}
 
-      dumped = JSON.encode!(pk) |> JSON.decode!()
+      dumped = @json_lib.encode!(pk) |> @json_lib.decode!()
       assert dumped["__struct__"] == "PrimaryKey"
       assert is_list(dumped["attributes"]["fields"])
 
@@ -226,7 +228,7 @@ defmodule Drops.Relation.CacheTest do
     test "handles empty PrimaryKey" do
       pk = %PrimaryKey{fields: []}
 
-      dumped = JSON.encode!(pk) |> JSON.decode!()
+      dumped = @json_lib.encode!(pk) |> @json_lib.decode!()
       loaded = Drops.Relation.Schema.PrimaryKey.load(dumped)
       assert loaded == pk
     end
@@ -240,7 +242,7 @@ defmodule Drops.Relation.CacheTest do
         references_field: :id
       }
 
-      dumped = JSON.encode!(fk) |> JSON.decode!()
+      dumped = @json_lib.encode!(fk) |> @json_lib.decode!()
       assert dumped["__struct__"] == "ForeignKey"
       assert dumped["attributes"]["field"] == ["atom", "user_id"]
       assert dumped["attributes"]["references_table"] == "users"
@@ -262,7 +264,7 @@ defmodule Drops.Relation.CacheTest do
         type: :btree
       }
 
-      dumped = JSON.encode!(index) |> JSON.decode!()
+      dumped = @json_lib.encode!(index) |> @json_lib.decode!()
       assert dumped["__struct__"] == "Index"
       assert dumped["attributes"]["name"] == "users_email_index"
       assert dumped["attributes"]["unique"] == true
@@ -295,7 +297,7 @@ defmodule Drops.Relation.CacheTest do
         indices: indices
       }
 
-      dumped = JSON.encode!(schema) |> JSON.decode!()
+      dumped = @json_lib.encode!(schema) |> @json_lib.decode!()
       assert dumped["__struct__"] == "Schema"
       assert dumped["attributes"]["source"] == "test_table"
 
@@ -312,7 +314,7 @@ defmodule Drops.Relation.CacheTest do
         indices: []
       }
 
-      dumped = JSON.encode!(schema) |> JSON.decode!()
+      dumped = @json_lib.encode!(schema) |> @json_lib.decode!()
       loaded = Drops.Relation.Schema.load(dumped)
       assert loaded == schema
     end
@@ -345,7 +347,7 @@ defmodule Drops.Relation.CacheTest do
       # Read the cache file directly to verify serialization worked
       if File.exists?(cache_file) do
         {:ok, content} = File.read(cache_file)
-        data = JSON.decode!(content)
+        data = @json_lib.decode!(content)
 
         # Verify the schema was serialized with the new protocol format
         assert data["schema"]["__struct__"] == "Schema"

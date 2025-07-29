@@ -191,6 +191,14 @@ defmodule Drops.Relation do
     end
   end
 
+  if Code.ensure_loaded?(JSON) do
+    @doc false
+    def json, do: JSON
+  else
+    @doc false
+    def json, do: Jason
+  end
+
   @core_plugins [
     Drops.Relation.Plugins.Schema,
     Drops.Relation.Plugins.Queryable,

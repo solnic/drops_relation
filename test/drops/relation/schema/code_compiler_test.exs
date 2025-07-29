@@ -6,7 +6,7 @@ defmodule Drops.Relation.Compilers.CodeCompilerTest do
   their behavior using Ecto's reflection functions, making the tests more robust than
   AST comparison.
   """
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Drops.Relation.Compilers.CodeCompiler
   alias Drops.Relation.Generator

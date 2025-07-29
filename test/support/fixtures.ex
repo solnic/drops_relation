@@ -1,10 +1,5 @@
 defmodule Test.Fixtures do
-  @moduledoc """
-  Provides consistent fixture data for doctests and tests.
-
-  This module loads predefined fixture data into the database to ensure
-  doctests have consistent, predictable data to work with.
-  """
+  @moduledoc false
 
   @doc """
   Loads fixture data for the specified tables.
@@ -72,19 +67,11 @@ defmodule Test.Fixtures do
 
     MyApp.Repo.delete_all(MyApp.Users)
     MyApp.Repo.insert_all("users", users)
+
+    reset_sequence("users", "id", 4)
   end
 
-  @doc """
-  Loads post fixtures into the posts table.
-
-  Creates 4 posts with predictable data:
-  - Post with ID 1: "First Post" by John (user_id: 1), published: true, view_count: 100
-  - Post with ID 2: "Second Post" by Jane (user_id: 2), published: true, view_count: 50
-  - Post with ID 3: "Draft Post" by John (user_id: 1), published: false, view_count: 0
-  - Post with ID 4: "Another Post" by Bob (user_id: 3), published: true, view_count: 25
-  """
   def load_posts do
-    # Insert fixture data with explicit IDs and timestamps
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     posts = [
@@ -132,5 +119,12 @@ defmodule Test.Fixtures do
 
     MyApp.Repo.delete_all(MyApp.Posts)
     MyApp.Repo.insert_all("posts", posts)
+
+    reset_sequence("posts", "id", 5)
+  end
+
+  defp reset_sequence(table_name, column_name, next_value) do
+    sequence_name = "#{table_name}_#{column_name}_seq"
+    MyApp.Repo.query!("SELECT setval('#{sequence_name}', #{next_value})")
   end
 end

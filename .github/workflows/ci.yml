@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  tests:
+    name: Run tests (Elixir ${{ matrix.elixir-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+
+      matrix:
+        include:
+          - elixir-version: "1.18.4"
+            container: "dev-latest"
+          - elixir-version: "1.17.3"
+            container: "dev-1.17"
+          - elixir-version: "1.16.3"
+            container: "dev-1.16"
+          - elixir-version: "1.15.8"
+            container: "dev-1.15"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start db service
+        run: docker compose up -d postgres
+
+      - name: Restore deps and _build cache
+        uses: actions/cache@v3
+        with:
+          # we exclude tls_certificate_check because its dir has no x bit and tar fails to access
+          # it when creating a cache tarbal
+          path: |
+            _build
+            deps/*
+            !deps/tls_certificate_check
+          key: ${{ runner.os }}-mix-${{ matrix.container }}-${{ hashFiles('mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-${{ matrix.container }}-
+
+      - name: Setup
+        run: docker compose run -e MIX_ENV=test --rm ${{ matrix.container }} bin/setup
+
+      - name: Run tests
+        run: docker compose run -e MIX_ENV=test --rm ${{ matrix.container }} mix test

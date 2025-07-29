@@ -16,14 +16,17 @@ defmodule Test.RelationCase do
     if tags[:test_type] != :doctest do
       adapter = Map.get(tags, :adapter, String.to_atom(System.get_env("ADAPTER", "sqlite")))
 
-      setup_sandbox(tags, adapter)
+      :ok = Test.Repos.start_owner!(adapter, shared: not tags[:async])
 
       context =
         Enum.reduce(Map.get(tags, :relations, []), %{}, fn name, context ->
           Map.put(context, name, create_relation(name, adapter: adapter))
         end)
 
-      on_exit(fn -> Test.cleanup_relation_modules(Map.values(context)) end)
+      on_exit(fn ->
+        :ok = Test.Repos.stop_owner(adapter)
+        Test.cleanup_relation_modules(Map.values(context))
+      end)
 
       {:ok, Map.merge(context, %{adapter: adapter, repo: repo(adapter)})}
     else
@@ -89,11 +92,6 @@ defmodule Test.RelationCase do
       )
 
     relation_module
-  end
-
-  def setup_sandbox(tags, adapter) do
-    Test.Repos.start_owner!(adapter, shared: not tags[:async])
-    on_exit(fn -> Test.Repos.stop_owner(adapter) end)
   end
 
   def repo(:sqlite), do: Test.Repos.Sqlite

@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+cd test_integration/apps/pristine
+
+mix deps.get
+mix compile
+
+cd ../../..
+
+cd test_integration/apps/sample
+
+mix deps.get
+mix compile
+
+mix ecto.setup
+mix drops.relation.refresh_cache
+
+cd ../../..
+
+mix deps.get
+mix compile
+
+mix ecto.setup
