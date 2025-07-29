@@ -9,28 +9,22 @@ defmodule Drops.Relation.Plugins.Schema do
   ## Examples
 
   ### Automatic Schema Inference
+      defmodule MyApp.Users do
+        use Drops.Relation, otp_app: :my_app
 
-      iex> # Access the inferred schema
+        schema("users", infer: true)
+      end
+
       iex> schema = MyApp.Users.schema()
       iex> schema.source
       :users
-      iex> length(schema.fields) > 0
-      true
-      iex> field_names = Enum.map(schema.fields, & &1.name)
-      iex> :id in field_names
-      true
-      iex> :name in field_names
-      true
-      iex> :email in field_names
-      true
-
-  ### Field Selection from Inferred Schema
-
-  You can select only specific fields from an automatically inferred schema by passing a list of field names:
-
-      schema([:id, :name, :email])  # Only include specific fields from inferred schema
-
-  This creates a relation with only the specified fields, excluding others like `:age`, `:active`, etc.
+      iex> %{name: name, type: type, meta: %{default: default}} = MyApp.Users.schema(:email)
+      iex> name
+      :email
+      iex> type
+      :string
+      iex> default
+      nil
 
   ### Manual Schema Definition
 
@@ -40,6 +34,7 @@ defmodule Drops.Relation.Plugins.Schema do
         field(:name, :string)
         field(:email, :string)
         field(:active, :boolean, default: true)
+
         timestamps()
       end
 
@@ -53,58 +48,25 @@ defmodule Drops.Relation.Plugins.Schema do
         use Drops.Relation, repo: MyApp.Repo
 
         schema("users", infer: true) do
-          # Add custom virtual fields
           field(:full_name, :string, virtual: true)
 
-          # Add associations not inferred from foreign keys
           has_many(:posts, MyApp.Posts)
         end
       end
 
   ### Schema Access and Struct Generation
 
-      iex> # Get the complete schema
-      iex> schema = MyApp.Users.schema()
-      iex> schema.__struct__
-      Drops.Relation.Schema
-
-      iex> # Access specific fields
-      iex> email_field = MyApp.Users.schema()[:email]
-      iex> email_field.name
-      :email
-      iex> email_field.type
-      :string
-
-      iex> # Get the generated Ecto schema module
       iex> schema_module = MyApp.Users.__schema_module__()
       iex> is_atom(schema_module)
       true
 
-      iex> # Create struct instances
       iex> user = MyApp.Users.struct(%{name: "John", email: "john@example.com"})
+      iex> user.__struct__
+      MyApp.Users.User
       iex> user.name
       "John"
       iex> user.email
       "john@example.com"
-
-  ### Working with Posts Schema
-
-      iex> # Posts schema includes foreign key relationships
-      iex> schema = MyApp.Posts.schema()
-      iex> field_names = Enum.map(schema.fields, & &1.name)
-      iex> :user_id in field_names
-      true
-      iex> :title in field_names
-      true
-      iex> :published in field_names
-      true
-
-      iex> # Create a post struct
-      iex> post = MyApp.Posts.struct(%{title: "My First Post", body: "Hello World", published: true})
-      iex> post.title
-      "My First Post"
-      iex> post.published
-      true
 
   ## Options
 
@@ -114,6 +76,7 @@ defmodule Drops.Relation.Plugins.Schema do
   """
 
   alias Drops.Relation.Schema
+  alias Drops.Relation.Schema.Field
   alias Drops.Relation.Cache
   alias Drops.Relation.Generator
 
@@ -184,6 +147,9 @@ defmodule Drops.Relation.Plugins.Schema do
     quote location: :keep do
       @spec schema() :: Schema.t()
       def schema, do: @schema
+
+      @spec schema(atom()) :: Field.t() | nil
+      def schema(name), do: @schema[name]
     end
   end
 

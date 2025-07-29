@@ -36,6 +36,7 @@ defmodule Drops.Relation.Plugins.Views do
       ...>
       ...>   view(:active) do
       ...>     schema([:id, :name, :active])
+      ...>
       ...>     derive do
       ...>       restrict(active: true)
       ...>     end
@@ -48,8 +49,10 @@ defmodule Drops.Relation.Plugins.Views do
       2
       iex> hd(active_users).name
       "John Doe"
+      ...>
       iex> hd(active_users).active
       true
+      ...>
       iex> Map.has_key?(hd(active_users), :email)
       false
 
@@ -57,10 +60,12 @@ defmodule Drops.Relation.Plugins.Views do
 
       iex> defmodule BlogApp.Posts do
       ...>   use Drops.Relation, repo: MyApp.Repo
+      ...>
       ...>   schema("posts", infer: true)
       ...>
       ...>   view(:published) do
       ...>     schema([:id, :title, :view_count, :published], struct: "PublishedPost")
+      ...>
       ...>     derive do
       ...>       restrict(published: true)
       ...>       |> order(desc: :view_count)
@@ -83,10 +88,12 @@ defmodule Drops.Relation.Plugins.Views do
 
       iex> defmodule BlogApp.Analytics do
       ...>   use Drops.Relation, repo: MyApp.Repo
+      ...>
       ...>   schema("posts", infer: true)
       ...>
       ...>   view(:popular) do
       ...>     schema([:id, :title, :view_count, :published])
+      ...>
       ...>     derive do
       ...>       restrict(published: true)
       ...>       |> order(desc: :view_count)
@@ -95,6 +102,7 @@ defmodule Drops.Relation.Plugins.Views do
       ...>
       ...>   view(:recent_drafts) do
       ...>     schema([:id, :title, :user_id, :published])
+      ...>
       ...>     derive do
       ...>       restrict(published: false)
       ...>     end
@@ -109,8 +117,6 @@ defmodule Drops.Relation.Plugins.Views do
       "First Post"
       iex> hd(popular).view_count
       100
-      iex>
-      iex> # Recent drafts view
       iex> drafts = BlogApp.Analytics.recent_drafts().all()
       iex> length(drafts)
       1
