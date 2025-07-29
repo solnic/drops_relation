@@ -9,6 +9,8 @@ defmodule Test.DoctestCase do
         if tags[:test_type] == :doctest do
           Test.Repos.start_owner!(MyApp.Repo, shared: not tags[:async])
 
+          {:ok, _} = Drops.Relation.Cache.warm_up(MyApp.Repo, ["users", "posts"])
+
           modules_before = Test.loaded_modules()
 
           fixtures = tags[:fixtures] || []
