@@ -5,6 +5,10 @@ defmodule Drops.Relation.Plugins.Schema do
   This plugin adds the `schema/1` and `schema/2` macros for defining relation schemas.
   It supports both automatic schema inference from database tables and manual schema
   definition with Ecto.Schema syntax.
+
+  > #### SQlite & schema inference {: .warning}
+  >
+  > Due to missing type information in SQlite, schema inference is very limited.
   """
 
   alias Drops.Relation.Schema
