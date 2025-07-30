@@ -1,5 +1,7 @@
 # Drops.Relation
 
+[![CI](https://github.com/solnic/drops_relation/actions/workflows/ci.yml/badge.svg)](https://github.com/solnic/drops_relation/actions/workflows/ci.yml) [![Hex pm](https://img.shields.io/hexpm/v/drops_relation.svg?style=flat)](https://hex.pm/packages/drops_relation) [![hex.pm downloads](https://img.shields.io/hexpm/dt/drops_relation.svg?style=flat)](https://hex.pm/packages/drops_relation)
+
 High-level API for defining database relations with automatic schema inference and composable queries.
 
 Drops.Relation automatically introspects database tables, generates Ecto schemas, and provides a convenient query API that feels like working directly with Ecto.Repo while adding powerful composition features.
