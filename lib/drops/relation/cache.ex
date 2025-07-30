@@ -370,7 +370,7 @@ defmodule Drops.Relation.Cache do
 
   defp cache_relative_dir do
     env = Application.get_env(:drops_relation, :env, :dev) |> Atom.to_string()
-    Path.join(["tmp", "cache", env, "drops_relation_schema"])
+    Path.join(["priv", "repo", "schemas", env])
   end
 
   ## Private Helpers

@@ -26,5 +26,7 @@ drops_relation-*.tar
 
 priv/*.db*
 priv/repo/*sqlite*
+priv/repo/schemas
 
+test_integration/apps/*/priv/repo/schemas
 test_integration/apps/*/priv/repo/*sqlite*
