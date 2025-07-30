@@ -151,27 +151,29 @@ defmodule Mix.Tasks.Drops.Relation.RefreshCache do
         # Warm up specific tables
         Drops.Relation.Cache.warm_up(repo, tables)
       else
-        # Get all tables from the database and warm up
-        all_tables = get_all_tables(repo)
+        # Use the new high-level API to load cache for all tables
+        case Drops.Relation.load_cache(repo) do
+          :ok ->
+            # Get table count for reporting
+            case get_all_tables(repo) do
+              [] -> {:ok, []}
+              all_tables -> {:ok, all_tables}
+            end
 
-        if Enum.empty?(all_tables) do
-          if verbose do
-            Logger.info("  No tables found in #{inspect(repo)}")
-          end
-
-          {:ok, []}
-        else
-          Drops.Relation.Cache.warm_up(repo, all_tables)
+          {:error, reason} ->
+            {:error, reason}
         end
       end
 
     case warm_up_result do
       {:ok, warmed_tables} ->
+        table_count = if is_list(warmed_tables), do: length(warmed_tables), else: 0
+
         if verbose do
-          Logger.info("  Cache warmed up for #{length(warmed_tables)} tables")
+          Logger.info("  Cache warmed up for #{table_count} tables")
         end
 
-        {:ok, repo, :refreshed, length(warmed_tables)}
+        {:ok, repo, :refreshed, table_count}
 
       {:error, reason} ->
         Logger.error("  Failed to warm up cache for #{inspect(repo)}: #{inspect(reason)}")

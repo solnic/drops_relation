@@ -191,6 +191,72 @@ defmodule Drops.Relation do
     end
   end
 
+  @doc """
+  Loads schema cache for all tables in a given repository.
+
+  This function provides a high-level API for loading cache that can be used
+  in production environments without Mix. It introspects all tables in the
+  database and warms up the cache with their schemas.
+
+  ## Parameters
+
+  - `repo` - The Ecto repository module to load cache for
+
+  ## Returns
+
+  - `:ok` - Successfully loaded cache for all tables
+  - `{:error, reason}` - Error during cache loading
+
+  ## Examples
+
+      # Load cache for a repository
+      Drops.Relation.load_cache(MyApp.Repo)
+
+      # Use in release tasks
+      defmodule MyApp.Release do
+        def load_schema_cache do
+          for repo <- repos() do
+            Drops.Relation.load_cache(repo)
+          end
+        end
+      end
+
+  ## Notes
+
+  - This function requires the application to be started to access repository configuration
+  - If no tables are found in the database, the function will still return `:ok`
+  - Tables that don't exist or can't be introspected will be skipped with logging
+  """
+  @spec load_cache(module()) :: :ok | {:error, term()}
+  def load_cache(repo) when is_atom(repo) do
+    require Logger
+
+    case Drops.SQL.Database.list_tables(repo) do
+      {:ok, tables} ->
+        if Enum.empty?(tables) do
+          Logger.info("No tables found in #{inspect(repo)}")
+          :ok
+        else
+          case Drops.Relation.Cache.warm_up(repo, tables) do
+            {:ok, _schemas} ->
+              Logger.info(
+                "Successfully loaded cache for #{length(tables)} tables in #{inspect(repo)}"
+              )
+
+              :ok
+
+            {:error, reason} ->
+              Logger.error("Failed to load cache for #{inspect(repo)}: #{inspect(reason)}")
+              {:error, reason}
+          end
+        end
+
+      {:error, reason} ->
+        Logger.error("Failed to list tables from #{inspect(repo)}: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
   if Code.ensure_loaded?(JSON) do
     @doc false
     def json, do: JSON
