@@ -2,7 +2,7 @@ defmodule Drops.Relation.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/solnic/drops_relation"
-  @version "0.0.1"
+  @version "0.2.0"
   @license "LGPL-3.0-or-later"
 
   def project do
