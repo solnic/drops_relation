@@ -74,6 +74,7 @@ defmodule Drops.Relation.MixProject do
   defp docs do
     [
       main: "readme",
+      api_reference: false,
       source_ref: "v#{@version}",
       source_url: @source_url,
       authors: ["Peter Solnica"],
