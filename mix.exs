@@ -150,7 +150,7 @@ defmodule Drops.Relation.MixProject do
   defp deps(_, _) do
     [
       {:nimble_options, "~> 1.0"},
-      {:drops_inflector, "~> 0.1"},
+      {:drops_inflector, "~> 0.2"},
       {:ecto, "~> 3.10"},
       {:ecto_sql, "~> 3.10"},
       {:igniter, "~> 0.6"},
