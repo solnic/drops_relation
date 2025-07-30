@@ -18,6 +18,12 @@ def deps do
 end
 ```
 
+Then run installation task:
+
+```bash
+mix drops.relation.install
+```
+
 ## Configuration
 
 Configure Drops.Relation in your application config:
