@@ -2,7 +2,7 @@ defmodule Drops.Relation.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/solnic/drops_relation"
-  @version "0.2.0"
+  @version "0.1.0"
   @license "LGPL-3.0-or-later"
 
   def project do
@@ -76,7 +76,6 @@ defmodule Drops.Relation.MixProject do
       main: "readme",
       source_ref: "v#{@version}",
       source_url: @source_url,
-      skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
       authors: ["Peter Solnica"],
       logo: "assets/logo.png",
       favicon: "assets/favicon.png",
@@ -84,12 +83,12 @@ defmodule Drops.Relation.MixProject do
       extras: [
         "README.md"
       ],
-      # nest_modules_by_prefix: [
-      #   Drops.Relation.Plugins,
-      #   Drops.Relation.Schema,
-      #   Drops.SQL.Database,
-      #   Drops.SQL.Compilers
-      # ],
+      extra_section: "Guides",
+      extras: [
+        "README.md",
+        "CHANGELOG.md",
+        "_docs/introduction.md"
+      ],
       groups_for_modules: [
         "Core API": [
           Drops.Relation,
